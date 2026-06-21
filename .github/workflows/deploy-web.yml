@@ -1,14 +1,14 @@
 name: Deploy web to Vercel (prebuilt)
 
-# GitHub is the source of truth: on every push to main, GitHub Actions builds the
-# Expo web export here and ships the already-built output to Vercel (--prebuilt),
-# so Vercel only serves it (no rebuild on Vercel's side).
+# GitHub is the source of truth: on push to main it BUILDS the Expo web export
+# here (using EXPO_PUBLIC_* from repo secrets) and ships the prebuilt output to
+# Vercel, which only serves it. CI has no .env file, so the build env is supplied
+# explicitly via the `env:` block on the build step.
 on:
   push:
     branches: [main]
   workflow_dispatch: {}
 
-# Never run two production deploys at once; newer push wins.
 concurrency:
   group: deploy-web-production
   cancel-in-progress: true
@@ -32,9 +32,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Typecheck is informational for now (the project has pre-existing tsc
-      # errors that don't affect the Babel/Metro build). Flip continue-on-error
-      # to false once those are cleaned up to make this a hard deploy gate.
+      # Informational for now (pre-existing tsc errors don't affect the build).
+      # Flip continue-on-error to false to make it a hard gate once cleaned up.
       - name: Typecheck (non-blocking)
         run: npm run tsc
         continue-on-error: true
@@ -42,18 +41,25 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      # Pulls project settings + the Production EXPO_PUBLIC_* env vars from Vercel,
-      # so the build inlines the same values Vercel uses (no need to duplicate
-      # them as GitHub secrets).
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+      # Pull project settings/link only — then delete the pulled env files so the
+      # build uses the EXPO_PUBLIC_* from the GitHub secrets below (authoritative),
+      # not Vercel's (which CI can't fully decrypt).
+      - name: Link Vercel project
+        run: |
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          rm -f .vercel/.env.production.local .vercel/.env.preview.local .vercel/.env.development.local
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build (runs npm run build:web via vercel build)
+      - name: Build in CI (Expo web export via vercel build)
         run: vercel build --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_CDN_URL: ${{ secrets.EXPO_PUBLIC_CDN_URL }}
+          EXPO_PUBLIC_BETA_FEEDBACK_ENABLED: ${{ secrets.EXPO_PUBLIC_BETA_FEEDBACK_ENABLED }}
+          EXPO_PUBLIC_APP_TUTORIAL_ENABLED: ${{ secrets.EXPO_PUBLIC_APP_TUTORIAL_ENABLED }}
 
       - name: Deploy prebuilt output to production
         run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
