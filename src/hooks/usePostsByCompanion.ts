@@ -31,6 +31,7 @@ export function usePostsByCompanion(companionId: string | null | undefined): {
       .eq('companion_author_id', companionId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
+      .limit(200)
       .then(async ({ data }) => {
         if (cancelled) return;
         if (data) {

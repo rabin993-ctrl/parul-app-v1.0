@@ -184,12 +184,14 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
       .from('rescue_cases')
       .select('id, poster_user_id, case_code, name, species, icon, tint, status, location, headline, story, tags, post_id, created_at')
       .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(500);
 
     const updatesQuery = supabase
       .from('rescue_updates')
       .select('id, case_id, text, photo_count, created_at')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(2000);
 
     // All follower rows – used for counts (RLS allows all reads)
     const allFollowersQuery = supabase

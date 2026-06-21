@@ -32,3 +32,11 @@ export async function shareUserProfileLink(userId: string): Promise<boolean> {
 export async function shareCompanionProfileLink(companionId: string): Promise<boolean> {
   return shareDeepLink(companionProfileDeepLink(companionId));
 }
+
+export function communityPostDeepLink(postId: string): string {
+  return `parul://community-post/${postId}`;
+}
+
+export async function shareCommunityPostLink(postId: string): Promise<boolean> {
+  return shareDeepLink(communityPostDeepLink(postId));
+}

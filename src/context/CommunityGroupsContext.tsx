@@ -156,42 +156,47 @@ export function CommunityGroupsProvider({ children }: { children: React.ReactNod
       return;
     }
     setLoading(true);
-    const [
-      { data: comms },
-      { data: memberships },
-      { data: requests },
-    ] = await Promise.all([
-      supabase.from('communities').select('*').order('name'),
-      supabase.from('community_members')
-        .select('community_id, role')
-        .eq('user_id', user.id),
-      supabase.from('community_join_requests')
-        .select('id, community_id, user_id, created_at, requester:users!community_join_requests_user_id_fkey(name, handle, tint)')
-        .eq('state', 'pending'),
-    ]);
+    try {
+      const [
+        { data: comms },
+        { data: memberships },
+        { data: requests },
+      ] = await Promise.all([
+        supabase.from('communities').select('*').order('name'),
+        supabase.from('community_members')
+          .select('community_id, role')
+          .eq('user_id', user.id),
+        supabase.from('community_join_requests')
+          .select('id, community_id, user_id, created_at, requester:users!community_join_requests_user_id_fkey(name, handle, tint)')
+          .eq('state', 'pending'),
+      ]);
 
-    const myRoles = new Map<string, 'admin' | 'member'>(
-      (memberships ?? []).map(m => [m.community_id, m.role as 'admin' | 'member']),
-    );
+      const myRoles = new Map<string, 'admin' | 'member'>(
+        (memberships ?? []).map(m => [m.community_id, m.role as 'admin' | 'member']),
+      );
 
-    const rows = (comms ?? []) as DbCommunityRow[];
-    const rowMap: Record<string, DbCommunityRow> = {};
-    rows.forEach(r => { rowMap[r.id] = r; });
+      const rows = (comms ?? []) as DbCommunityRow[];
+      const rowMap: Record<string, DbCommunityRow> = {};
+      rows.forEach(r => { rowMap[r.id] = r; });
 
-    const mapped = rows.map(r => mapToFrontendCommunity(r, myRoles.get(r.id) ?? null));
+      const mapped = rows.map(r => mapToFrontendCommunity(r, myRoles.get(r.id) ?? null));
 
-    const pending: CommunityPendingRequest[] = (requests ?? []).map((r: any) => ({
-      id: r.id,
-      communityId: r.community_id,
-      userId: r.user_id,
-      time: formatRelativeTime(r.created_at),
-      authorProfile: r.requester ?? undefined,
-    }));
+      const pending: CommunityPendingRequest[] = (requests ?? []).map((r: any) => ({
+        id: r.id,
+        communityId: r.community_id,
+        userId: r.user_id,
+        time: formatRelativeTime(r.created_at),
+        authorProfile: r.requester ?? undefined,
+      }));
 
-    setDbRows(rowMap);
-    setCommunities(mapped);
-    setPendingRequests(pending);
-    setLoading(false);
+      setDbRows(rowMap);
+      setCommunities(mapped);
+      setPendingRequests(pending);
+    } finally {
+      // Always clear the flag — a rejected query must not leave the hub
+      // (which gates a full-screen spinner on `loading`) stuck forever.
+      setLoading(false);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -210,15 +215,33 @@ export function CommunityGroupsProvider({ children }: { children: React.ReactNod
     ));
 
     if (isJoined) {
-      supabase.rpc('leave_community', { p_community: id });
+      // Optimistically left — on failure, restore membership.
+      supabase.rpc('leave_community', { p_community: id }).then(({ error }) => {
+        if (error) {
+          setCommunities(prev => prev.map(c =>
+            c.id !== id ? c : { ...c, joined: true, role: c.role ?? 'Member' },
+          ));
+          if (__DEV__) console.warn('[CommunityGroups] leave_community failed:', error.message);
+        }
+      });
     } else if (row?.join_policy === 'request') {
-      supabase.rpc('send_community_request', { p_community: id });
-      // Pending approval — revert joined flag
+      // Pending approval — revert joined flag regardless (request ≠ joined).
       setCommunities(prev => prev.map(c =>
         c.id !== id ? c : { ...c, joined: false, role: null },
       ));
+      supabase.rpc('send_community_request', { p_community: id }).then(({ error }) => {
+        if (error && __DEV__) console.warn('[CommunityGroups] send_community_request failed:', error.message);
+      });
     } else {
-      supabase.rpc('join_community', { p_community: id });
+      // Optimistically joined — on failure, restore not-joined.
+      supabase.rpc('join_community', { p_community: id }).then(({ error }) => {
+        if (error) {
+          setCommunities(prev => prev.map(c =>
+            c.id !== id ? c : { ...c, joined: false, role: null },
+          ));
+          if (__DEV__) console.warn('[CommunityGroups] join_community failed:', error.message);
+        }
+      });
     }
   }, [user, communities, dbRows]);
 
@@ -278,9 +301,12 @@ export function CommunityGroupsProvider({ children }: { children: React.ReactNod
   }, [loadAll]);
 
   const declineJoinRequest = useCallback((requestId: string) => {
-    supabase.rpc('decline_community_request', { p_request_id: requestId });
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-  }, []);
+    supabase.rpc('decline_community_request', { p_request_id: requestId }).then(({ error }) => {
+      // Restore the pending request on failure so it isn't silently lost.
+      if (error) loadAll();
+    });
+  }, [loadAll]);
 
   const getCommunityMemberIds = useCallback(
     (communityId: string) => membersByGroup[communityId] ?? [],
@@ -306,7 +332,15 @@ export function CommunityGroupsProvider({ children }: { children: React.ReactNod
 
   const removeCommunityMember = useCallback((communityId: string, userId: string) => {
     if (!user || userId === user.id) return false;
-    supabase.rpc('remove_community_member', { p_community: communityId, p_user: userId });
+    // Optimistically remove across the three derived slices; reload to reconcile
+    // all of them if the RPC fails (cheaper and safer than a triple hand-revert).
+    supabase.rpc('remove_community_member', { p_community: communityId, p_user: userId })
+      .then(({ error }) => {
+        if (error) {
+          loadAll();
+          if (__DEV__) console.warn('[CommunityGroups] remove_community_member failed:', error.message);
+        }
+      });
     setMembersByGroup(prev => {
       const current = prev[communityId] ?? [];
       if (!current.includes(userId)) return prev;
@@ -324,7 +358,7 @@ export function CommunityGroupsProvider({ children }: { children: React.ReactNod
       return { ...c, members: formatMemberCount(newCount) };
     }));
     return true;
-  }, [user, dbRows]);
+  }, [user, dbRows, loadAll]);
 
   const getAdminSettings = useCallback((communityId: string): CommunityAdminSettings => {
     const row = dbRows[communityId];

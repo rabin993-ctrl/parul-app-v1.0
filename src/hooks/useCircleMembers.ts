@@ -58,7 +58,8 @@ export function useCircleMembers(circleId: string | null | undefined) {
       .from('circle_members')
       .select(`user_id, role, joined_at, users(id, name, handle, tint, ${USER_AVATAR_MEDIA_SELECT})`)
       .eq('circle_id', circleId)
-      .order('joined_at', { ascending: true });
+      .order('joined_at', { ascending: true })
+      .limit(2000);
 
     if (data) {
       const rows = data as CircleMemberRow[];

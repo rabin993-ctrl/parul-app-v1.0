@@ -205,6 +205,20 @@ export function CircleSettingsScreen() {
     });
   }, [circleId, toggleCircleMute]);
 
+  // Declared before the early return below so hook order stays stable when
+  // `circle` transitions from null (context still hydrating) to non-null —
+  // otherwise React throws "rendered more hooks than during the previous render".
+  const openSharedItem = useCallback(async (item: SharedItem) => {
+    const url = item.mediaUrl
+      ? await resolveCircleMediaSignedUrl(item.mediaUrl)
+      : item.uri;
+    if (!url) {
+      setToast({ msg: 'Could not open attachment', icon: 'close', tone: 'neutral' });
+      return;
+    }
+    void Linking.openURL(url);
+  }, []);
+
   if (!circle) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']} />
@@ -227,17 +241,6 @@ export function CircleSettingsScreen() {
         photos.length > 0 ? `${photos.length} photo${photos.length === 1 ? '' : 's'}` : null,
         files.length > 0 ? `${files.length} attachment${files.length === 1 ? '' : 's'}` : null,
       ].filter(Boolean).join(' · ');
-
-  const openSharedItem = useCallback(async (item: SharedItem) => {
-    const url = item.mediaUrl
-      ? await resolveCircleMediaSignedUrl(item.mediaUrl)
-      : item.uri;
-    if (!url) {
-      setToast({ msg: 'Could not open attachment', icon: 'close', tone: 'neutral' });
-      return;
-    }
-    void Linking.openURL(url);
-  }, []);
 
   const saveEdit = async ({ name, bio, slug, location: nextLocation }: CircleHeroSavePayload) => {
     if (!name.trim()) return;

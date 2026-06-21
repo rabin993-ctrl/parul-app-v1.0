@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +18,10 @@ import { Button } from '../../components/ui/Button';
 import { LegalDocumentView } from '../../components/legal/LegalDocumentView';
 import { LEGAL_DOCUMENTS, type LegalDocumentId } from '../../data/legalDocuments';
 import { useAuth } from '../../context/AuthContext';
+import { isUsernameAvailable } from '../../utils/username';
 import { ForgotPasswordSheet } from './ForgotPasswordSheet';
+
+type UsernameStatus = 'idle' | 'invalid' | 'checking' | 'available' | 'taken';
 
 type Mode = 'signin' | 'signup';
 
@@ -29,6 +32,7 @@ export function AuthScreen() {
   const insets = useSafeAreaInsets();
   const {
     signIn,
+    signInWithGoogle,
     signUp,
     resendConfirmationEmail,
     pendingConfirmationEmail,
@@ -44,20 +48,38 @@ export function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [legalDoc, setLegalDoc] = useState<LegalDocumentId | null>(null);
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
 
   const isSignup = mode === 'signup';
 
   const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+
+  // Live username availability check (debounced). `username` is already
+  // normalized by the field's onChangeText, so we test it directly.
+  useEffect(() => {
+    if (!isSignup || username.length === 0) { setUsernameStatus('idle'); return; }
+    if (!USERNAME_RE.test(username)) { setUsernameStatus('invalid'); return; }
+    setUsernameStatus('checking');
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const ok = await isUsernameAvailable(username);
+      if (cancelled) return;
+      setUsernameStatus(ok === null ? 'idle' : ok ? 'available' : 'taken');
+    }, 450);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [username, isSignup]);
 
   function validate(): string | null {
     if (!EMAIL_RE.test(email.trim())) return 'Enter a valid email address.';
     if (password.length < 6) return 'Password must be at least 6 characters.';
     if (isSignup && name.trim().length < 2) return 'Please enter your name.';
     if (isSignup && !USERNAME_RE.test(username)) return 'Username must be 3–20 characters: letters, numbers, or _.';
+    if (isSignup && usernameStatus === 'taken') return 'That username is taken — please choose another.';
     return null;
   }
 
@@ -82,6 +104,19 @@ export function AuthScreen() {
     if (isSignup && 'needsEmailConfirmation' in res && res.needsEmailConfirmation) {
       setAwaitingConfirmation(true);
       setInfo(`We sent a confirmation link to ${email.trim().toLowerCase()}. Open it on this device to activate your account.`);
+    }
+  }
+
+  async function onGoogle() {
+    setError(null);
+    setInfo(null);
+    setGoogleLoading(true);
+    const res = await signInWithGoogle();
+    // On web the call redirects the page to Google, so we only get here on a
+    // failure to start the flow.
+    if (res.error) {
+      setError(res.error);
+      setGoogleLoading(false);
     }
   }
 
@@ -157,16 +192,30 @@ export function AuthScreen() {
           )}
 
           {isSignup && (
-            <Field
-              label="Username"
-              value={username}
-              onChangeText={t => setUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-              placeholder="yourusername"
-              prefix="@"
-              autoCapitalize="none"
-              autoComplete="username"
-              colors={colors}
-            />
+            <View>
+              <Field
+                label="Username"
+                value={username}
+                onChangeText={t => setUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                placeholder="yourusername"
+                prefix="@"
+                autoCapitalize="none"
+                autoComplete="username"
+                colors={colors}
+              />
+              {usernameStatus === 'checking' && (
+                <Text style={[styles.usernameHint, { color: colors.textSecondary }]}>Checking availability…</Text>
+              )}
+              {usernameStatus === 'available' && (
+                <Text style={[styles.usernameHint, { color: colors.success }]}>✓ @{username} is available</Text>
+              )}
+              {usernameStatus === 'taken' && (
+                <Text style={[styles.usernameHint, { color: colors.danger }]}>@{username} is taken — try another</Text>
+              )}
+              {usernameStatus === 'invalid' && (
+                <Text style={[styles.usernameHint, { color: colors.textTertiary }]}>3–20 characters: letters, numbers, or _</Text>
+              )}
+            </View>
           )}
 
           <Field
@@ -215,6 +264,21 @@ export function AuthScreen() {
 
           <Button full size="lg" loading={loading} onPress={onSubmit} style={styles.submit}>
             {isSignup ? 'Create account' : 'Sign in'}
+          </Button>
+
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.textTertiary }]}>or</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          </View>
+          <Button
+            full
+            size="lg"
+            variant="secondary"
+            loading={googleLoading}
+            onPress={onGoogle}
+          >
+            Continue with Google
           </Button>
 
           {isSignup && (
@@ -349,6 +413,10 @@ const styles = StyleSheet.create({
   resendBlock: { gap: spacing.sm, marginTop: spacing.sm },
   resendHint: { fontSize: 13, fontFamily: fonts.regular, textAlign: 'center', lineHeight: 18 },
   submit: { marginTop: spacing.xs },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginVertical: spacing.sm },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  dividerText: { fontSize: 12.5, fontFamily: fonts.regular },
+  usernameHint: { fontSize: 12.5, fontFamily: fonts.medium, marginTop: spacing.xs },
   legalText: { fontSize: 12.5, fontFamily: fonts.regular, lineHeight: 18, textAlign: 'center' },
   legalLink: { fontFamily: fonts.semibold },
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },

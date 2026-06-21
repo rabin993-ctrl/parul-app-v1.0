@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAdoption, type ChatThread } from '../../context/AdoptionContext';
@@ -60,8 +60,20 @@ export function ChatThreadRouteScreen() {
     params.adoptionRecordId,
   ]);
 
+  // Load the thread's messages once if they aren't cached yet (e.g. a brand-new
+  // DM). Guarded so it fires at most once per thread — without this, a freshly
+  // created thread that hasn't replicated yet keeps failing the hasOwnProperty
+  // check, re-running reloadThreads on every `messages` change → a render loop
+  // that (on mobile web) prevents the composer's first tap from opening the
+  // keyboard.
+  const reloadedForThreadRef = useRef<string | null>(null);
   useEffect(() => {
-    if (Object.prototype.hasOwnProperty.call(messages, params.threadId)) return;
+    if (Object.prototype.hasOwnProperty.call(messages, params.threadId)) {
+      reloadedForThreadRef.current = null;
+      return;
+    }
+    if (reloadedForThreadRef.current === params.threadId) return;
+    reloadedForThreadRef.current = params.threadId;
     void reloadThreads();
   }, [messages, params.threadId, reloadThreads]);
 

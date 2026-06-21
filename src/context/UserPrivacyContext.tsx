@@ -157,24 +157,38 @@ function UserPrivacyProviderInner({ children }: { children: React.ReactNode }) {
   }, [user, syncShowTreatsOnProfile]);
 
   const blockUser = useCallback((userId: string) => {
-    if (!user) return;
+    if (!user || blockedUserIds.includes(userId)) return;
     setBlockedUserIds(prev => (prev.includes(userId) ? prev : [...prev, userId]));
     supabase
       .from('blocked_users')
       .insert({ blocker_id: user.id, blocked_id: userId })
-      .then(() => {});
-  }, [user]);
+      .then(({ error }) => {
+        // 23505 = the row already exists (local state was stale): the user IS
+        // blocked, so keep the optimistic state. Only revert on a real failure —
+        // never silently leave a "blocked" user unblocked.
+        if (error && error.code !== '23505') {
+          setBlockedUserIds(prev => prev.filter(id => id !== userId));
+          if (__DEV__) console.warn('[UserPrivacyContext] blockUser failed:', error.message);
+        }
+      });
+  }, [user, blockedUserIds]);
 
   const unblockUser = useCallback((userId: string) => {
-    if (!user) return;
+    if (!user || !blockedUserIds.includes(userId)) return;
     setBlockedUserIds(prev => prev.filter(id => id !== userId));
     supabase
       .from('blocked_users')
       .delete()
       .eq('blocker_id', user.id)
       .eq('blocked_id', userId)
-      .then(() => {});
-  }, [user]);
+      .then(({ error }) => {
+        // Revert restores the block — the safe direction if the delete failed.
+        if (error) {
+          setBlockedUserIds(prev => (prev.includes(userId) ? prev : [...prev, userId]));
+          if (__DEV__) console.warn('[UserPrivacyContext] unblockUser failed:', error.message);
+        }
+      });
+  }, [user, blockedUserIds]);
 
   const isBlocked = useCallback(
     (userId: string) => blockedUserIds.includes(userId),
@@ -188,7 +202,9 @@ function UserPrivacyProviderInner({ children }: { children: React.ReactNode }) {
       target_type: 'user',
       target_id: userId,
       reason: reason ?? 'User report',
-    }).then(() => {});
+    }).then(({ error }) => {
+      if (error && __DEV__) console.warn('[UserPrivacyContext] reportUser failed:', error.message);
+    });
   }, [user]);
 
   const value = useMemo(

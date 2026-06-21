@@ -175,21 +175,47 @@ export function CommunityFeedProvider({ children }: { children: React.ReactNode 
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadPosts = useCallback(async () => {
+  const loadPosts = useCallback(async (opts?: { silent?: boolean }) => {
     if (!user) {
       setPosts([]);
       setLoading(false);
       return;
     }
-    setLoading(true);
-    const loaded = await fetchPosts(user.id);
-    setPosts(loaded);
-    setLoading(false);
+    if (!opts?.silent) setLoading(true);
+    try {
+      const loaded = await fetchPosts(user.id);
+      setPosts(loaded);
+    } finally {
+      // Always clear the flag, even if fetchPosts rejects — otherwise the hub
+      // screen that gates on `loading` would spin forever.
+      if (!opts?.silent) setLoading(false);
+    }
   }, [user]);
 
   useEffect(() => {
     loadPosts();
   }, [loadPosts]);
+
+  // Realtime: refresh the feed when posts or comments change so other users'
+  // activity appears without a manual reload. Debounced + silent so a burst of
+  // changes doesn't trigger a reload storm or flash the loading spinner.
+  useEffect(() => {
+    if (!user) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReload = () => {
+      if (timer) return;
+      timer = setTimeout(() => { timer = null; void loadPosts({ silent: true }); }, 1500);
+    };
+    const channel = supabase
+      .channel('community-feed-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_posts' }, scheduleReload)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_comments' }, scheduleReload)
+      .subscribe();
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, loadPosts]);
 
   const loadPostThreads = useCallback(async (postId: string) => {
     const threads = await fetchPostThreads(postId);
@@ -200,37 +226,43 @@ export function CommunityFeedProvider({ children }: { children: React.ReactNode 
 
   const toggleHelpful = useCallback((postId: string) => {
     if (!user) return;
-    setPosts(prev => prev.map(p => {
-      if (p.id !== postId) return p;
-      const on = !p.helpfulByMe;
-      if (on) {
-        supabase.from('community_post_helpful').insert({ post_id: postId, user_id: user.id });
-      } else {
-        supabase.from('community_post_helpful').delete()
-          .eq('post_id', postId).eq('user_id', user.id);
-      }
-      return { ...p, helpfulByMe: on, helpful: Math.max(0, p.helpful + (on ? 1 : -1)) };
-    }));
-  }, [user]);
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    const on = !post.helpfulByMe;
+    setPosts(prev => prev.map(p =>
+      p.id !== postId ? p : { ...p, helpfulByMe: on, helpful: Math.max(0, p.helpful + (on ? 1 : -1)) },
+    ));
+    const revert = () => setPosts(prev => prev.map(p =>
+      p.id !== postId ? p : { ...p, helpfulByMe: !on, helpful: Math.max(0, p.helpful + (on ? -1 : 1)) },
+    ));
+    const op = on
+      ? supabase.from('community_post_helpful').insert({ post_id: postId, user_id: user.id })
+      : supabase.from('community_post_helpful').delete().eq('post_id', postId).eq('user_id', user.id);
+    // 23505 = already recorded in DB (stale local state) — the optimistic state is
+    // already correct, so only revert on a genuine failure.
+    op.then(({ error }) => { if (error && error.code !== '23505') revert(); });
+  }, [user, posts]);
 
   const savedPosts = useMemo(() => posts.filter(p => p.saved), [posts]);
 
   const toggleSaved = useCallback((postId: string): boolean => {
     if (!user) return false;
-    let nowSaved = false;
-    setPosts(prev => prev.map(p => {
-      if (p.id !== postId) return p;
-      nowSaved = !p.saved;
-      if (nowSaved) {
-        (supabase as any).from('community_post_saves').insert({ post_id: postId, user_id: user.id });
-      } else {
-        (supabase as any).from('community_post_saves').delete()
-          .eq('post_id', postId).eq('user_id', user.id);
-      }
-      return { ...p, saved: nowSaved };
-    }));
+    const post = posts.find(p => p.id === postId);
+    if (!post) return false;
+    const nowSaved = !post.saved;
+    setPosts(prev => prev.map(p => (p.id !== postId ? p : { ...p, saved: nowSaved })));
+    const revert = () => setPosts(prev => prev.map(p =>
+      p.id !== postId ? p : { ...p, saved: !nowSaved },
+    ));
+    const op = nowSaved
+      ? (supabase as any).from('community_post_saves').insert({ post_id: postId, user_id: user.id })
+      : (supabase as any).from('community_post_saves').delete().eq('post_id', postId).eq('user_id', user.id);
+    // 23505 = already saved in DB (stale local state); keep the optimistic state.
+    op.then(({ error }: { error: { code?: string } | null }) => {
+      if (error && error.code !== '23505') revert();
+    });
     return nowSaved;
-  }, [user]);
+  }, [user, posts]);
 
   const addComment = useCallback(async (
     postId: string,

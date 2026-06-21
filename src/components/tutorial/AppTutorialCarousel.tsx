@@ -502,7 +502,11 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   decorWrap: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     zIndex: -1,
   },
   decorOrb: {

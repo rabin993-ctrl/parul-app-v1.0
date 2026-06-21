@@ -45,7 +45,6 @@ import {
 import { sharedPostLoadingLabel } from '../../utils/chatPreviewText';
 import { RescueCaseShareCard } from '../../components/rescue/RescueCaseShareCard';
 import { useRescueFeedOptional } from '../../context/RescueFeedContext';
-import { getRescueCaseById } from '../../data/rescueData';
 import { fetchRescueCaseById } from '../../utils/rescueCases';
 import { getRootNavigation } from '../../navigation/notificationRouting';
 import { openRescueCaseDetail } from '../../navigation/rescueCaseRouting';
@@ -343,7 +342,6 @@ export function CircleChatScreen() {
       .filter(id => {
         if (rescueCaseMap[id]) return false;
         if (rescueFeed?.cases.find(c => c.id === id)) return false;
-        if (getRescueCaseById(id)) return false;
         return true;
       });
     const uniqueIds = [...new Set(caseIds)];
@@ -363,7 +361,7 @@ export function CircleChatScreen() {
   const resolveRescueCase = useCallback((caseId: string): RescueCase | null => {
     return rescueCaseMap[caseId]
       ?? rescueFeed?.cases.find(c => c.id === caseId)
-      ?? getRescueCaseById(caseId);
+      ?? null;
   }, [rescueCaseMap, rescueFeed?.cases]);
 
   const handleViewRescueCase = useCallback((caseId: string) => {
@@ -558,7 +556,7 @@ export function CircleChatScreen() {
 
       return (
         <View style={isMe ? styles.outgoingWrap : styles.incomingRow}>
-          {!isMe && renderPeerAvatar(item.userId, author)}
+          {!isMe && renderPeerAvatar(message.userId, author)}
           <View
             style={[
               isMe ? styles.outgoingCol : styles.incomingCol,

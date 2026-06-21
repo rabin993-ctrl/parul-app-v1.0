@@ -17,22 +17,21 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from './supabase';
 import { mediaUrl } from './cdn';
-import { ENV } from './env';
 
 /** Public buckets whose thumbs are backfilled by the VPS generate-thumbs job. */
 const PUBLIC_IMAGE_BUCKETS = new Set(['avatars', 'post-media']);
 
 /**
- * Fire-and-forget POST to the VPS thumbnail webhook.
- * Called after every avatar upload so thumb.jpg is ready within seconds
- * rather than waiting up to 15 min for the cron job.
+ * No-op. Thumbnail generation is handled entirely by the VPS cron
+ * (generate-thumbs.js, every ~15 min); the feed falls back to the full image URL
+ * until a thumb exists. The previous client-side webhook nudge required shipping
+ * a bearer secret in the bundle (every EXPO_PUBLIC_* var is inlined into the
+ * client), which is not a real secret — so it was removed. Kept as a no-op so
+ * call sites stay put if the trigger later moves behind a server-side edge
+ * function that holds the secret.
  */
 export function triggerThumbGeneration(): void {
-  if (!ENV.THUMB_WEBHOOK_URL || !ENV.THUMB_WEBHOOK_SECRET) return;
-  fetch(ENV.THUMB_WEBHOOK_URL, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${ENV.THUMB_WEBHOOK_SECRET}` },
-  }).catch(() => {}); // intentionally silent — cron is the safety net
+  // intentionally empty — see above.
 }
 
 // ---------------------------------------------------------------------------
@@ -192,7 +191,9 @@ export async function uploadMediaAsset({
     id: mediaId,
     owner_id: userId,
     url: originalUrl,
-    thumb_url: thumbUrlValue,
+    // Only store a thumb URL when a thumbnail is actually produced (images with
+    // variants enabled). Otherwise the DB would hold a permanently-404 URL.
+    thumb_url: shouldGenerateVariants ? thumbUrlValue : null,
     mime,
     type: isImage ? 'image' : isVideo ? 'video' : 'file',
     width: width ?? null,

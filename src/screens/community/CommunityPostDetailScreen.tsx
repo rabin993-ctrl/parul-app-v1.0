@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,6 +19,7 @@ import { getCommunityPost } from '../../data/communityPosts';
 import type { CommunityStackParamList } from '../../navigation/CommunityNavigator';
 import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
 import { useTabBarScrollProps } from '../../context/TabBarScrollContext';
+import { shareCommunityPostLink } from '../../utils/shareLinks';
 
 type Route = RouteProp<CommunityStackParamList, 'PostDetail'>;
 type Nav = NativeStackNavigationProp<CommunityStackParamList, 'PostDetail'>;
@@ -153,7 +154,16 @@ export function CommunityPostDetailScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => setToast({ msg: 'Link copied', icon: 'forward', tone: 'success' })}
+            onPress={async () => {
+              const ok = await shareCommunityPostLink(post.id);
+              // Native shows the OS share sheet; web copies to clipboard, so only
+              // confirm with a toast there. Surface a failure either way.
+              if (!ok) {
+                setToast({ msg: 'Could not share link', icon: 'close', tone: 'neutral' });
+              } else if (Platform.OS === 'web') {
+                setToast({ msg: 'Link copied', icon: 'forward', tone: 'success' });
+              }
+            }}
             style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
           >
             <Icon name="forward" size={20} color={colors.textSecondary} />

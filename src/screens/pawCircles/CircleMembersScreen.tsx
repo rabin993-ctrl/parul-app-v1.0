@@ -250,7 +250,7 @@ export function CircleMembersScreen() {
       p_user_id: userId,
     });
     if (!error) {
-      refreshMembers();
+      void Promise.all([refreshMembers(), refreshMembership()]);
       setToast({ msg: `Removed ${name}`, icon: 'check', tone: 'neutral' });
     } else {
       setToast({ msg: 'Failed to remove member', icon: 'close', tone: 'neutral' });

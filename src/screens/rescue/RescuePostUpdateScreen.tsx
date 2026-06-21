@@ -10,7 +10,6 @@ import { AppCenteredHeader } from '../../components/ui/AppSubHeader';
 import { RescuePostUpdateForm } from '../../components/rescue/RescuePostUpdateForm';
 import { useRescueFeedOptional } from '../../context/RescueFeedContext';
 import { useRescueOpenCaseBack } from '../../context/RescueOpenCaseFlowContext';
-import { getRescueCaseById } from '../../data/rescueData';
 import type { RescueCase } from '../../data/profileData';
 import type { RescueStackParamList } from '../../navigation/RescueNavigator';
 import { fetchRescueCaseById } from '../../utils/rescueCases';
@@ -30,7 +29,7 @@ export function RescuePostUpdateScreen() {
   const route = useRoute();
   const { caseId } = route.params as { caseId: string };
   const rescueFeed = useRescueFeedOptional();
-  const feedItem = rescueFeed?.cases.find(c => c.id === caseId) ?? getRescueCaseById(caseId);
+  const feedItem = rescueFeed?.cases.find(c => c.id === caseId) ?? null;
   const [fetchedItem, setFetchedItem] = useState<RescueCase | null>(null);
   const [loading, setLoading] = useState(false);
   const item = feedItem ?? fetchedItem;

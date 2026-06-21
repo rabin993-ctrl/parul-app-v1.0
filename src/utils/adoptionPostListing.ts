@@ -1,6 +1,5 @@
 import type { Post } from '../data/mockData';
 import type { AdoptionListing } from '../data/adoptionData';
-import { DEMO_ADOPTION_LISTINGS } from '../data/adoptionData';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -8,12 +7,8 @@ export function isAdoptionTaggedPost(post: Post): boolean {
   return post.label === 'adoption' || post.tag === 'adoption';
 }
 
-function listingPool(
-  listings: AdoptionListing[],
-  fallback: AdoptionListing[] = DEMO_ADOPTION_LISTINGS,
-): AdoptionListing[] {
+function listingPool(listings: AdoptionListing[]): AdoptionListing[] {
   const byId = new Map<string, AdoptionListing>();
-  for (const l of fallback) byId.set(l.id, l);
   for (const l of listings) byId.set(l.id, l);
   return [...byId.values()];
 }

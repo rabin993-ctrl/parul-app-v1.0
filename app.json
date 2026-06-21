@@ -3,13 +3,18 @@
     "name": "frontend",
     "slug": "frontend",
     "version": "1.0.0",
+    "scheme": "parul",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "pet.parul.app",
+      "buildNumber": "1"
     },
     "android": {
+      "package": "pet.parul.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -41,7 +46,15 @@
         }
       ],
       "expo-image",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Parul needs access to your photos so you can add pictures of your pets to posts, adoption listings, and your profile.",
+          "cameraPermission": "Parul needs camera access so you can take photos of your pets to share."
+        }
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

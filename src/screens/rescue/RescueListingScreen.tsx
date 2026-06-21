@@ -25,7 +25,6 @@ import type { RescueStackParamList } from '../../navigation/RescueNavigator';
 import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
 import { useTabBarScrollProps } from '../../context/TabBarScrollContext';
 import type { Post } from '../../data/mockData';
-import { ALL_RESCUE_CASES } from '../../data/rescueData';
 import { RescueOpenCaseFab } from '../../components/rescue/RescueCreateActions';
 import { ForwardSheet } from '../../components/ForwardSheet';
 import { useRescueCaseShare } from '../../hooks/useRescueCaseShare';
@@ -200,7 +199,7 @@ export function RescueListingScreen({
               </View>
             );
           }
-          const rescueCase = cases.find(c => c.id === item.caseId) ?? ALL_RESCUE_CASES.find(c => c.id === item.caseId);
+          const rescueCase = cases.find(c => c.id === item.caseId);
           if (!rescueCase) return null;
           if (tab === 'my-cases') {
             const idx = shownCases.findIndex(c => c.id === rescueCase.id);

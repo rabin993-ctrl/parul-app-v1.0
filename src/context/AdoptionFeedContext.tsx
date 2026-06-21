@@ -100,16 +100,25 @@ export function AdoptionFeedProvider({ children }: { children: React.ReactNode }
   const { user } = useAuth();
   const {
     listings, loaded: listingsLoaded, savedIds, toggleSaved, addListing, updateListing,
-    markAdopted, relistListing, reload: reloadListings,
+    markAdopted: markListingAdopted, relistListing, reload: reloadListings,
   } = useAdoptionListings();
 
   const {
     requests, notifications,
     submitRequest, approveRequest: approveRequestRpc, rejectRequest, cancelRequest,
     completeAdoption, attachThreadToRequest, clearRequestOnRelist,
+    rejectActiveRequestsForListing,
     markNotificationRead, reload: reloadRequests,
     markListingRequestNotificationsRead,
   } = useAdoptionRequests();
+
+  // Listing-level "mark adopted" lives in a separate hook from requests, so wrap
+  // it to also reject the listing's still-active requests — otherwise the poster's
+  // inbox keeps showing live applicants for a pet that's already adopted.
+  const markAdopted = useCallback((id: string, note?: string) => {
+    markListingAdopted(id, note);
+    rejectActiveRequestsForListing(id);
+  }, [markListingAdopted, rejectActiveRequestsForListing]);
 
   const [pendingReviewListingId, setPendingReviewListingId] = useState<string | null>(null);
   const queueAdoptionReviewPopup = useCallback((listingId: string) => {

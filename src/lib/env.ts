@@ -7,9 +7,13 @@
 
 function required(name: string, value: string | undefined): string {
   if (!value) {
-    // Fail loud in dev; in prod the build should have inlined these.
-    console.warn(`[env] Missing ${name}. Did you create .env from .env.example?`);
-    return '';
+    // Fail loud, immediately. Returning '' only defers the failure to
+    // createClient(), which throws "supabaseUrl is required." at import time and
+    // white-screens the app with a less obvious error. EAS/Vercel inline
+    // EXPO_PUBLIC_* at build, so this only fires on a genuinely misconfigured env.
+    throw new Error(
+      `[env] Missing ${name}. Create .env from .env.example (or set it in your build env).`,
+    );
   }
   return value;
 }
@@ -19,9 +23,10 @@ export const ENV = {
   SUPABASE_ANON_KEY: required('EXPO_PUBLIC_SUPABASE_ANON_KEY', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY),
   /** Optional: Cloudflare CDN host in front of Supabase Storage (e.g. https://cdn.parul.app). */
   CDN_URL: process.env.EXPO_PUBLIC_CDN_URL ?? '',
-  /** Webhook that triggers VPS thumbnail generation after an avatar upload. */
-  THUMB_WEBHOOK_URL: process.env.EXPO_PUBLIC_THUMB_WEBHOOK_URL ?? '',
-  THUMB_WEBHOOK_SECRET: process.env.EXPO_PUBLIC_THUMB_WEBHOOK_SECRET ?? '',
+  // Thumbnail generation is handled server-side by the VPS cron. The old
+  // EXPO_PUBLIC_THUMB_WEBHOOK_URL/SECRET were removed: any EXPO_PUBLIC_* value is
+  // inlined into the client bundle, so a "secret" shipped to every device is not
+  // a secret. Re-introduce only behind a server-side proxy (edge function).
   /** Optional error reporting. */
   SENTRY_DSN: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
   /** Temporary beta feedback button + sheet. Set EXPO_PUBLIC_BETA_FEEDBACK_ENABLED=false to remove. */

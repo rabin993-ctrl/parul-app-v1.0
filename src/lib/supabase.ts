@@ -21,5 +21,9 @@ export const supabase = createClient<Database>(ENV.SUPABASE_URL, ENV.SUPABASE_AN
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: Platform.OS === 'web',
+    // PKCE works for both web (auto-exchanged via detectSessionInUrl) and the
+    // native OAuth flow (manual exchangeCodeForSession after the browser closes).
+    // Email/recovery links use token_hash + verifyOtp, which is unaffected.
+    flowType: 'pkce',
   },
 });

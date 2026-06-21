@@ -183,6 +183,11 @@ export function useAdoptionThreads() {
     activeChatThreadIdRef.current = threadId;
   }, []);
 
+  // Keys of system messages this client originated, awaiting their realtime echo.
+  // Lets the echo handler tell "my own action" from "a peer's" even though system
+  // rows carry sender_user_id = null for everyone.
+  const pendingOwnSystemRef = useRef<Set<string>>(new Set());
+
   // Track thread IDs for the realtime handler
   const threadIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -226,7 +231,12 @@ export function useAdoptionThreads() {
         .select(MESSAGE_SELECT as never)
         .in('thread_id', threadIds)
         .is('deleted_at', null)
-        .order('created_at', { ascending: true }),
+        // Newest-first + explicit limit so the implicit 1000-row cap keeps the
+        // MOST recent messages rather than silently dropping them (ascending
+        // order would have kept the oldest 1000). Reversed back to ascending
+        // per-thread below for display.
+        .order('created_at', { ascending: false })
+        .limit(1000),
       supabase
         .from('thread_participants')
         .select('thread_id, muted, last_read_message_id')
@@ -279,6 +289,9 @@ export function useAdoptionThreads() {
       arr.push(m);
       msgsByThread.set(m.thread_id, arr);
     }
+    // Rows arrive newest-first (see query above); restore ascending order so the
+    // rest of this code (lastMsg = msgs[length-1], unread, display) is unchanged.
+    for (const arr of msgsByThread.values()) arr.reverse();
 
     const chatThreads: ChatThread[] = [];
     const chatMessages: Record<string, ChatMessage[]> = {};
@@ -365,26 +378,34 @@ export function useAdoptionThreads() {
   useEffect(() => {
     if (!user) return;
 
+    // The threads/threads-update events are table-wide (not filterable to this
+    // user's threads), so debounce to coalesce unrelated churn into one refetch.
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReload = () => {
+      if (timer) return;
+      timer = setTimeout(() => { timer = null; void load(); }, 1500);
+    };
     const channel = supabase
       .channel('adoption-threads-feed')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'thread_participants', filter: `user_id=eq.${user.id}` },
-        () => { load(); },
+        scheduleReload,
       )
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'threads' },
-        () => { load(); },
+        scheduleReload,
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'threads' },
-        () => { load(); },
+        scheduleReload,
       )
       .subscribe();
 
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, [user, load]);
@@ -426,6 +447,14 @@ export function useAdoptionThreads() {
             };
           }
 
+          // Decide once (outside the state updaters, which may run in any order or
+          // more than once) whether this is the echo of a system message THIS
+          // client just sent — so we replace the optimistic row and skip the
+          // unread bump on the originator's own thread.
+          const isOwnSystemEcho = newMsg.sender_user_id === null
+            && pendingOwnSystemRef.current.delete(
+              `${newMsg.thread_id} ${newMsg.kind} ${newMsg.text ?? ''}`,
+            );
           setMessages(prev => {
             const existing = prev[newMsg.thread_id] ?? [];
             // Skip if already present (optimistic duplicate)
@@ -461,6 +490,19 @@ export function useAdoptionThreads() {
               updated[mediaOptIdx] = chatMsg;
               return { ...prev, [newMsg.thread_id]: updated };
             }
+            // Replace this client's optimistic system row with its real echo.
+            // Peers never set isOwnSystemEcho, so they correctly fall through to
+            // append (and see it as a new message).
+            if (isOwnSystemEcho) {
+              const sysOptIdx = existing.findLastIndex(
+                m => m.id.startsWith('opt-sys-') && m.kind === newMsg.kind && m.text === newMsg.text,
+              );
+              if (sysOptIdx >= 0) {
+                const updated = [...existing];
+                updated[sysOptIdx] = { ...updated[sysOptIdx], id: newMsg.id };
+                return { ...prev, [newMsg.thread_id]: updated };
+              }
+            }
             return { ...prev, [newMsg.thread_id]: [...existing, chatMsg] };
           });
 
@@ -483,7 +525,7 @@ export function useAdoptionThreads() {
                     ...t,
                     preview: preview || t.preview,
                     time: 'Now',
-                    unread: isFromMe
+                    unread: isFromMe || isOwnSystemEcho
                       ? t.unread
                       : activeChatThreadIdRef.current === newMsg.thread_id
                         ? 0
@@ -925,6 +967,9 @@ export function useAdoptionThreads() {
     const nowMs = Date.now();
     const optimisticId = `opt-sys-${nowMs}`;
     const msg: ChatMessage = { id: optimisticId, threadId, kind, senderId: undefined, text, time: 'Now', recordId };
+    // Record the key so the realtime echo replaces this optimistic row instead of
+    // appending a duplicate / bumping our own unread count.
+    pendingOwnSystemRef.current.add(`${threadId} ${kind} ${text}`);
     setMessages(prev => ({ ...prev, [threadId]: [...(prev[threadId] ?? []), msg] }));
     setThreads(prev => prev.map(t => t.id === threadId ? { ...t, preview: text, time: 'Now' } : t));
 

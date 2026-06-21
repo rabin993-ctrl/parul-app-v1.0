@@ -43,7 +43,6 @@ import { buildChatListItems, isAlertSharedPost, type ChatListItem } from '../uti
 import { sharedPostLoadingLabel } from '../utils/chatPreviewText';
 import { RescueCaseShareCard } from '../components/rescue/RescueCaseShareCard';
 import { useRescueFeedOptional } from '../context/RescueFeedContext';
-import { getRescueCaseById } from '../data/rescueData';
 import { fetchRescueCaseById } from '../utils/rescueCases';
 import {
   isRescueCaseShareText,
@@ -370,7 +369,6 @@ export function ChatThreadScreen({
       .filter(id => {
         if (rescueCaseMap[id]) return false;
         if (rescueFeed?.cases.find(c => c.id === id)) return false;
-        if (getRescueCaseById(id)) return false;
         return true;
       });
     const uniqueIds = [...new Set(caseIds)];
@@ -390,7 +388,7 @@ export function ChatThreadScreen({
   const resolveRescueCase = useCallback((caseId: string): RescueCase | null => {
     return rescueCaseMap[caseId]
       ?? rescueFeed?.cases.find(c => c.id === caseId)
-      ?? getRescueCaseById(caseId);
+      ?? null;
   }, [rescueCaseMap, rescueFeed?.cases]);
 
   const handleViewRescueCaseFromShare = useCallback((caseId: string) => {
@@ -471,6 +469,11 @@ export function ChatThreadScreen({
       }
     }
   }, [chatLocked, pickFile, pickImage, sendingMedia, takePhoto]);
+
+  // Stable callbacks so the memoized composer doesn't re-render on every parent
+  // render (which, on mobile web, can interrupt the tap that opens the keyboard).
+  const openAttachSheet = useCallback(() => setAttachOpen(true), []);
+  const clearPendingAttachment = useCallback(() => setPendingAttachment(null), []);
 
   const handleMarkAdopted = () => {
     if (!thread.adoptionPostId) return;
@@ -1037,8 +1040,8 @@ export function ChatThreadScreen({
               backgroundColor={chatBg}
               sendingMedia={sendingMedia}
               pendingAttachment={pendingAttachment}
-              onClearAttachment={() => setPendingAttachment(null)}
-              onAttach={() => setAttachOpen(true)}
+              onClearAttachment={clearPendingAttachment}
+              onAttach={openAttachSheet}
               onSend={handleSend}
             />
           )}

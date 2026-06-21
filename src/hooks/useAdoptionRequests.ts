@@ -440,6 +440,26 @@ export function useAdoptionRequests() {
       });
   }, [load]);
 
+  // Reject every still-active request on a listing. Used when a listing is marked
+  // adopted at the listing level (no specific requester chosen) so the poster's
+  // inbox and applicants don't keep showing live requests for an adopted pet.
+  // The 'adopted' status is excluded, so this is safe to run alongside
+  // completeAdoption (which has already stamped the chosen request 'adopted').
+  const rejectActiveRequestsForListing = useCallback((listingId: string) => {
+    setRequests(prev => prev.map(r =>
+      r.listingId === listingId && (r.status === 'submitted' || r.status === 'approved')
+        ? { ...r, status: 'rejected' as AdoptionRequestStatus }
+        : r,
+    ));
+    supabase.from('adoption_requests')
+      .update({ status: 'rejected' })
+      .eq('listing_id', listingId)
+      .in('status', ['submitted', 'approved'])
+      .then(({ error }) => {
+        if (error) load();
+      });
+  }, [load]);
+
   const markNotificationRead = useCallback(async (id: string) => {
     const target = notifications.find(n => n.id === id);
     if (!target || target.read) return;
@@ -466,6 +486,7 @@ export function useAdoptionRequests() {
     requests, setRequests, notifications,
     submitRequest, approveRequest, rejectRequest, cancelRequest,
     completeAdoption, attachThreadToRequest, clearRequestOnRelist,
+    rejectActiveRequestsForListing,
     markNotificationRead, markListingRequestNotificationsRead, reload: load,
   };
 }

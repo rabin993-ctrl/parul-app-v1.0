@@ -121,11 +121,12 @@ export async function fetchAvatarMedia(
   mediaId: string | null | undefined,
 ): Promise<AvatarMediaRow | null> {
   if (!mediaId) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('media_assets')
     .select('url, thumb_url')
     .eq('id', mediaId)
     .maybeSingle();
+  if (error && __DEV__) console.warn('[avatarMedia] fetchAvatarMedia failed:', error.message);
   return data as AvatarMediaRow | null;
 }
 
@@ -137,10 +138,11 @@ export async function fetchAvatarMediaMap(
   const unique = [...new Set([...mediaIds].filter(Boolean))] as string[];
   if (unique.length === 0) return mediaMap;
 
-  const { data: mediaRows } = await supabase
+  const { data: mediaRows, error } = await supabase
     .from('media_assets')
     .select('id, url, thumb_url')
     .in('id', unique);
+  if (error && __DEV__) console.warn('[avatarMedia] fetchAvatarMediaMap failed:', error.message);
 
   for (const m of mediaRows ?? []) {
     mediaMap.set(m.id, { url: m.url, thumb_url: m.thumb_url });

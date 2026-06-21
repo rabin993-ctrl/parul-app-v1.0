@@ -22,7 +22,6 @@ import {
   RescueHelpOffersListSheet,
 } from '../../components/rescue/RescueHelpOffersListSheet';
 import { RESCUE_STATUS_META, type RescueCase } from '../../data/profileData';
-import { getRescueCaseById } from '../../data/rescueData';
 import { fetchRescueCaseById } from '../../utils/rescueCases';
 import { useRescueFeedOptional } from '../../context/RescueFeedContext';
 import { useRescueOpenCaseBack } from '../../context/RescueOpenCaseFlowContext';
@@ -82,7 +81,7 @@ export function RescueCaseDetailScreen() {
   const { user } = useAuth();
   const { registerDmThread, reloadThreads } = useAdoption();
   const { me } = useCurrentUserProfile();
-  const feedItem = rescueFeed?.cases.find(c => c.id === caseId) ?? getRescueCaseById(caseId);
+  const feedItem = rescueFeed?.cases.find(c => c.id === caseId) ?? null;
   const [fetchedItem, setFetchedItem] = useState<RescueCase | null>(null);
   const [caseLoading, setCaseLoading] = useState(false);
   const [caseNotFound, setCaseNotFound] = useState(false);

@@ -1,10 +1,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import type { EmailOtpType } from '@supabase/supabase-js';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import {
   clearAuthConfirmUrl,
   getAuthConfirmUrl,
+  getSiteUrl,
   hasImplicitAuthCallbackInUrl,
   parseAuthConfirmParams,
 } from '../lib/authLinks';
@@ -22,6 +25,7 @@ interface AuthContextValue {
   authConfirmError: string | null;
   pendingConfirmationEmail: string | null;
   signIn: (email: string, password: string) => Promise<AuthResult>;
+  signInWithGoogle: () => Promise<AuthResult>;
   signUp: (email: string, password: string, name?: string, handle?: string) => Promise<SignUpResult>;
   resendConfirmationEmail: (email: string) => Promise<AuthResult>;
   resetPassword: (email: string) => Promise<AuthResult>;
@@ -39,6 +43,7 @@ const AuthContext = createContext<AuthContextValue>({
   authConfirmError: null,
   pendingConfirmationEmail: null,
   signIn: async () => ({ error: null }),
+  signInWithGoogle: async () => ({ error: null }),
   signUp: async () => ({ error: null }),
   resendConfirmationEmail: async () => ({ error: null }),
   resetPassword: async () => ({ error: null }),
@@ -107,9 +112,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setPendingConfirmationEmail(null);
         }
 
-        const { data } = await supabase.auth.getSession();
-        setSession(data.session);
-        setInitializing(false);
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (mounted) setSession(data.session);
+        } finally {
+          // Always clear the loading flag — otherwise a rejected getSession()
+          // leaves the app stuck on the spinner forever.
+          if (mounted) setInitializing(false);
+        }
         return;
       }
 
@@ -163,6 +173,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setPendingConfirmationEmail(null);
     }
     return { error: error?.message ?? null };
+  }, []);
+
+  const signInWithGoogle = useCallback(async (): Promise<AuthResult> => {
+    if (Platform.OS === 'web') {
+      // Web redirect flow: Supabase sends the user to Google, then back to our
+      // origin with a ?code= that supabase-js exchanges automatically
+      // (detectSessionInUrl is enabled for web in src/lib/supabase.ts).
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: getSiteUrl(),
+          queryParams: { prompt: 'select_account' },
+        },
+      });
+      return { error: error?.message ?? null };
+    }
+
+    // Native flow: open the system auth browser, let Supabase bounce through
+    // Google and back to our app scheme, then exchange the PKCE code.
+    // `parul://` is the app scheme (app.json) and is allow-listed on Supabase
+    // (additional_redirect_urls includes "parul://**").
+    const redirectTo = 'parul://auth-callback';
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+    if (error) return { error: error.message };
+    if (!data?.url) return { error: 'Could not start Google sign-in.' };
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (result.type !== 'success' || !result.url) {
+      // User dismissed/cancelled the browser — not an error worth surfacing.
+      return { error: null };
+    }
+
+    const url = new URL(result.url);
+    const code = url.searchParams.get('code');
+    if (!code) {
+      return { error: url.searchParams.get('error_description') ?? 'Google sign-in was not completed.' };
+    }
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    return { error: exchangeError?.message ?? null };
   }, []);
 
   const signUp = useCallback(async (
@@ -251,6 +307,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authConfirmError,
         pendingConfirmationEmail,
         signIn,
+        signInWithGoogle,
         signUp,
         resendConfirmationEmail,
         resetPassword,

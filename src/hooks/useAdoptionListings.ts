@@ -91,25 +91,31 @@ export function useAdoptionListings() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [{ data: listingRows }, { data: saves }] = await Promise.all([
-      supabase
-        .from('adoption_listings')
-        .select('*, poster:users!poster_user_id(name,handle,tint)')
-        .is('deleted_at', null)
-        .order('posted_at', { ascending: false }),
-      supabase
-        .from('adoption_listing_saves')
-        .select('listing_id')
-        .eq('user_id', user.id),
-    ]);
-    const ids = new Set<string>((saves ?? []).map((s: { listing_id: string }) => s.listing_id));
-    setSavedIds(ids);
-    savedIdsRef.current = ids;
-    const rows = (listingRows ?? []) as DbListingRow[];
-    const listingIds = rows.map(r => r.id);
-    const mediaMap = await loadListingMediaUrls(listingIds);
-    setListings(rows.map((r: DbListingRow) => rowToListing(r, ids, mediaMap[r.id])));
-    setLoaded(true);
+    try {
+      const [{ data: listingRows }, { data: saves }] = await Promise.all([
+        supabase
+          .from('adoption_listings')
+          .select('*, poster:users!poster_user_id(name,handle,tint)')
+          .is('deleted_at', null)
+          .order('posted_at', { ascending: false })
+          .limit(500),
+        supabase
+          .from('adoption_listing_saves')
+          .select('listing_id')
+          .eq('user_id', user.id),
+      ]);
+      const ids = new Set<string>((saves ?? []).map((s: { listing_id: string }) => s.listing_id));
+      setSavedIds(ids);
+      savedIdsRef.current = ids;
+      const rows = (listingRows ?? []) as DbListingRow[];
+      const listingIds = rows.map(r => r.id);
+      const mediaMap = await loadListingMediaUrls(listingIds);
+      setListings(rows.map((r: DbListingRow) => rowToListing(r, ids, mediaMap[r.id])));
+    } finally {
+      // Always flip the flag — a rejected query must not leave the browse screen
+      // (which gates a full-screen spinner on `loaded`) stuck forever.
+      setLoaded(true);
+    }
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
@@ -117,16 +123,24 @@ export function useAdoptionListings() {
   useEffect(() => {
     if (!user) return;
 
+    // Debounce: a burst of listing changes (or one change seen by many clients)
+    // should coalesce into a single refetch instead of a reload storm.
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReload = () => {
+      if (timer) return;
+      timer = setTimeout(() => { timer = null; void load(); }, 1500);
+    };
     const channel = supabase
       .channel('adoption-listings-feed')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'adoption_listings' },
-        () => { load(); },
+        scheduleReload,
       )
       .subscribe();
 
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, [user, load]);
@@ -251,9 +265,10 @@ export function useAdoptionListings() {
     if (patch.adoptedNote !== undefined) dbPatch.adopted_note = patch.adoptedNote;
     if (Object.keys(dbPatch).length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      supabase.from('adoption_listings').update(dbPatch as any).eq('id', id).then(() => {});
+      supabase.from('adoption_listings').update(dbPatch as any).eq('id', id)
+        .then(({ error }) => { if (error) load(); });
     }
-  }, []);
+  }, [load]);
 
   const markAdopted = useCallback((id: string, note?: string) => {
     setListings(prev => prev.map(l => l.id === id ? {
@@ -265,8 +280,8 @@ export function useAdoptionListings() {
       urgent: false,
       adopted_date: new Date().toISOString(),
       adopted_note: note ?? 'Successfully adopted through Parul',
-    }).eq('id', id).then(() => {});
-  }, []);
+    }).eq('id', id).then(({ error }) => { if (error) load(); });
+  }, [load]);
 
   const relistListing = useCallback((id: string) => {
     if (!user) return;
@@ -278,8 +293,8 @@ export function useAdoptionListings() {
     supabase.from('adoption_listings').update({
       status: 'Available', urgent: false, adopted_date: null, adopted_note: null,
       posted_at: new Date().toISOString(),
-    }).eq('id', id).eq('poster_user_id', user.id).then(() => {});
-  }, [user]);
+    }).eq('id', id).eq('poster_user_id', user.id).then(({ error }) => { if (error) load(); });
+  }, [user, load]);
 
   return {
     listings, setListings, savedIds, loaded, toggleSaved,

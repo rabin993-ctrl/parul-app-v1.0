@@ -40,7 +40,7 @@ import { openNotifications } from '../navigation/notificationRouting';
 import { PostAuthorRow } from '../components/feed/PostAuthorRow';
 import { FeedPostItem } from '../components/feed/FeedPostItem';
 import { AlertMessageSheet } from '../components/feed/AlertMessageSheet';
-import { filterRescueCases, getRescueCaseById } from '../data/rescueData';
+import { filterRescueCases } from '../data/rescueData';
 import { RescueFeedProvider, useRescueFeed } from '../context/RescueFeedContext';
 import { RescueCaseCard } from '../components/rescue/RescueCaseCard';
 import { ForwardSheet, type ForwardDest } from '../components/ForwardSheet';
@@ -308,7 +308,7 @@ function FeedPostList({
       )}
       renderItem={({ item }) => {
         if (item.kind === 'case') {
-          const rescueCase = caseById.get(item.caseId) ?? getRescueCaseById(item.caseId);
+          const rescueCase = caseById.get(item.caseId);
           if (!rescueCase) return null;
           return (
             <View style={styles.feedCaseWrap}>

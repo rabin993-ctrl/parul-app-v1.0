@@ -45,26 +45,29 @@ interface ThemeContextValue {
 const STORAGE_KEY = '@parul/theme-mode';
 
 const ThemeContext = createContext<ThemeContextValue>({
-  mode: 'light',
-  preference: 'system',
-  colors: lightColors,
-  gradients: lightGradients,
-  scrim: modalScrim.light,
-  isDark: false,
+  mode: 'dark',
+  preference: 'dark',
+  colors: darkColors,
+  gradients: darkGradients,
+  scrim: modalScrim.dark,
+  isDark: true,
   toggleTheme: () => {},
   setMode: () => {},
   setPreference: () => {},
   iconBg: (light) => light,
-  groupedBg: '#F2F2F7',
-  postTag: (tag) => getPostTagStyle(tag, 'light'),
+  groupedBg: adaptGroupedListBg('dark'),
+  postTag: (tag) => getPostTagStyle(tag, 'dark'),
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Live OS color scheme (works on iOS, Android, and web via react-native-web).
   const systemScheme = useColorScheme();
-  const [preference, setPreferenceState] = useState<ThemePreference>('system');
+  // Dark is the app's default theme. Users can switch to Light or System from
+  // Profile → Settings → Theme; that explicit choice is persisted and restored
+  // below, overriding this default.
+  const [preference, setPreferenceState] = useState<ThemePreference>('dark');
 
-  // Restore the saved preference once on mount. New installs default to 'system'.
+  // Restore the saved preference once on mount. New installs default to 'dark'.
   useEffect(() => {
     let mounted = true;
     AsyncStorage.getItem(STORAGE_KEY)
