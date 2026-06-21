@@ -22,8 +22,12 @@ export type UserProfilePatch = {
 type CurrentUserProfileContextValue = {
   ready: boolean;
   me: User;
+  /** False only for new OAuth users who haven't picked a username yet. */
+  onboarded: boolean;
   updateProfile: (patch: UserProfilePatch) => Promise<void>;
   updateAvatar: (asset: PickedAsset) => Promise<void>;
+  /** Set the chosen username + name and mark onboarding complete. */
+  completeOnboarding: (handle: string, name: string) => Promise<void>;
 };
 
 const EMPTY_USER: User = {
@@ -36,7 +40,7 @@ const EMPTY_USER: User = {
 };
 
 const USER_SELECT =
-  'id,handle,name,tint,bio,location,website,verified,joined_at,avatar_media_id,location_lat';
+  'id,handle,name,tint,bio,location,website,verified,joined_at,avatar_media_id,location_lat,onboarded';
 
 const CurrentUserProfileContext = createContext<CurrentUserProfileContextValue | null>(null);
 
@@ -52,6 +56,7 @@ type DbUserRow = {
   joined_at: string;
   avatar_media_id: string | null;
   location_lat: number | null;
+  onboarded: boolean;
 };
 
 async function rowToUser(row: DbUserRow): Promise<User> {
@@ -77,10 +82,14 @@ export function CurrentUserProfileProvider({ children }: { children: React.React
   const { user } = useAuth();
   const [ready, setReady] = useState(false);
   const [me, setMe] = useState<User>(EMPTY_USER);
+  // Default true so existing/returning users are never momentarily prompted; the
+  // real value loads below and only new OAuth users resolve to false.
+  const [onboarded, setOnboarded] = useState(true);
 
   useEffect(() => {
     if (!user) {
       setMe(EMPTY_USER);
+      setOnboarded(true);
       setReady(false);
       return;
     }
@@ -93,6 +102,7 @@ export function CurrentUserProfileProvider({ children }: { children: React.React
         .single();
       if (!error && data) {
         setMe(await rowToUser(data as DbUserRow));
+        setOnboarded((data as DbUserRow).onboarded);
         const row = data as DbUserRow;
         if (row.location_lat == null && row.location?.trim()) {
           const geocoded = await geocodeProfileLocation(row.location);
@@ -131,6 +141,25 @@ export function CurrentUserProfileProvider({ children }: { children: React.React
     }
   }, [user]);
 
+  const completeOnboarding = useCallback(async (handle: string, name: string) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('users')
+      .update({ handle: handle.trim().toLowerCase(), name: name.trim(), onboarded: true })
+      .eq('id', user.id)
+      .select(USER_SELECT)
+      .single();
+    if (error) {
+      if (error.code === '23505') throw new Error('That username is already taken');
+      throw error;
+    }
+    if (data) {
+      setMe(await rowToUser(data as DbUserRow));
+      setOnboarded(true);
+      invalidateUserProfile(user.id);
+    }
+  }, [user]);
+
   const updateAvatar = useCallback(async (asset: PickedAsset) => {
     if (!user) return;
     const mediaId = (typeof crypto !== 'undefined' && crypto.randomUUID)
@@ -166,8 +195,8 @@ export function CurrentUserProfileProvider({ children }: { children: React.React
   }, [user]);
 
   const value = useMemo<CurrentUserProfileContextValue>(
-    () => ({ ready, me, updateProfile, updateAvatar }),
-    [ready, me, updateProfile, updateAvatar],
+    () => ({ ready, me, onboarded, updateProfile, updateAvatar, completeOnboarding }),
+    [ready, me, onboarded, updateProfile, updateAvatar, completeOnboarding],
   );
 
   return (

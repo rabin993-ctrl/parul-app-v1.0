@@ -3030,6 +3030,7 @@ export type Database = {
           location_lng: number | null
           location_updated_at: string | null
           name: string
+          onboarded: boolean
           online_last_seen: string | null
           phone: string | null
           tint: string | null
@@ -3051,6 +3052,7 @@ export type Database = {
           location_lng?: number | null
           location_updated_at?: string | null
           name: string
+          onboarded?: boolean
           online_last_seen?: string | null
           phone?: string | null
           tint?: string | null
@@ -3072,6 +3074,7 @@ export type Database = {
           location_lng?: number | null
           location_updated_at?: string | null
           name?: string
+          onboarded?: boolean
           online_last_seen?: string | null
           phone?: string | null
           tint?: string | null
@@ -3124,6 +3127,10 @@ export type Database = {
       approve_adoption_request: {
         Args: { p_request_id: string }
         Returns: string
+      }
+      can_read_circle_media: {
+        Args: { p_object_name: string }
+        Returns: boolean
       }
       can_view_user_profile: { Args: { p_target: string }; Returns: boolean }
       cancel_circle_request: {
@@ -3232,6 +3239,7 @@ export type Database = {
       is_circle_member: { Args: { p_circle: string }; Returns: boolean }
       is_community_admin: { Args: { p_community: string }; Returns: boolean }
       is_community_member: { Args: { p_community: string }; Returns: boolean }
+      is_handle_available: { Args: { p_handle: string }; Returns: boolean }
       is_thread_participant: { Args: { p_thread: string }; Returns: boolean }
       join_circle: { Args: { p_circle_id: string }; Returns: undefined }
       join_community: { Args: { p_community: string }; Returns: undefined }

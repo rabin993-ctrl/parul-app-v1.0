@@ -13,7 +13,7 @@ import { AdoptionProvider } from './src/context/AdoptionContext';
 import { AdoptionFeedProvider } from './src/context/AdoptionFeedContext';
 import { CompanionProvider } from './src/context/CompanionContext';
 import { UserPrivacyProvider } from './src/context/UserPrivacyContext';
-import { CurrentUserProfileProvider } from './src/context/CurrentUserProfileContext';
+import { CurrentUserProfileProvider, useCurrentUserProfile } from './src/context/CurrentUserProfileContext';
 import { SheetOverlayProvider } from './src/context/SheetOverlayContext';
 import { TabBarScrollProvider } from './src/context/TabBarScrollContext';
 import { DevResetProvider } from './src/context/DevResetContext';
@@ -26,6 +26,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { AuthScreen } from './src/screens/auth/AuthScreen';
 import { SetNewPasswordScreen } from './src/screens/auth/SetNewPasswordScreen';
 import { AuthConfirmErrorScreen } from './src/screens/auth/AuthConfirmErrorScreen';
+import { OnboardingScreen } from './src/screens/onboarding/OnboardingScreen';
 import { FontGate } from './src/components/FontGate';
 import { WebInputFocusFix } from './src/components/WebInputFocusFix';
 import { BlankInputAccessory } from './src/components/ui/BlankInputAccessory';
@@ -39,6 +40,7 @@ import { ConfirmDialogHost } from './src/components/ui/ConfirmDialog';
 function AppInner() {
   const { mode, colors } = useTheme();
   const { initializing, session, user, authConfirmPhase } = useAuth();
+  const { ready: profileReady, onboarded } = useCurrentUserProfile();
   const tutorial = useAppTutorial(user?.id);
   usePushTokenRegistration();
   useUserLocationSync();
@@ -46,6 +48,8 @@ function AppInner() {
 
   const isAuthenticated = !!(session && user);
   const pendingRecovery = authConfirmPhase === 'recovery';
+  // New OAuth (Google) users have no chosen username yet — prompt before the app.
+  const needsOnboarding = isAuthenticated && profileReady && !onboarded;
   const showTutorial = isAuthenticated
     && tutorial.enabled
     && tutorial.ready
@@ -68,6 +72,8 @@ function AppInner() {
         <AuthConfirmErrorScreen />
       ) : pendingRecovery ? (
         <SetNewPasswordScreen />
+      ) : needsOnboarding ? (
+        <OnboardingScreen />
       ) : showTutorial ? (
         <AppTutorialCarousel onComplete={handleTutorialComplete} />
       ) : isAuthenticated ? (
