@@ -1,7 +1,7 @@
 import React, {
   forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState,
 } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, Platform, InteractionManager } from 'react-native';
+import { View, Pressable, TextInput, StyleSheet, Platform, InteractionManager } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
 import { spacing } from '../../theme/tokens';
@@ -51,14 +51,11 @@ export const ChatThreadComposer = memo(forwardRef<ChatThreadComposerHandle, Prop
     const { colors, mode } = useTheme();
     const mobileWeb = useMobileWeb();
     const [draft, setDraft] = useState('');
-    const [focused, setFocused] = useState(false);
     const inputRef = useRef<TextInput>(null);
     const canType = !disabled && !threadConnecting && !sendingMedia;
-    const showTapToTypeHint = mobileWeb && canType && !focused && !threadConnecting;
 
     useEffect(() => {
       setDraft('');
-      setFocused(false);
     }, [threadId]);
 
     const focusInput = useCallback(() => {
@@ -103,13 +100,6 @@ export const ChatThreadComposer = memo(forwardRef<ChatThreadComposerHandle, Prop
 
     return (
       <View style={[styles.composer, { backgroundColor, paddingBottom: bottomPad }]}>
-        {showTapToTypeHint ? (
-          <Pressable onPress={focusInput} accessibilityRole="button">
-            <Text style={[styles.tapToTypeHint, { color: colors.textTertiary }]}>
-              Tap below to type a message
-            </Text>
-          </Pressable>
-        ) : null}
         {pendingAttachment && onClearAttachment ? (
           <ChatPendingAttachmentPreview
             draft={pendingAttachment}
@@ -155,9 +145,6 @@ export const ChatThreadComposer = memo(forwardRef<ChatThreadComposerHandle, Prop
               textAlignVertical="center"
               editable={canType}
               onSubmitEditing={handleSendPress}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              showSoftInputOnFocus={Platform.OS === 'web' || Platform.OS === 'android'}
               inputMode="text"
               enterKeyHint="send"
               {...commentTextInputProps(mode === 'dark')}
@@ -190,13 +177,6 @@ const styles = StyleSheet.create({
   composer: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
-  },
-  tapToTypeHint: {
-    textAlign: 'center',
-    fontSize: 12.5,
-    lineHeight: 17,
-    paddingBottom: 6,
-    paddingHorizontal: 16,
   },
   composerRow: {
     flexDirection: 'row',
