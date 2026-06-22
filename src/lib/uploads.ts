@@ -57,6 +57,28 @@ export async function uploadMedia({ bucket, path, data, contentType, upsert }: U
   return { path: res.path, bucket };
 }
 
+/**
+ * Retry a flaky async op. The original-file fetch + storage upload run several
+ * awaits after the image was picked; on mobile web that critical step fails
+ * intermittently (transient network, or a momentarily-stale blob URL), which
+ * otherwise throws and leaves a post with no image. A couple of retries with
+ * backoff turns those transient failures into successes.
+ */
+async function withUploadRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 export async function removeMedia(bucket: string, paths: string[]) {
   const { error } = await supabase.storage.from(bucket).remove(paths);
   if (error) throw error;
@@ -139,11 +161,14 @@ export async function uploadMediaAsset({
   const thumbPath = `${basePath}/thumb.jpg`;
   const fullPath = `${basePath}/full.jpg`;
 
-  // 1. Fetch the original file bytes from the local URI
-  const originalBlob = await (await fetch(localUri)).blob();
-
-  // 2. Upload original
-  await uploadMedia({ bucket, path: originalPath, data: originalBlob, contentType: mime, upsert: true });
+  // 1. Fetch the original file bytes from the local URI, then 2. upload it.
+  //    Both are wrapped in a retry: this is the critical path — if it fails the
+  //    post is left with no image. Transient mobile-web failures here are the
+  //    cause of "image shows then vanishes on reload".
+  const originalBlob = await withUploadRetry(async () => (await fetch(localUri)).blob());
+  await withUploadRetry(() =>
+    uploadMedia({ bucket, path: originalPath, data: originalBlob, contentType: mime, upsert: true }),
+  );
 
   // 3. Generate & upload variants. A failure here (ImageManipulator can throw on
   //    web / unusual image formats) must NOT abort the upload — the original is

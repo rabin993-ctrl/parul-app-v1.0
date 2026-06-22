@@ -708,7 +708,13 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
               height: pendingMedia.height,
               bytes: pendingMedia.bytes,
             });
-            await supabase.from('post_media').insert({ post_id: realId, idx, media_id: mediaId });
+            const { error: linkErr } = await supabase
+              .from('post_media')
+              .insert({ post_id: realId, idx, media_id: mediaId });
+            // supabase-js resolves (does not throw) on an RLS/constraint error —
+            // surface it so a failed link is treated as an upload failure rather
+            // than silently leaving the post imageless after reload.
+            if (linkErr) throw linkErr;
           } catch (err) {
             console.warn('[FeedPostContext] post media upload failed:', err);
             uploadFailed = true;
