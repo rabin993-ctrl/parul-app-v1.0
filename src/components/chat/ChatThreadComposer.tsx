@@ -131,11 +131,13 @@ export const ChatThreadComposer = memo(forwardRef<ChatThreadComposerHandle, Prop
           >
             <Icon name="plus" size={18} color={colors.primary} sw={2} />
           </Pressable>
-          <Pressable
-            onPress={mobileWeb ? focusInput : undefined}
-            style={styles.composerInputWrap}
-            accessibilityRole={mobileWeb ? 'none' : undefined}
-          >
+          {/*
+            Bare wrapper — do NOT wrap the TextInput in a Pressable. On iOS Safari
+            a Pressable intercepts the native tap and turns it into a programmatic
+            .focus(), which iOS ignores (keyboard never opens). A plain View lets
+            the tap reach the input directly, matching the working circle composer.
+          */}
+          <View style={styles.composerInputWrap}>
             <TextInput
               ref={inputRef}
               style={[
@@ -160,7 +162,7 @@ export const ChatThreadComposer = memo(forwardRef<ChatThreadComposerHandle, Prop
               enterKeyHint="send"
               {...commentTextInputProps(mode === 'dark')}
             />
-          </Pressable>
+          </View>
           <Pressable
             style={({ pressed }) => [
               styles.composerBtn,
