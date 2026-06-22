@@ -3,7 +3,6 @@ import { Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
-import { RescueFeedProvider } from '../context/RescueFeedContext';
 import { RescueCaseDetailScreen } from '../screens/profile/RescueCaseDetailScreen';
 import { RescuePostUpdateScreen } from '../screens/rescue/RescuePostUpdateScreen';
 import type { RescueStackParamList } from './RescueNavigator';
@@ -22,8 +21,7 @@ export function RootRescueCaseNavigator() {
   const { caseId, openHelpOffers } = route.params as RootRescueCaseFlowParams;
 
   return (
-    <RescueFeedProvider>
-      <Stack.Navigator
+    <Stack.Navigator
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.bg, flex: 1 },
@@ -42,6 +40,5 @@ export function RootRescueCaseNavigator() {
         />
         <Stack.Screen name="PostUpdate" component={RescuePostUpdateScreen} />
       </Stack.Navigator>
-    </RescueFeedProvider>
   );
 }

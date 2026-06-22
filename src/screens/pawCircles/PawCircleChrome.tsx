@@ -2,8 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { radius, spacing, typography } from '../../theme/tokens';
-import { AppSubHeader, AppCenteredHeader, HUB_CENTERED_TITLE_STYLE } from '../../components/ui/AppSubHeader';
-import { IconButton } from '../../components/ui/Button';
+import { AppSubHeader, AppCenteredHeader, AppHeaderIconButton, HUB_CENTERED_TITLE_STYLE } from '../../components/ui/AppSubHeader';
 import { Icon } from '../../components/icons/Icon';
 import {
   CREATE_CIRCLE_A11Y_LABEL,
@@ -37,9 +36,6 @@ export function CirclePrivacyLockIcon({
     </View>
   );
 }
-
-const HUB_HEADER_ACTION_SIZE = 40;
-const HUB_HEADER_ICON = 22;
 
 export function PawCirclePageHeader({
   title,
@@ -93,22 +89,16 @@ export function PawCircleHubHeader({
       trailing={showTrailing ? (
         <View style={styles.hubHeaderActions}>
           {onCreatePress ? (
-            <IconButton
+            <AppHeaderIconButton
               name={CREATE_CIRCLE_ICON}
-              size={HUB_HEADER_ACTION_SIZE}
-              iconSize={HUB_HEADER_ICON}
-              tone="ghost"
               color={colors.primary}
               onPress={onCreatePress}
               accessibilityLabel={CREATE_CIRCLE_A11Y_LABEL}
             />
           ) : null}
           {onPendingRequestsPress ? (
-            <IconButton
+            <AppHeaderIconButton
               name={PENDING_JOIN_REQUESTS_ICON}
-              size={HUB_HEADER_ACTION_SIZE}
-              iconSize={HUB_HEADER_ICON}
-              tone="ghost"
               color={colors.primary}
               count={pendingRequestCount}
               onPress={onPendingRequestsPress}

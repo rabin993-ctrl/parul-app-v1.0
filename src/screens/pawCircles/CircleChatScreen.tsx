@@ -658,7 +658,6 @@ export function CircleChatScreen() {
           <View style={styles.headerActions}>
             <AppHeaderIconButton
               name="users"
-              size={40}
               color={colors.primary}
               count={pendingMemberRequests > 0 ? pendingMemberRequests : undefined}
               onPress={() => navigation.navigate('CircleMembers', { circleId })}
@@ -666,8 +665,6 @@ export function CircleChatScreen() {
             />
             <AppHeaderIconButton
               name="settings"
-              size={40}
-              iconSize={20}
               color={colors.primary}
               onPress={() => navigation.navigate('CircleSettings', { circleId })}
               accessibilityLabel="Circle settings"
@@ -732,7 +729,7 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 0,
     flexShrink: 0,
   },
   messageListView: { flex: 1 },

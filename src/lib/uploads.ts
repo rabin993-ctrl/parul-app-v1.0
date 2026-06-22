@@ -14,6 +14,7 @@
  *
  * Buckets: 'avatars' | 'post-media' | 'adoption-media' | 'rescue-media' | 'circle-media'
  */
+import { Platform } from 'react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from './supabase';
 import { mediaUrl } from './cdn';
@@ -77,6 +78,19 @@ async function withUploadRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T
     }
   }
   throw lastErr;
+}
+
+/** Prefer pre-captured bytes; on web normalize to Uint8Array for reliable Supabase uploads. */
+async function resolveUploadBytes(
+  blob: Blob | undefined,
+  localUri: string,
+): Promise<Blob | Uint8Array> {
+  const raw = blob ?? await withUploadRetry(async () => (await fetch(localUri)).blob());
+  if (Platform.OS === 'web') {
+    const ab = await raw.arrayBuffer();
+    return new Uint8Array(ab);
+  }
+  return raw;
 }
 
 export async function removeMedia(bucket: string, paths: string[]) {
@@ -169,9 +183,9 @@ export async function uploadMediaAsset({
   //    a blob: URL that is frequently dead by the time we upload (several awaits
   //    after picking), which threw and left the post with no image. Only fall back
   //    to fetching the URI when no Blob was captured (native).
-  const originalBlob = blob ?? await withUploadRetry(async () => (await fetch(localUri)).blob());
+  const originalBytes = await resolveUploadBytes(blob, localUri);
   await withUploadRetry(() =>
-    uploadMedia({ bucket, path: originalPath, data: originalBlob, contentType: mime, upsert: true }),
+    uploadMedia({ bucket, path: originalPath, data: originalBytes, contentType: mime, upsert: true }),
   );
 
   // 3. Generate & upload variants. A failure here (ImageManipulator can throw on
@@ -180,9 +194,11 @@ export async function uploadMediaAsset({
   //    media_assets row below. The VPS thumbnail cron backfills thumb/full later.
   let variantsOk = false;
   if (shouldGenerateVariants) {
+    const variantObjectUrl = blob && Platform.OS === 'web' ? URL.createObjectURL(blob) : undefined;
+    const variantSourceUri = variantObjectUrl ?? localUri;
     try {
       const thumbResult = await ImageManipulator.manipulateAsync(
-        localUri,
+        variantSourceUri,
         [{ resize: { width: 200 } }],
         { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
       );
@@ -196,7 +212,7 @@ export async function uploadMediaAsset({
       });
 
       const fullResult = await ImageManipulator.manipulateAsync(
-        localUri,
+        variantSourceUri,
         [{ resize: { width: 1080 } }],
         { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
       );
@@ -213,6 +229,8 @@ export async function uploadMediaAsset({
       if (__DEV__) {
         console.warn('[uploads] variant generation failed; storing original only:', variantErr);
       }
+    } finally {
+      if (variantObjectUrl) URL.revokeObjectURL(variantObjectUrl);
     }
   }
 

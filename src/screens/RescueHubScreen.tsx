@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
 import { AppCenteredHeader, HUB_CENTERED_TITLE_STYLE } from '../components/ui/AppSubHeader';
 import { RescueNavigator } from '../navigation/RescueNavigator';
@@ -14,6 +15,7 @@ import type { FeedStackParamList } from '../navigation/feedHubNavigation';
 export function RescueHubScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<FeedStackParamList>>();
+  const route = useRoute<RouteProp<FeedStackParamList, 'RescueHub'>>();
   const [rescueHubTab, setRescueHubTab] = useState<RescueHubTab>('browse');
   const [rescueFilters, setRescueFilters] = useState<RescueFilters>(DEFAULT_RESCUE_FILTERS);
 
@@ -22,6 +24,10 @@ export function RescueHubScreen() {
   const handleBack = useCallback(() => {
     navigation.navigate('FeedHome');
   }, [navigation]);
+
+  const clearDeepLink = useCallback(() => {
+    if (route.params?.screen) navigation.setParams({});
+  }, [navigation, route.params?.screen]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']}>
@@ -53,6 +59,8 @@ export function RescueHubScreen() {
           hubBarPinned
           filters={rescueFilters}
           onFiltersChange={setRescueFilters}
+          deepLink={route.params}
+          onDeepLinkHandled={clearDeepLink}
         />
       </View>
     </SafeAreaView>

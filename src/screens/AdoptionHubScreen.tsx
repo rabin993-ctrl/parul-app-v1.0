@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
 import { AppCenteredHeader, HUB_CENTERED_TITLE_STYLE } from '../components/ui/AppSubHeader';
 import { AdoptionNavigator, type AdoptionStackParamList } from '../navigation/AdoptionNavigator';
@@ -18,6 +19,7 @@ import type { FeedStackParamList } from '../navigation/feedHubNavigation';
 export function AdoptionHubScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<FeedStackParamList>>();
+  const route = useRoute<RouteProp<FeedStackParamList, 'AdoptionHub'>>();
   const [adoptionHubTab, setAdoptionHubTab] = useState<AdoptionHubTab>('discover');
   const [adoptionBrowseFilter, setAdoptionBrowseFilter] = useState<AdoptionBrowseFilter>('all');
   const [adoptionFocusedRoute, setAdoptionFocusedRoute] = useState<keyof AdoptionStackParamList>('Listing');
@@ -30,6 +32,10 @@ export function AdoptionHubScreen() {
   const handleBack = useCallback(() => {
     navigation.navigate('FeedHome');
   }, [navigation]);
+
+  const clearDeepLink = useCallback(() => {
+    if (route.params?.screen) navigation.setParams({});
+  }, [navigation, route.params?.screen]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']}>
@@ -65,6 +71,8 @@ export function AdoptionHubScreen() {
           browseFilter={adoptionBrowseFilter}
           onBrowseFilterChange={setAdoptionBrowseFilter}
           onFocusedRouteChange={setAdoptionFocusedRoute}
+          deepLink={route.params}
+          onDeepLinkHandled={clearDeepLink}
         />
       </View>
     </SafeAreaView>

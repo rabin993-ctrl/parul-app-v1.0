@@ -14,7 +14,9 @@ import { AdoptedDetailScreen } from '../screens/profile/AdoptedDetailScreen';
 import type { AdoptionFilters } from '../data/adoptionData';
 import type { AdoptionBrowseFilter, AdoptionHubTab } from '../components/adoption/AdoptionChrome';
 
-import type { AdoptionListingReturnTo } from '../navigation/adoptionListingRouting';
+import type { NavigatorScreenParams } from '@react-navigation/native';
+import { EmbeddedStackDeepLinkBridge } from './embeddedStackDeepLink';
+import type { AdoptionListingReturnTo } from './adoptionListingRouting';
 
 export type AdoptionStackParamList = {
   Listing: undefined;
@@ -55,6 +57,8 @@ export function AdoptionNavigator({
   browseFilter,
   onBrowseFilterChange,
   onFocusedRouteChange,
+  deepLink,
+  onDeepLinkHandled,
 }: {
   embedded?: boolean;
   scrollHeader?: React.ReactNode;
@@ -64,6 +68,8 @@ export function AdoptionNavigator({
   browseFilter?: AdoptionBrowseFilter;
   onBrowseFilterChange?: (filter: AdoptionBrowseFilter) => void;
   onFocusedRouteChange?: (route: keyof AdoptionStackParamList) => void;
+  deepLink?: NavigatorScreenParams<AdoptionStackParamList>;
+  onDeepLinkHandled?: () => void;
 }) {
   const { colors } = useTheme();
 
@@ -77,6 +83,10 @@ export function AdoptionNavigator({
         screenLayout={({ children }) => (
           <>
             <AdoptionStackRouteReporter onRouteChange={onFocusedRouteChange} />
+            <EmbeddedStackDeepLinkBridge
+              deepLink={deepLink}
+              onHandled={onDeepLinkHandled}
+            />
             {children}
           </>
         )}

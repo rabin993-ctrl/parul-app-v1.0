@@ -8,9 +8,10 @@ import { Icon } from '../icons/Icon';
 export const APP_HEADER_PADDING_H = 12;
 export const APP_HEADER_PADDING_TOP = 8;
 export const APP_HEADER_PADDING_BOTTOM = 4;
-export const APP_HEADER_BACK_SIZE = 46;
-export const APP_HEADER_TRAILING_SLOT = 46;
-export const APP_CENTERED_HEADER_SIDE = 84;
+export const APP_HEADER_BACK_SIZE = 50;
+export const APP_HEADER_TRAILING_SLOT = 50;
+export const APP_HEADER_ACTION_ICON_SIZE = 26;
+export const APP_CENTERED_HEADER_SIDE = 108;
 
 /** Wrapper for @handle profile headers — matches companion full-profile top inset. */
 export const PROFILE_HANDLE_HEADER_WRAP = {
@@ -32,7 +33,7 @@ export function AppHeaderIconButton({
   onPress,
   count,
   color,
-  iconSize = 22,
+  iconSize = APP_HEADER_ACTION_ICON_SIZE,
   size = APP_HEADER_TRAILING_SLOT,
   accessibilityLabel,
 }: {
@@ -102,7 +103,7 @@ export function AppCenteredHeader({
             accessibilityLabel={backAccessibilityLabel}
           >
             <View style={styles.backIconWrap}>
-              <Icon name="chevronLeft" size={22} color={colors.textSecondary} sw={2.2} />
+              <Icon name="chevronLeft" size={APP_HEADER_ACTION_ICON_SIZE} color={colors.textSecondary} sw={2.2} />
             </View>
           </Pressable>
         ) : (
@@ -171,7 +172,7 @@ export function AppSubHeader({
       accessibilityLabel={title ? `Back from ${title}` : 'Back'}
     >
       <View style={styles.backIconWrap}>
-        <Icon name="chevronLeft" size={22} color={colors.textSecondary} sw={2.2} />
+        <Icon name="chevronLeft" size={APP_HEADER_ACTION_ICON_SIZE} color={colors.textSecondary} sw={2.2} />
       </View>
       {title && !titleNode ? (
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>

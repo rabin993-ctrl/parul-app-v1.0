@@ -822,6 +822,7 @@ export function useAdoptionThreads() {
         const uploaded = await uploadCircleChatMedia({
           userId: user.id,
           localUri: asset.uri,
+          blob: asset.blob,
           ext: asset.ext,
           mime: asset.mime,
           bytes: asset.bytes,

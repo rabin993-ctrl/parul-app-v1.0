@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { radius, shadows, sheetLayout, spacing, typography } from '../theme/tokens';
-import { AppSubHeader } from '../components/ui/AppSubHeader';
+import { AppSubHeader, AppHeaderIconButton, APP_HEADER_BACK_SIZE } from '../components/ui/AppSubHeader';
 import { AppLogo } from '../components/ui/AppLogo';
 import { Avatar, CompanionAvatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
@@ -41,7 +41,7 @@ import { PostAuthorRow } from '../components/feed/PostAuthorRow';
 import { FeedPostItem } from '../components/feed/FeedPostItem';
 import { AlertMessageSheet } from '../components/feed/AlertMessageSheet';
 import { filterRescueCases } from '../data/rescueData';
-import { RescueFeedProvider, useRescueFeed } from '../context/RescueFeedContext';
+import { useRescueFeed } from '../context/RescueFeedContext';
 import { RescueCaseCard } from '../components/rescue/RescueCaseCard';
 import { ForwardSheet, type ForwardDest } from '../components/ForwardSheet';
 import { FeedCommentSheet } from '../components/feed/FeedCommentSheet';
@@ -571,45 +571,36 @@ export function FeedScreen() {
       <AppSubHeader
         showBack={false}
         titleNode={
-          <AppLogo size={48} onPress={handleFeedHomePress} />
+          <AppLogo size={APP_HEADER_BACK_SIZE} onPress={handleFeedHomePress} />
         }
         trailing={(
           <View style={styles.headerActions}>
-            <IconButton
+            <AppHeaderIconButton
               name="search"
-              size={46}
-              iconSize={22}
-              tone="ghost"
               color={colors.text}
               onPress={() => navigation.navigate('Search')}
               accessibilityLabel="Search"
             />
             {ENV.BETA_FEEDBACK_ENABLED ? (
-              <IconButton
+              <AppHeaderIconButton
                 name="megaphone"
-                size={46}
-                iconSize={22}
-                tone="ghost"
                 color={colors.text}
                 onPress={() => setBetaFeedbackOpen(true)}
                 accessibilityLabel="Beta feedback"
               />
             ) : null}
-            <IconButton
+            <AppHeaderIconButton
               name="bell"
-              size={46}
-              iconSize={22}
-              tone="ghost"
               color={colors.text}
               count={unreadNotifCount || undefined}
               onPress={() => openNotifications(navigation)}
+              accessibilityLabel="Notifications"
             />
           </View>
         )}
       />
 
-      <RescueFeedProvider>
-        <FeedPostList
+      <FeedPostList
             posts={postList}
             postTypeFilters={postTypeFilters}
             isLoading={feedLoading}
@@ -660,7 +651,6 @@ export function FeedScreen() {
             onOpenRescueCase={openRescueCase}
             onShareRescueCase={openRescueShare}
           />
-      </RescueFeedProvider>
 
       {commentSheetPost && (
         <FeedCommentSheet
@@ -1182,7 +1172,7 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 0,
     flexShrink: 0,
   },
   popupOverlay: { flex: 1, position: 'relative' },

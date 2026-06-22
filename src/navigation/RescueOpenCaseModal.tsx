@@ -3,7 +3,6 @@ import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import { NavigationContainer, NavigationIndependentTree } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../theme/ThemeContext';
-import { RescueFeedProvider } from '../context/RescueFeedContext';
 import { RescueOpenCaseFlowProvider } from '../context/RescueOpenCaseFlowContext';
 import { RescueOpenCaseForm, type RescueOpenCaseDraft } from '../components/rescue/RescueOpenCaseForm';
 import { RescueCaseDetailScreen } from '../screens/profile/RescueCaseDetailScreen';
@@ -121,14 +120,14 @@ export function RescueOpenCaseModal({
   if (!visible) return null;
 
   return (
-    <RescueFeedProvider>
+    <>
       <OpenCaseSheet
         visible={!caseId}
         onClose={onClose}
         onPublished={setCaseId}
       />
       {caseId ? <DetailFlow caseId={caseId} onClose={onClose} /> : null}
-    </RescueFeedProvider>
+    </>
   );
 }
 

@@ -284,6 +284,7 @@ export function useCircleMessages(
         const uploaded = await uploadCircleChatMedia({
           userId,
           localUri: asset.uri,
+          blob: asset.blob,
           ext: asset.ext,
           mime: asset.mime,
           bytes: asset.bytes,

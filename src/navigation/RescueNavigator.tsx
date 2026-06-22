@@ -1,8 +1,9 @@
 import React from 'react';
 import { Platform } from 'react-native';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../theme/ThemeContext';
-import { RescueFeedProvider } from '../context/RescueFeedContext';
+import { EmbeddedStackDeepLinkBridge } from './embeddedStackDeepLink';
 import { RescueListingScreen } from '../screens/rescue/RescueListingScreen';
 import { RescueSearchScreen } from '../screens/rescue/RescueSearchScreen';
 import { RescueCreateCaseScreen } from '../screens/rescue/RescueCreateCaseScreen';
@@ -30,6 +31,8 @@ export function RescueNavigator({
   hubBarPinned = false,
   filters,
   onFiltersChange,
+  deepLink,
+  onDeepLinkHandled,
 }: {
   embedded?: boolean;
   scrollHeader?: React.ReactNode;
@@ -40,38 +43,47 @@ export function RescueNavigator({
   hubBarPinned?: boolean;
   filters?: RescueFilters;
   onFiltersChange?: (filters: RescueFilters) => void;
+  deepLink?: NavigatorScreenParams<RescueStackParamList>;
+  onDeepLinkHandled?: () => void;
 }) {
   const { colors } = useTheme();
 
   return (
-    <RescueFeedProvider>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.bg, flex: 1 },
-          animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
-        }}
-      >
-        <Stack.Screen name="Listing">
-          {() => (
-            <RescueListingScreen
-              embedded={embedded}
-              scrollHeader={scrollHeader}
-              openCreateOnMount={openCreateOnMount}
-              onOpenCreateHandled={onOpenCreateHandled}
-              hubTab={hubTab}
-              onHubTabChange={onHubTabChange}
-              hubBarPinned={hubBarPinned}
-              filters={filters}
-              onFiltersChange={onFiltersChange}
-            />
-          )}
-        </Stack.Screen>
-        <Stack.Screen name="Detail" component={RescueCaseDetailScreen} />
-        <Stack.Screen name="PostUpdate" component={RescuePostUpdateScreen} />
-        <Stack.Screen name="Search" component={RescueSearchScreen} />
-        <Stack.Screen name="CreateCase" component={RescueCreateCaseScreen} />
-      </Stack.Navigator>
-    </RescueFeedProvider>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.bg, flex: 1 },
+        animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
+      }}
+      screenLayout={({ children }) => (
+        <>
+          <EmbeddedStackDeepLinkBridge
+            deepLink={deepLink}
+            onHandled={onDeepLinkHandled}
+          />
+          {children}
+        </>
+      )}
+    >
+      <Stack.Screen name="Listing">
+        {() => (
+          <RescueListingScreen
+            embedded={embedded}
+            scrollHeader={scrollHeader}
+            openCreateOnMount={openCreateOnMount}
+            onOpenCreateHandled={onOpenCreateHandled}
+            hubTab={hubTab}
+            onHubTabChange={onHubTabChange}
+            hubBarPinned={hubBarPinned}
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="Detail" component={RescueCaseDetailScreen} />
+      <Stack.Screen name="PostUpdate" component={RescuePostUpdateScreen} />
+      <Stack.Screen name="Search" component={RescueSearchScreen} />
+      <Stack.Screen name="CreateCase" component={RescueCreateCaseScreen} />
+    </Stack.Navigator>
   );
 }

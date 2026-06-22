@@ -16,7 +16,7 @@ import { useAdoptionFeed } from '../context/AdoptionFeedContext';
 import { useFeedPosts } from '../context/FeedPostContext';
 import { usePawCircles } from '../context/PawCircleContext';
 import { useCommunityGroups } from '../context/CommunityGroupsContext';
-import { RescueFeedProvider, useRescueFeed } from '../context/RescueFeedContext';
+import { useRescueFeed } from '../context/RescueFeedContext';
 import type { FeedStackParamList } from '../navigation/feedHubNavigation';
 import { mergeAdoptionHubListings } from '../utils/adoptionPostListing';
 import {
@@ -369,11 +369,7 @@ function FeedSearchBody() {
 }
 
 export function FeedSearchScreen() {
-  return (
-    <RescueFeedProvider>
-      <FeedSearchBody />
-    </RescueFeedProvider>
-  );
+  return <FeedSearchBody />;
 }
 
 const styles = StyleSheet.create({

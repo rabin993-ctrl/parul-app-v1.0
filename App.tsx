@@ -10,6 +10,7 @@ import { CommunityFeedProvider } from './src/context/CommunityFeedContext';
 import { CommunityGroupsProvider } from './src/context/CommunityGroupsContext';
 import { AdoptionProvider } from './src/context/AdoptionContext';
 import { AdoptionFeedProvider } from './src/context/AdoptionFeedContext';
+import { RescueFeedProvider } from './src/context/RescueFeedContext';
 import { CompanionProvider } from './src/context/CompanionContext';
 import { UserPrivacyProvider } from './src/context/UserPrivacyContext';
 import { CurrentUserProfileProvider, useCurrentUserProfile } from './src/context/CurrentUserProfileContext';
@@ -124,6 +125,7 @@ export default function App() {
                     <FeedPostProvider>
                       <AdoptionProvider>
                         <AdoptionFeedProvider>
+                          <RescueFeedProvider>
                           <CompanionProvider>
                             <UserPrivacyProvider>
                                 <TabBarScrollProvider>
@@ -138,6 +140,7 @@ export default function App() {
                                 </TabBarScrollProvider>
                             </UserPrivacyProvider>
                           </CompanionProvider>
+                          </RescueFeedProvider>
                         </AdoptionFeedProvider>
                       </AdoptionProvider>
                     </FeedPostProvider>

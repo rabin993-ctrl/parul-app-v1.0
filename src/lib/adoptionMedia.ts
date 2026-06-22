@@ -66,6 +66,7 @@ export async function uploadListingPhotos(
       userId,
       mediaId,
       localUri: photo.uri,
+      blob: photo.blob,
       ext: photo.ext,
       mime: photo.mime,
       width: photo.width,

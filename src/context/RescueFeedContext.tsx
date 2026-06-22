@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -173,6 +174,7 @@ const RescueFeedContext = createContext<RescueFeedContextValue | null>(null);
 export function RescueFeedProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  const realtimeChannelId = useId().replace(/:/g, '');
 
   const [cases, setCases] = useState<RescueCase[]>([]);
   const [loading, setLoading] = useState(true);
@@ -263,8 +265,10 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
       if (timer) return;
       timer = setTimeout(() => { timer = null; void loadData({ silent: true }); }, 1500);
     };
+    // Each provider instance needs its own channel name — reusing
+    // 'rescue-feed-realtime' throws once a second provider mounts (Search / Rescues).
     const channel = supabase
-      .channel('rescue-feed-realtime')
+      .channel(`rescue-feed-realtime-${realtimeChannelId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rescue_cases' }, scheduleReload)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rescue_updates' }, scheduleReload)
       .subscribe();
@@ -272,7 +276,7 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
       if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
-  }, [userId, loadData]);
+  }, [userId, loadData, realtimeChannelId]);
 
   // ── Dev reset ───────────────────────────────────────────
 

@@ -25,31 +25,119 @@ function extFromMime(mime: string): string {
   return 'jpg';
 }
 
+type ReadablePickerFile = {
+  arrayBuffer: () => Promise<ArrayBuffer>;
+  size: number;
+  type?: string;
+};
+
+function isReadablePickerFile(v: unknown): v is ReadablePickerFile {
+  return !!v
+    && typeof v === 'object'
+    && typeof (v as ReadablePickerFile).arrayBuffer === 'function'
+    && typeof (v as ReadablePickerFile).size === 'number';
+}
+
+/** Duck-type Blob/File — `instanceof Blob` fails on some mobile Safari cross-realm Files. */
+function syncBlobFromPickerFile(file: unknown): Blob | undefined {
+  if (!file || typeof file !== 'object') return undefined;
+  if (file instanceof Blob) return file;
+  const candidate = file as Blob;
+  if (typeof candidate.slice === 'function' && typeof candidate.size === 'number') {
+    return candidate;
+  }
+  return undefined;
+}
+
 function assetFromPicker(a: ImagePicker.ImagePickerAsset): PickedAsset {
   const mime = a.mimeType ?? 'image/jpeg';
-  // expo-image-picker exposes the underlying File on web — grab it synchronously
-  // (it's a Blob), so we never depend on the volatile blob: URL at upload time.
   const file = (a as ImagePicker.ImagePickerAsset & { file?: File }).file;
+  const syncBlob = syncBlobFromPickerFile(file);
   return {
     uri: a.uri,
     ext: extFromMime(mime),
     mime,
     width: a.width,
     height: a.height,
-    bytes: a.fileSize ?? undefined,
-    blob: file instanceof Blob ? file : undefined,
+    bytes: a.fileSize ?? syncBlob?.size ?? undefined,
+    blob: syncBlob,
   };
 }
 
-/** Web fallback: if the picker didn't hand us a File, read the bytes NOW while the blob: URL is still fresh. */
-async function withCapturedBlob(asset: PickedAsset): Promise<PickedAsset> {
+function readUriAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', uri);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300 && xhr.response instanceof ArrayBuffer) {
+        resolve(xhr.response);
+        return;
+      }
+      reject(new Error(`XHR failed: ${xhr.status}`));
+    };
+    xhr.onerror = () => reject(new Error('XHR network error'));
+    xhr.send();
+  });
+}
+
+/**
+ * Web: materialize bytes at pick time so upload never depends on a stale blob: URL.
+ * Mobile Safari often fails `instanceof Blob` on picker Files — use arrayBuffer() first.
+ */
+async function withCapturedBlob(
+  asset: PickedAsset,
+  pickerFile?: unknown,
+): Promise<PickedAsset> {
   if (asset.blob || Platform.OS !== 'web') return asset;
+
+  const mime = asset.mime || 'image/jpeg';
+
+  if (isReadablePickerFile(pickerFile)) {
+    try {
+      const ab = await pickerFile.arrayBuffer();
+      if (ab.byteLength > 0) {
+        return {
+          ...asset,
+          blob: new Blob([ab], { type: pickerFile.type || mime }),
+          bytes: pickerFile.size,
+        };
+      }
+    } catch {
+      // try fallbacks below
+    }
+  }
+
   try {
     const blob = await (await fetch(asset.uri)).blob();
-    return { ...asset, blob };
+    if (blob.size > 0) {
+      return { ...asset, blob, bytes: asset.bytes ?? blob.size };
+    }
   } catch {
-    return asset; // fall back to upload-time fetch
+    // try XHR fallback below
   }
+
+  try {
+    const ab = await readUriAsArrayBuffer(asset.uri);
+    if (ab.byteLength > 0) {
+      return {
+        ...asset,
+        blob: new Blob([ab], { type: mime }),
+        bytes: ab.byteLength,
+      };
+    }
+  } catch {
+    // all capture paths failed
+  }
+
+  if (__DEV__) {
+    console.warn('[useMediaPicker] failed to capture image bytes at pick time; upload may fail on mobile web');
+  }
+  return asset;
+}
+
+function pickerFileFromAsset(a: ImagePicker.ImagePickerAsset): unknown {
+  return (a as ImagePicker.ImagePickerAsset & { file?: File }).file;
 }
 
 export function useMediaPicker() {
@@ -70,7 +158,8 @@ export function useMediaPicker() {
       exif: false,
     });
     if (!result.canceled && result.assets[0]) {
-      const asset = await withCapturedBlob(assetFromPicker(result.assets[0]));
+      const pickerAsset = result.assets[0];
+      const asset = await withCapturedBlob(assetFromPicker(pickerAsset), pickerFileFromAsset(pickerAsset));
       setSelectedAsset(asset);
       return asset;
     }
@@ -91,7 +180,9 @@ export function useMediaPicker() {
       exif: false,
     });
     if (result.canceled || result.assets.length === 0) return [];
-    const assets = await Promise.all(result.assets.map(a => withCapturedBlob(assetFromPicker(a))));
+    const assets = await Promise.all(
+      result.assets.map(a => withCapturedBlob(assetFromPicker(a), pickerFileFromAsset(a))),
+    );
     if (assets[0]) setSelectedAsset(assets[assets.length - 1]);
     return assets;
   }, []);
@@ -110,7 +201,8 @@ export function useMediaPicker() {
       exif: false,
     });
     if (!result.canceled && result.assets[0]) {
-      const asset = await withCapturedBlob(assetFromPicker(result.assets[0]));
+      const pickerAsset = result.assets[0];
+      const asset = await withCapturedBlob(assetFromPicker(pickerAsset), pickerFileFromAsset(pickerAsset));
       setSelectedAsset(asset);
       return asset;
     }

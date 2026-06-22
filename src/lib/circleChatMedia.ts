@@ -35,6 +35,7 @@ export async function resolveCircleMediaSignedUrl(
 export async function uploadCircleChatMedia(params: {
   userId: string;
   localUri: string;
+  blob?: Blob;
   ext: string;
   mime: string;
   bytes?: number;
@@ -50,6 +51,7 @@ export async function uploadCircleChatMedia(params: {
     userId: params.userId,
     mediaId,
     localUri: params.localUri,
+    blob: params.blob,
     ext: params.ext,
     mime: params.mime,
     bytes: params.bytes,
