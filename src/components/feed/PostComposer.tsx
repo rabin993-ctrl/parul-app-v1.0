@@ -657,11 +657,23 @@ export function PostComposer({
       setAlertCoordsLoading(false);
       setDestinations([{ type: 'feed' }]);
       setDestinationPickerOpen(false);
-      Keyboard.dismiss();
     }
 
     return () => { cancelled = true; };
   }, [visible, options, initialCategory, initialCompanionIds, postAsCompanionId, myCompanionIds, joinedCommunities, getCommunity, user?.id, onClose, onOpenAdoptionListing, editingPost, isEditing, clearPhotos]);
+
+  // Dismiss the keyboard ONLY when the composer actually closes. This used to be
+  // inside the big reset effect above, but that effect re-runs on unrelated
+  // dependency changes while the composer is mounted-but-hidden — and since the
+  // composer stays mounted app-wide, each spurious run called Keyboard.dismiss(),
+  // which .blur()s whatever input is focused *anywhere* in the app. That was the
+  // app-wide "keyboard opens then instantly closes" bug. Gate it on the
+  // visible true->false transition so it never fires while already hidden.
+  const wasVisibleRef = useRef(false);
+  useEffect(() => {
+    if (wasVisibleRef.current && !visible) Keyboard.dismiss();
+    wasVisibleRef.current = visible;
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
