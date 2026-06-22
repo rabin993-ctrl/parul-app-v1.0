@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts } from '../../theme/fonts';
 import { radius, spacing } from '../../theme/tokens';
@@ -27,7 +26,6 @@ export function CheckEmailScreen({
   onBack: () => void;
 }) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
@@ -45,71 +43,58 @@ export function CheckEmailScreen({
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.bg }]}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          {
-            paddingTop: insets.top + spacing.xl2,
-            paddingBottom: insets.bottom + spacing.xl2,
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <AppLogo size={72} showWordmark />
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <AppLogo size={72} showWordmark />
 
-        <View style={[styles.badge, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
-          <Icon name="paw" size={40} color={colors.primary} />
-        </View>
+      <View style={[styles.badge, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+        <Icon name="paw" size={40} color={colors.primary} />
+      </View>
 
-        <Text style={[styles.title, { color: colors.text }]}>Check your email</Text>
-        <Text style={[styles.message, { color: colors.textSecondary }]}>
-          We sent a confirmation link to{'\n'}
-          <Text style={[styles.email, { color: colors.text }]}>{email}</Text>
-        </Text>
-        <Text style={[styles.hint, { color: colors.textSecondary }]}>
-          Tap the link in that email to activate your account. It can take a minute to arrive — don&apos;t
-          forget to check spam.
-        </Text>
+      <Text style={[styles.title, { color: colors.text }]}>Check your email</Text>
+      <Text style={[styles.message, { color: colors.textSecondary }]}>
+        We sent a confirmation link to{'\n'}
+        <Text style={[styles.email, { color: colors.text }]}>{email}</Text>
+      </Text>
+      <Text style={[styles.hint, { color: colors.textSecondary }]}>
+        Tap the link in that email to activate your account. It can take a minute to arrive — don&apos;t
+        forget to check spam.
+      </Text>
 
-        {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
-        {info ? <Text style={[styles.info, { color: colors.textSecondary }]}>{info}</Text> : null}
+      {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+      {info ? <Text style={[styles.info, { color: colors.textSecondary }]}>{info}</Text> : null}
 
-        <View style={styles.actions}>
-          {openLabel ? (
-            <Button full size="lg" icon="mail" onPress={() => void openMailbox(email)}>
-              {openLabel}
-            </Button>
-          ) : null}
-
-          <Button
-            full
-            size="lg"
-            variant="secondary"
-            loading={resendLoading}
-            disabled={cooldown > 0}
-            onPress={handleResend}
-          >
-            {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend confirmation email'}
+      <View style={styles.actions}>
+        {openLabel ? (
+          <Button full size="lg" icon="mail" onPress={() => void openMailbox(email)}>
+            {openLabel}
           </Button>
-        </View>
+        ) : null}
 
-        <Pressable hitSlop={8} onPress={onBack} style={styles.backRow}>
-          <Text style={[styles.backText, { color: colors.textSecondary }]}>
-            Wrong email?{' '}
-            <Text style={[styles.backLink, { color: colors.primary }]}>Go back</Text>
-          </Text>
-        </Pressable>
-      </ScrollView>
+        <Button
+          full
+          size="lg"
+          variant="secondary"
+          loading={resendLoading}
+          disabled={cooldown > 0}
+          onPress={handleResend}
+        >
+          {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend confirmation email'}
+        </Button>
+      </View>
+
+      <Pressable hitSlop={8} onPress={onBack} style={styles.backRow}>
+        <Text style={[styles.backText, { color: colors.textSecondary }]}>
+          Wrong email?{' '}
+          <Text style={[styles.backLink, { color: colors.primary }]}>Go back</Text>
+        </Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
+  container: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl2,
