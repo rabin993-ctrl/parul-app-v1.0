@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../theme/ThemeContext';
 import { RescueFeedProvider } from '../context/RescueFeedContext';
@@ -48,7 +49,7 @@ export function RescueNavigator({
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.bg, flex: 1 },
-          animation: 'slide_from_right',
+          animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
         }}
       >
         <Stack.Screen name="Listing">

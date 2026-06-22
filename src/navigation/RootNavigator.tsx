@@ -57,7 +57,7 @@ export function RootNavigator() {
         component={NotificationsScreen}
         options={{
           presentation: 'modal',
-          animation: 'slide_from_bottom',
+          animation: Platform.OS === 'web' ? 'none' : 'slide_from_bottom',
           contentStyle: { backgroundColor: colors.bg, flex: 1 },
         }}
       />
@@ -65,7 +65,7 @@ export function RootNavigator() {
         name="RescueCaseFlow"
         component={RootRescueCaseNavigator}
         options={{
-          animation: 'slide_from_right',
+          animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
           contentStyle: { backgroundColor: colors.bg, flex: 1 },
         }}
       />

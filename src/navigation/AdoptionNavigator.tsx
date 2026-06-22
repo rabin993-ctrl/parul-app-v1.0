@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { useNavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../theme/ThemeContext';
@@ -71,7 +72,7 @@ export function AdoptionNavigator({
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.bg, flex: 1 },
-          animation: 'slide_from_right',
+          animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
         }}
         screenLayout={({ children }) => (
           <>

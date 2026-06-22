@@ -57,6 +57,20 @@ export function WebInputFocusFix() {
           font-size: max(16px, 1em) !important;
         }
       }
+      /*
+       * RN-Web puts -webkit-user-select:none on Views (incl. ScrollView content
+       * containers). On iOS Safari that inherits into descendant inputs and makes
+       * them non-editable — tapping focuses nothing and the keyboard never opens.
+       * This hits inputs inside a sheet's scrollable BODY (Add companion, Edit
+       * profile) while footer inputs (different container) still work. Force every
+       * form control back to selectable/editable + tap-friendly touch handling.
+       */
+      input, textarea, select {
+        -webkit-user-select: text !important;
+        user-select: text !important;
+        touch-action: manipulation !important;
+        -webkit-touch-callout: default;
+      }
       div[aria-modal="true"] {
         background-color: transparent !important;
       }

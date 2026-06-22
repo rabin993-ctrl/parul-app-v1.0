@@ -566,7 +566,7 @@ export function FeedScreen() {
       <AppSubHeader
         showBack={false}
         titleNode={
-          <AppLogo size={48} showWordmark onPress={handleFeedHomePress} />
+          <AppLogo size={48} onPress={handleFeedHomePress} />
         }
         trailing={(
           <View style={styles.headerActions}>
