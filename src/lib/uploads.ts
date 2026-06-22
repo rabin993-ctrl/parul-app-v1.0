@@ -145,35 +145,46 @@ export async function uploadMediaAsset({
   // 2. Upload original
   await uploadMedia({ bucket, path: originalPath, data: originalBlob, contentType: mime, upsert: true });
 
-  // 3. Generate & upload variants
+  // 3. Generate & upload variants. A failure here (ImageManipulator can throw on
+  //    web / unusual image formats) must NOT abort the upload — the original is
+  //    already stored, so we fall back to no thumbnail and still persist the
+  //    media_assets row below. The VPS thumbnail cron backfills thumb/full later.
+  let variantsOk = false;
   if (shouldGenerateVariants) {
-    const thumbResult = await ImageManipulator.manipulateAsync(
-      localUri,
-      [{ resize: { width: 200 } }],
-      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
-    );
-    const thumbBlob = await (await fetch(thumbResult.uri)).blob();
-    await uploadMedia({
-      bucket,
-      path: thumbPath,
-      data: thumbBlob,
-      contentType: 'image/jpeg',
-      upsert: true,
-    });
+    try {
+      const thumbResult = await ImageManipulator.manipulateAsync(
+        localUri,
+        [{ resize: { width: 200 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      const thumbBlob = await (await fetch(thumbResult.uri)).blob();
+      await uploadMedia({
+        bucket,
+        path: thumbPath,
+        data: thumbBlob,
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
 
-    const fullResult = await ImageManipulator.manipulateAsync(
-      localUri,
-      [{ resize: { width: 1080 } }],
-      { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
-    );
-    const fullBlob = await (await fetch(fullResult.uri)).blob();
-    await uploadMedia({
-      bucket,
-      path: fullPath,
-      data: fullBlob,
-      contentType: 'image/jpeg',
-      upsert: true,
-    });
+      const fullResult = await ImageManipulator.manipulateAsync(
+        localUri,
+        [{ resize: { width: 1080 } }],
+        { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      const fullBlob = await (await fetch(fullResult.uri)).blob();
+      await uploadMedia({
+        bucket,
+        path: fullPath,
+        data: fullBlob,
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
+      variantsOk = true;
+    } catch (variantErr) {
+      if (__DEV__) {
+        console.warn('[uploads] variant generation failed; storing original only:', variantErr);
+      }
+    }
   }
 
   // 4. Compute CDN/public URLs for the DB row.
@@ -191,9 +202,9 @@ export async function uploadMediaAsset({
     id: mediaId,
     owner_id: userId,
     url: originalUrl,
-    // Only store a thumb URL when a thumbnail is actually produced (images with
-    // variants enabled). Otherwise the DB would hold a permanently-404 URL.
-    thumb_url: shouldGenerateVariants ? thumbUrlValue : null,
+    // Only store a thumb URL when the thumbnail was actually produced+uploaded.
+    // Otherwise the DB would hold a permanently-404 URL (the cron backfills it).
+    thumb_url: variantsOk ? thumbUrlValue : null,
     mime,
     type: isImage ? 'image' : isVideo ? 'video' : 'file',
     width: width ?? null,

@@ -43,13 +43,8 @@ function OpenCaseSheet({
       onClose={onClose}
       title="Open a case"
       maxHeight={Platform.OS === 'web' ? 680 : undefined}
-    >
-      <View style={styles.sheetBody}>
-        <RescueOpenCaseForm
-          onCanPublishChange={setCanPublish}
-          onPublishHintChange={setPublishHint}
-          publishRef={publishRef}
-        />
+      footerExpandBody
+      footer={(
         <View style={styles.actions}>
           {publishHint ? (
             <Text style={[styles.actionsHint, { color: colors.textTertiary }]} numberOfLines={2}>
@@ -62,6 +57,14 @@ function OpenCaseSheet({
             Open case
           </Button>
         </View>
+      )}
+    >
+      <View style={styles.sheetBody}>
+        <RescueOpenCaseForm
+          onCanPublishChange={setCanPublish}
+          onPublishHintChange={setPublishHint}
+          publishRef={publishRef}
+        />
       </View>
     </Sheet>
   );

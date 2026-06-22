@@ -523,11 +523,14 @@ export function ChatThreadScreen({
   const handleViewProfile = () => {
     if (!peer) return;
     setOptionsOpen(false);
-    onClose();
-    navigation.navigate('Circles', {
-      screen: 'UserProfile',
-      params: { userId: peer.id, returnTo: 'Hub' },
-    });
+    // This chat is rendered inside the Circles stack, so `replace` pops the chat
+    // and pushes the peer's profile in one action — restoring the tab bar and
+    // avoiding the goBack()-then-navigate race that previously dumped the user on
+    // the Paw Circle hub. ('UserProfile' is a sibling route in the same stack,
+    // not a tab, so we cast past the (incorrect) BottomTab navigation typing.)
+    (navigation as unknown as {
+      replace: (name: 'UserProfile', params: { userId: string; returnTo: string }) => void;
+    }).replace('UserProfile', { userId: peer.id, returnTo: 'Hub' });
   };
 
   const handleViewSharedPost = useCallback((post: Post) => {

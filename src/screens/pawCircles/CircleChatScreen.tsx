@@ -625,7 +625,7 @@ export function CircleChatScreen() {
               {message.text}
             </MentionText>
           </View>
-          <Text style={[styles.bubbleTime, { color: colors.textTertiary, alignSelf: 'flex-end' }]}>
+          <Text style={[styles.bubbleTime, { color: colors.textTertiary, alignSelf: 'flex-start' }]}>
             {message.time}
           </Text>
         </View>
@@ -766,8 +766,8 @@ const styles = StyleSheet.create({
   incomingMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-end',
-    paddingRight: 2,
+    alignSelf: 'flex-start',
+    paddingLeft: 2,
   },
   outgoingBubble: {
     borderRadius: radius.xl,
