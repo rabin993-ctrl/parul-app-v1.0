@@ -1,6 +1,5 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { TreatWalletProvider } from './src/context/TreatWalletContext';
@@ -30,6 +29,7 @@ import { AuthConfirmSuccessScreen } from './src/screens/auth/AuthConfirmSuccessS
 import { OnboardingScreen } from './src/screens/onboarding/OnboardingScreen';
 import { FontGate } from './src/components/FontGate';
 import { AppSplash } from './src/components/AppSplash';
+import { PawLoader } from './src/components/PawLoader';
 import { WebInputFocusFix } from './src/components/WebInputFocusFix';
 import { BlankInputAccessory } from './src/components/ui/BlankInputAccessory';
 import { usePushTokenRegistration } from './src/hooks/usePushTokenRegistration';
@@ -40,7 +40,7 @@ import { AppTutorialCarousel } from './src/components/tutorial/AppTutorialCarous
 import { ConfirmDialogHost } from './src/components/ui/ConfirmDialog';
 
 function AppInner() {
-  const { mode, colors } = useTheme();
+  const { mode } = useTheme();
   const { initializing, session, user, authConfirmPhase } = useAuth();
   const { ready: profileReady, onboarded } = useCurrentUserProfile();
   const tutorial = useAppTutorial(user?.id);
@@ -76,10 +76,8 @@ function AppInner() {
       <WebInputFocusFix />
       <BlankInputAccessory />
       {authConfirmPhase === 'verifying' ? (
-        // Email-link verification (not a normal startup) — a quiet spinner, not the splash.
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
+        // Email-link verification (not a normal startup) — paw loader, not the splash.
+        <PawLoader />
       ) : authConfirmPhase === 'error' ? (
         <AuthConfirmErrorScreen />
       ) : authConfirmPhase === 'success' ? (
