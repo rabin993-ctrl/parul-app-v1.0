@@ -20,6 +20,7 @@ import { LEGAL_DOCUMENTS, type LegalDocumentId } from '../../data/legalDocuments
 import { useAuth } from '../../context/AuthContext';
 import { isUsernameAvailable } from '../../utils/username';
 import { ForgotPasswordSheet } from './ForgotPasswordSheet';
+import { CheckEmailScreen } from './CheckEmailScreen';
 
 type UsernameStatus = 'idle' | 'invalid' | 'checking' | 'available' | 'taken';
 
@@ -94,17 +95,29 @@ export function AuthScreen() {
       : await signIn(email, password);
     setLoading(false);
     if (res.error) {
-      setError(res.error);
+      // Unconfirmed account trying to sign in — route them to the same
+      // "check your email" page (it speaks for itself) instead of a raw error.
       if (res.error.toLowerCase().includes('email not confirmed')) {
+        setError(null);
+        setInfo(null);
         setAwaitingConfirmation(true);
-        setInfo('Confirm your email first, then sign in. You can resend the link below.');
+        return;
       }
+      setError(res.error);
       return;
     }
     if (isSignup && 'needsEmailConfirmation' in res && res.needsEmailConfirmation) {
+      setError(null);
+      setInfo(null);
       setAwaitingConfirmation(true);
-      setInfo(`We sent a confirmation link to ${email.trim().toLowerCase()}. Open it on this device to activate your account.`);
     }
+  }
+
+  function backToForm() {
+    setAwaitingConfirmation(false);
+    setError(null);
+    setInfo(null);
+    clearPendingConfirmation();
   }
 
   async function onGoogle() {
@@ -154,6 +167,19 @@ export function AuthScreen() {
         document={LEGAL_DOCUMENTS[legalDoc]}
         onBack={() => setLegalDoc(null)}
         bottomInset={insets.bottom + spacing.xl2}
+      />
+    );
+  }
+
+  if (awaitingConfirmation) {
+    return (
+      <CheckEmailScreen
+        email={(pendingConfirmationEmail ?? email).trim().toLowerCase()}
+        onResend={onResendConfirmation}
+        resendLoading={resendLoading}
+        info={info}
+        error={error}
+        onBack={backToForm}
       />
     );
   }

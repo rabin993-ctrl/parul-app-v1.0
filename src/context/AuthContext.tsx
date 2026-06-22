@@ -15,7 +15,7 @@ import {
 type AuthResult = { error: string | null };
 type SignUpResult = AuthResult & { needsEmailConfirmation?: boolean };
 
-export type AuthConfirmPhase = 'none' | 'verifying' | 'recovery' | 'error';
+export type AuthConfirmPhase = 'none' | 'verifying' | 'recovery' | 'error' | 'success';
 
 interface AuthContextValue {
   initializing: boolean;
@@ -108,8 +108,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else if (confirmParams.type === 'recovery' || confirmParams.type === 'invite') {
           setAuthConfirmPhase('recovery');
         } else {
-          setAuthConfirmPhase('none');
+          // Email/signup confirmation succeeded. verifyOtp establishes a session,
+          // but per product decision we do NOT auto-login (the link is often
+          // opened on a different device than signup). Sign out and show a success
+          // screen prompting an explicit sign-in. Guard signOut so a rejection
+          // can't escape this IIFE and leave the app stuck on the spinner.
+          try {
+            await supabase.auth.signOut();
+          } catch {
+            // ignore — the success screen short-circuits rendering regardless
+          }
+          if (!mounted) return;
+          setSession(null);
           setPendingConfirmationEmail(null);
+          setAuthConfirmPhase('success');
+          setInitializing(false);
+          return;
         }
 
         try {

@@ -26,6 +26,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { AuthScreen } from './src/screens/auth/AuthScreen';
 import { SetNewPasswordScreen } from './src/screens/auth/SetNewPasswordScreen';
 import { AuthConfirmErrorScreen } from './src/screens/auth/AuthConfirmErrorScreen';
+import { AuthConfirmSuccessScreen } from './src/screens/auth/AuthConfirmSuccessScreen';
 import { OnboardingScreen } from './src/screens/onboarding/OnboardingScreen';
 import { FontGate } from './src/components/FontGate';
 import { WebInputFocusFix } from './src/components/WebInputFocusFix';
@@ -70,6 +71,8 @@ function AppInner() {
         </View>
       ) : authConfirmPhase === 'error' ? (
         <AuthConfirmErrorScreen />
+      ) : authConfirmPhase === 'success' ? (
+        <AuthConfirmSuccessScreen />
       ) : pendingRecovery ? (
         <SetNewPasswordScreen />
       ) : needsOnboarding ? (
