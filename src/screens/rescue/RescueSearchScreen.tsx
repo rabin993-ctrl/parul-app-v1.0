@@ -15,12 +15,14 @@ import { filterRescueCases, type RescueFilters } from '../../data/rescueData';
 import type { RescueStackParamList } from '../../navigation/RescueNavigator';
 import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
 import { useAuth } from '../../context/AuthContext';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 
 type Route = RouteProp<RescueStackParamList, 'Search'>;
 type Nav = NativeStackNavigationProp<RescueStackParamList, 'Search'>;
 
 export function RescueSearchScreen() {
   const { colors } = useTheme();
+  const mobileWeb = useMobileWeb();
   const navigation = useNavigation<Nav>();
   const { species: initialSpecies } = useRoute<Route>().params;
   const { user } = useAuth();
@@ -50,7 +52,7 @@ export function RescueSearchScreen() {
           placeholder="Search by name, location, or case ID…"
           placeholderTextColor={colors.textTertiary}
           style={[styles.searchInput, { color: colors.text }]}
-          autoFocus
+          autoFocus={!mobileWeb}
         />
       </View>
 

@@ -22,6 +22,7 @@ import {
 } from '../MentionPicker';
 import { dismissActiveMention } from '../../utils/mentionText';
 import { useAuth } from '../../context/AuthContext';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 
 type ReplyTarget = {
   threadId: string;
@@ -174,6 +175,7 @@ export function CommunityCommentSheet({
   onAuthorPress?: (userId: string) => void;
 }) {
   const { colors, isDark, groupedBg } = useTheme();
+  const mobileWeb = useMobileWeb();
   const { user } = useAuth();
   const meUser = { id: user?.id ?? '', name: user?.email?.split('@')[0] ?? 'Me', tint: '#F2972E' };
   const commentInputRef = useRef<TextInput>(null);
@@ -308,7 +310,7 @@ export function CommunityCommentSheet({
                 value={newCommentText}
                 onChangeText={handleNewCommentChange}
                 autoComplete="off"
-                autoFocus
+                autoFocus={!mobileWeb}
                 showSoftInputOnFocus
                 {...commentTextInputProps(isDark)}
               />

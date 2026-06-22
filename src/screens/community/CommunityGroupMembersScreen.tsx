@@ -15,12 +15,14 @@ import { useCommunityGroups } from '../../context/CommunityGroupsContext';
 import { useCommunityMembersWithProfiles } from '../../hooks/useCommunityMembersWithProfiles';
 import type { CommunityStackParamList } from '../../navigation/CommunityNavigator';
 import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 
 type Route = RouteProp<CommunityStackParamList, 'GroupMembers'>;
 type Nav = NativeStackNavigationProp<CommunityStackParamList, 'GroupMembers'>;
 
 export function CommunityGroupMembersScreen() {
   const { colors } = useTheme();
+  const mobileWeb = useMobileWeb();
   const navigation = useNavigation<Nav>();
   const { communityId } = useRoute<Route>().params;
   const tabBarPad = useTabBarScrollPadding();
@@ -101,7 +103,7 @@ export function CommunityGroupMembersScreen() {
             placeholderTextColor={colors.textTertiary}
             value={query}
             onChangeText={setQuery}
-            autoFocus
+            autoFocus={!mobileWeb}
             autoComplete="off"
             autoCorrect={false}
           />

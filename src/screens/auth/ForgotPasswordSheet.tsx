@@ -6,6 +6,7 @@ import { MOBILE_INPUT_FONT_SIZE, radius, spacing } from '../../theme/tokens';
 import { Button } from '../../components/ui/Button';
 import { Sheet } from '../../components/ui/Sheet';
 import { useAuth } from '../../context/AuthContext';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
 
@@ -19,6 +20,7 @@ export function ForgotPasswordSheet({
   onClose: () => void;
 }) {
   const { colors } = useTheme();
+  const mobileWeb = useMobileWeb();
   const { resetPassword } = useAuth();
   const [email, setEmail] = useState(initialEmail ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +104,7 @@ export function ForgotPasswordSheet({
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
-                  autoFocus={Platform.OS === 'web'}
+                  autoFocus={Platform.OS === 'web' && !mobileWeb}
                   style={[styles.input, { color: colors.text }]}
                 />
               </View>

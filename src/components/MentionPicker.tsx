@@ -16,6 +16,7 @@ import { avatarUrlsFromMedia, normalizeJoinedMedia, USER_AVATAR_MEDIA_SELECT } f
 import { useAuth } from '../context/AuthContext';
 import { usePawCircles } from '../context/PawCircleContext';
 import { useAllCircleMembers } from '../hooks/useAllCircleMembers';
+import { useMobileWeb } from '../hooks/useMobileWeb';
 import {
   searchAllCircleMembers,
   searchCircles,
@@ -120,6 +121,7 @@ export function MentionPicker({
   reserveBottomHeight = 0,
 }: MentionPickerProps) {
   const { colors, iconBg, isDark, scrim } = useTheme();
+  const mobileWeb = useMobileWeb();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { getDbId } = usePawCircles();
@@ -290,7 +292,7 @@ export function MentionPicker({
         placeholderTextColor={colors.textTertiary}
         value={query}
         onChangeText={setQuery}
-        autoFocus
+        autoFocus={!mobileWeb}
         autoCorrect={false}
         autoCapitalize="none"
         {...commentTextInputProps(isDark)}

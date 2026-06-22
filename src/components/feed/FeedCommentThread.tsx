@@ -22,6 +22,7 @@ import {
 } from '../MentionPicker';
 import { dismissActiveMention } from '../../utils/mentionText';
 import { useUserProfile, type UserMini } from '../../hooks/useUserProfile';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 import { MentionText } from '../ui/MentionText';
 import { useVisualViewportInset } from '../../hooks/useVisualViewportInset';
 import { useSheetScrollToEnd } from '../../hooks/useSheetScrollToEnd';
@@ -232,6 +233,7 @@ export function FeedCommentInputBar({
   inline?: boolean;
 }) {
   const { colors, isDark, groupedBg } = useTheme();
+  const mobileWeb = useMobileWeb();
   const { user } = useAuth();
   const { me } = useCurrentUserProfile();
   const inputRef = useRef<TextInput>(null);
@@ -305,11 +307,12 @@ export function FeedCommentInputBar({
   }, [submit]);
 
   useEffect(() => {
+    if (mobileWeb) return;
     if (!autoFocus) return;
     const delay = Platform.OS === 'ios' ? 450 : 250;
     const t = setTimeout(() => inputRef.current?.focus(), delay);
     return () => clearTimeout(t);
-  }, [autoFocus]);
+  }, [autoFocus, mobileWeb]);
 
   return (
     <View style={styles.replyFooter}>
@@ -345,7 +348,7 @@ export function FeedCommentInputBar({
             onFocus={onInputFocus}
             onKeyPress={handleKeyPress}
             autoComplete="off"
-            autoFocus={autoFocus}
+            autoFocus={autoFocus && !mobileWeb}
             showSoftInputOnFocus
             {...commentTextInputProps(isDark)}
           />

@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { spacing, typography } from '../../theme/tokens';
 import { Icon } from '../icons/Icon';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 
 const webInputOutline = Platform.select({ web: { outlineStyle: 'none' } as object, default: {} });
 const webBioInputExtra = Platform.select({ web: { resize: 'none' } as object, default: {} });
@@ -29,6 +30,7 @@ export function ProfileSettingsEditForm({
   onLocationChange: (v: string) => void;
 }) {
   const { colors } = useTheme();
+  const mobileWeb = useMobileWeb();
 
   return (
     <View style={styles.form}>
@@ -40,7 +42,7 @@ export function ProfileSettingsEditForm({
             onChangeText={onNameChange}
             placeholder="Your name"
             placeholderTextColor={colors.textTertiary}
-            autoFocus
+            autoFocus={!mobileWeb}
             style={[styles.fieldInput, { color: colors.text }, webInputOutline]}
           />
         </View>

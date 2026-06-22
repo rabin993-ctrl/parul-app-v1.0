@@ -8,6 +8,7 @@ import { MentionComposerInput } from './MentionComposerInput';
 import { commentTextInputProps } from './BlankInputAccessory';
 import { Icon } from '../icons/Icon';
 import { useCurrentUserProfile } from '../../context/CurrentUserProfileContext';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 
 export function CommentReplyInput({
   replyToName,
@@ -29,6 +30,7 @@ export function CommentReplyInput({
   submitting?: boolean;
 }) {
   const { colors, isDark, groupedBg } = useTheme();
+  const mobileWeb = useMobileWeb();
   const { me } = useCurrentUserProfile();
 
   return (
@@ -42,7 +44,7 @@ export function CommentReplyInput({
           placeholderTextColor={colors.textTertiary}
           value={value}
           onChangeText={onChangeText}
-          autoFocus={autoFocus}
+          autoFocus={autoFocus && !mobileWeb}
           showSoftInputOnFocus
           multiline
           {...commentTextInputProps(isDark)}

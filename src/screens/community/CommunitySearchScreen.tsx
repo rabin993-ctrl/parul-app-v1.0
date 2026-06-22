@@ -25,12 +25,14 @@ import {
 } from '../../data/communityPosts';
 import type { CommunityStackParamList } from '../../navigation/CommunityNavigator';
 import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 
 type Route = RouteProp<CommunityStackParamList, 'Search'>;
 type Nav = NativeStackNavigationProp<CommunityStackParamList, 'Search'>;
 
 export function CommunitySearchScreen() {
   const { colors } = useTheme();
+  const mobileWeb = useMobileWeb();
   const navigation = useNavigation<Nav>();
   const { filter: initialFilter } = useRoute<Route>().params;
   const { posts, toggleHelpful, toggleSaved, addComment } = useCommunityFeed();
@@ -97,7 +99,7 @@ export function CommunitySearchScreen() {
           placeholder="Search discussions, topics, groups…"
           placeholderTextColor={colors.textTertiary}
           style={[styles.searchInput, { color: colors.text }]}
-          autoFocus
+          autoFocus={!mobileWeb}
         />
       </View>
 

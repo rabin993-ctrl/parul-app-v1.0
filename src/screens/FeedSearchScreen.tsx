@@ -34,12 +34,14 @@ import { formatFeedSearchPostMeta } from '../utils/postMeta';
 import { supabase } from '../lib/supabase';
 import { useTabBarScrollPadding } from '../navigation/tabBarInsets';
 import { shortCircleName } from '../utils/destinationSearch';
+import { useMobileWeb } from '../hooks/useMobileWeb';
 import { CirclePrivacyLockIcon } from './pawCircles/PawCircleChrome';
 
 type Nav = NativeStackNavigationProp<FeedStackParamList, 'Search'>;
 
 function FeedSearchBody() {
   const { colors, iconBg } = useTheme();
+  const mobileWeb = useMobileWeb();
   const navigation = useNavigation<Nav>();
   const tabBarPad = useTabBarScrollPadding();
   const { posts: feedPosts } = useFeedPosts();
@@ -156,7 +158,7 @@ function FeedSearchBody() {
           placeholder="People, @username, posts, pets…"
           placeholderTextColor={colors.textTertiary}
           style={[styles.searchInput, { color: colors.text }]}
-          autoFocus
+          autoFocus={!mobileWeb}
           autoCorrect={false}
           autoCapitalize="none"
         />

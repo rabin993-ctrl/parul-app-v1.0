@@ -14,12 +14,14 @@ import { useAdoptionFeed } from '../../context/AdoptionFeedContext';
 import { AdoptionFilters, filterAdoptionListings } from '../../data/adoptionData';
 import type { AdoptionStackParamList } from '../../navigation/AdoptionNavigator';
 import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 
 type Route = RouteProp<AdoptionStackParamList, 'Search'>;
 type Nav = NativeStackNavigationProp<AdoptionStackParamList, 'Search'>;
 
 export function AdoptionSearchScreen() {
   const { colors } = useTheme();
+  const mobileWeb = useMobileWeb();
   const navigation = useNavigation<Nav>();
   const { species: initialSpecies } = useRoute<Route>().params;
   const { listings, isSaved, toggleSaved } = useAdoptionFeed();
@@ -45,7 +47,7 @@ export function AdoptionSearchScreen() {
           placeholder="Search by name, breed, or location…"
           placeholderTextColor={colors.textTertiary}
           style={[styles.searchInput, { color: colors.text }]}
-          autoFocus
+          autoFocus={!mobileWeb}
         />
       </View>
 

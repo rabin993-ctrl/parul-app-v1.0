@@ -74,7 +74,12 @@ function DetailFlow({ caseId, onClose }: { caseId: string; onClose: () => void }
   const { colors } = useTheme();
 
   return (
-    <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+    <Modal
+      visible
+      animationType={Platform.OS === 'web' ? 'none' : 'slide'}
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
       <View style={[styles.detailRoot, { backgroundColor: colors.bg }]}>
         <RescueOpenCaseFlowProvider close={onClose}>
           <NavigationIndependentTree>
@@ -83,7 +88,9 @@ function DetailFlow({ caseId, onClose }: { caseId: string; onClose: () => void }
                 screenOptions={{
                   headerShown: false,
                   contentStyle: { backgroundColor: colors.bg, flex: 1 },
-                  animation: 'slide_from_right',
+                  // On mobile web the slide transform can swallow the first tap on
+                  // an input inside this modal (keyboard won't open until reload).
+                  animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
                 }}
                 initialRouteName="Detail"
               >

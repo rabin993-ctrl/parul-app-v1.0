@@ -10,6 +10,7 @@ import { Icon } from '../../components/icons/Icon';
 import { Button } from '../../components/ui/Button';
 import { useCompanions } from '../../context/CompanionContext';
 import { useAuth } from '../../context/AuthContext';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 
 type SpeciesChoice = 'dog' | 'cat' | 'other';
 
@@ -21,6 +22,7 @@ const SPECIES: { id: SpeciesChoice; label: string; icon: string }[] = [
 
 export function CompanionOnboardingScreen() {
   const { colors } = useTheme();
+  const mobileWeb = useMobileWeb();
   const { user } = useAuth();
   const { addManualAsync } = useCompanions();
 
@@ -106,7 +108,7 @@ export function CompanionOnboardingScreen() {
               placeholderTextColor={colors.textTertiary}
               value={name}
               onChangeText={t => { setName(t); setError(null); }}
-              autoFocus
+              autoFocus={!mobileWeb}
               returnKeyType="next"
             />
 

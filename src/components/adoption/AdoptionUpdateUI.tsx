@@ -11,6 +11,7 @@ import { Icon } from '../icons/Icon';
 import { Avatar } from '../ui/Avatar';
 import { type PosterRecommendation, isPosterEndorsementNoteRequired } from '../../data/adoptionRecords';
 import { useUserProfile } from '../../hooks/useUserProfile';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 import type { AdoptionUpdate } from '../../data/adoptionRecords';
 import type { AdoptionRecord, AdoptionUpdatePayload, AdoptionUpdatePrompt } from '../../data/adoptionRecords';
 
@@ -197,6 +198,7 @@ export function InlinePostHomeUpdateForm({
   onSubmit: (payload: AdoptionUpdatePayload) => void;
 }) {
   const { colors } = useTheme();
+  const mobileWeb = useMobileWeb();
   const [savedCaption, setSavedCaption] = useState('');
   const [editValue, setEditValue] = useState('');
   const [editingPrompt, setEditingPrompt] = useState(false);
@@ -258,7 +260,7 @@ export function InlinePostHomeUpdateForm({
               value={editValue}
               onChangeText={setEditValue}
               multiline
-              autoFocus
+              autoFocus={!mobileWeb}
               textAlignVertical="top"
               placeholder={CAPTION_HINT}
               placeholderTextColor={colors.textTertiary}

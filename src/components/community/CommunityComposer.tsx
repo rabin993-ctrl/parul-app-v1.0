@@ -22,6 +22,7 @@ import {
 import type { CommunityCategory } from '../../data/communityPosts';
 import type { Community } from '../../data/mockData';
 import { useAuth } from '../../context/AuthContext';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 import { useCompanions } from '../../context/CompanionContext';
 import { loadDefaultCompanionId, resolveDefaultCompanionId } from '../../lib/defaultCompanionStore';
 import {
@@ -136,6 +137,7 @@ export function CommunityComposer({
   onToast: (t: ToastData) => void;
 }) {
   const { colors } = useTheme();
+  const mobileWeb = useMobileWeb();
   const { addPost } = useCommunityFeed();
   const { joinedCommunities } = useCommunityGroups();
   const { user } = useAuth();
@@ -323,7 +325,7 @@ export function CommunityComposer({
             multiline
             value={text}
             onChangeText={setText}
-            autoFocus
+            autoFocus={!mobileWeb}
           />
 
           {isLost && (
