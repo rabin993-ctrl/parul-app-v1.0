@@ -503,8 +503,6 @@ export function ChatThreadScreen({
       relistAdoptionPlacement,
       relistListing,
       clearRequestOnRelist,
-      dismissAdoptionThread,
-      thread.id,
     );
     if (!ok) return;
     setToast({

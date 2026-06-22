@@ -191,8 +191,6 @@ export function AdoptionListingScreen({
               relistAdoptionPlacement,
               relistListing,
               clearRequestOnRelist,
-              dismissAdoptionThread,
-              adoptionRecord.chatThreadId,
             );
             if (!ok) return;
             setToast({

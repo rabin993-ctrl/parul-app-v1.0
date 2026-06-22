@@ -76,8 +76,6 @@ export function AdoptionDetailScreen({ onCloseOverride }: { onCloseOverride?: ()
       relistAdoptionPlacement,
       relistListing,
       clearRequestOnRelist,
-      dismissAdoptionThread,
-      adoptionRecord.chatThreadId,
     );
     if (!ok) return;
     setToast({
