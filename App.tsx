@@ -1,6 +1,5 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { TreatWalletProvider } from './src/context/TreatWalletContext';
@@ -29,6 +28,7 @@ import { AuthConfirmErrorScreen } from './src/screens/auth/AuthConfirmErrorScree
 import { AuthConfirmSuccessScreen } from './src/screens/auth/AuthConfirmSuccessScreen';
 import { OnboardingScreen } from './src/screens/onboarding/OnboardingScreen';
 import { FontGate } from './src/components/FontGate';
+import { AppSplash } from './src/components/AppSplash';
 import { WebInputFocusFix } from './src/components/WebInputFocusFix';
 import { BlankInputAccessory } from './src/components/ui/BlankInputAccessory';
 import { usePushTokenRegistration } from './src/hooks/usePushTokenRegistration';
@@ -66,9 +66,7 @@ function AppInner() {
       <WebInputFocusFix />
       <BlankInputAccessory />
       {initializing || authConfirmPhase === 'verifying' ? (
-        <View style={[styles.center, { backgroundColor: colors.bg }]}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
+        <AppSplash />
       ) : authConfirmPhase === 'error' ? (
         <AuthConfirmErrorScreen />
       ) : authConfirmPhase === 'success' ? (
@@ -143,7 +141,3 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-});
