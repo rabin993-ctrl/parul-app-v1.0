@@ -6,6 +6,7 @@ import { fonts } from '../../theme/fonts';
 import { radius, spacing } from '../../theme/tokens';
 import { AppLogo } from '../../components/ui/AppLogo';
 import { Button } from '../../components/ui/Button';
+import { Icon } from '../../components/icons/Icon';
 import { mailboxButtonLabel, openMailbox } from '../../utils/openMailbox';
 
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -56,8 +57,8 @@ export function CheckEmailScreen({
     >
       <AppLogo size={56} showWordmark />
 
-      <View style={[styles.badge, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={styles.badgeEmoji}>📬</Text>
+      <View style={[styles.badge, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+        <Icon name="paw" size={40} color={colors.primary} />
       </View>
 
       <Text style={[styles.title, { color: colors.text }]}>Check your email</Text>
@@ -119,7 +120,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: spacing.sm,
   },
-  badgeEmoji: { fontSize: 36 },
   title: { fontSize: 22, fontFamily: fonts.bold, textAlign: 'center', marginTop: spacing.xs },
   message: { fontSize: 15, fontFamily: fonts.regular, textAlign: 'center', lineHeight: 22 },
   email: { fontFamily: fonts.semibold },

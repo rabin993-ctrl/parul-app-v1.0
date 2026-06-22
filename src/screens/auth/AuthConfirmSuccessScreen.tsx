@@ -27,11 +27,11 @@ export function AuthConfirmSuccessScreen() {
     >
       <AppLogo size={56} showWordmark />
 
-      <View style={[styles.badge, { backgroundColor: colors.surface, borderColor: colors.success }]}>
-        <Icon name="check" size={38} color={colors.success} />
+      <View style={[styles.badge, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+        <Icon name="paw" size={40} color={colors.primary} />
       </View>
 
-      <Text style={[styles.title, { color: colors.text }]}>Email verified 🎉</Text>
+      <Text style={[styles.title, { color: colors.text }]}>You&apos;re verified!</Text>
       <Text style={[styles.message, { color: colors.textSecondary }]}>
         Your account is all set. Sign in to start finding and helping pets on Parul.
       </Text>
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   badge: {
     width: 76,
     height: 76,
-    borderRadius: 38,
+    borderRadius: radius.lg,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
