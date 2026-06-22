@@ -29,6 +29,7 @@ import {
 } from '../../lib/defaultCompanionStore';
 import { useCommunityFeed } from '../../context/CommunityFeedContext';
 import { useMediaPicker, type PickedAsset } from '../../hooks/useMediaPicker';
+import { useMobileWeb } from '../../hooks/useMobileWeb';
 import { getDeviceCoordinates } from '../../lib/geolocation';
 import type { GeoPoint } from '../../lib/geocode';
 import {
@@ -496,6 +497,7 @@ export function PostComposer({
   const [destinations, setDestinations] = useState<FeedPostDestination[]>([{ type: 'feed' }]);
   const [destinationPickerOpen, setDestinationPickerOpen] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const mobileWeb = useMobileWeb();
 
 
   const myDbCompanions = useMemo(() => {
@@ -663,6 +665,9 @@ export function PostComposer({
 
   useEffect(() => {
     if (!visible) return;
+    // Programmatic focus does NOT open the soft keyboard on mobile web (iOS only
+    // honors focus from a direct tap). Skip it there — the user taps to type.
+    if (mobileWeb) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const task = InteractionManager.runAfterInteractions(() => {
@@ -677,7 +682,7 @@ export function PostComposer({
       task.cancel();
       if (timer) clearTimeout(timer);
     };
-  }, [visible]);
+  }, [visible, mobileWeb]);
 
   const destLabel = formatFeedDestinationsLabel(destinations);
   const primaryDest = destinations[0] ?? { type: 'feed' as const };

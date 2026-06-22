@@ -248,10 +248,13 @@ export function CommunityCommentSheet({
   };
 
   useEffect(() => {
+    // Programmatic focus does NOT open the soft keyboard on mobile web (iOS only
+    // honors focus from a direct tap). Skip it there — the user taps to type.
+    if (mobileWeb) return;
     const delay = Platform.OS === 'ios' ? 450 : 250;
     const t = setTimeout(() => commentInputRef.current?.focus(), delay);
     return () => clearTimeout(t);
-  }, []);
+  }, [mobileWeb]);
 
   const renderInlineReply = (anchorKey: string) => {
     if (replyTo?.anchorKey !== anchorKey) return null;
