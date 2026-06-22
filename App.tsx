@@ -1,5 +1,6 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { TreatWalletProvider } from './src/context/TreatWalletContext';
@@ -65,7 +66,12 @@ function AppInner() {
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <WebInputFocusFix />
       <BlankInputAccessory />
-      {initializing || authConfirmPhase === 'verifying' ? (
+      {authConfirmPhase === 'verifying' ? (
+        // Email-link verification (not a normal startup) — a quiet spinner, not the splash.
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : initializing ? (
         <AppSplash />
       ) : authConfirmPhase === 'error' ? (
         <AuthConfirmErrorScreen />
