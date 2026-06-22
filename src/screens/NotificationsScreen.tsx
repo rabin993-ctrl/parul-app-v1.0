@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
-  View, Text, FlatList, Pressable, StyleSheet, Platform, Animated, PanResponder,
+  View, Text, FlatList, Pressable, StyleSheet, Platform, Animated, PanResponder, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native';
@@ -64,6 +64,7 @@ export function NotificationsScreen() {
   const navigation = useNavigation<Nav>();
   const {
     notifs,
+    loading: notifsLoading,
     actorsByUid,
     markRead,
     markAllRead,
@@ -255,7 +256,15 @@ export function NotificationsScreen() {
             : { paddingHorizontal: 14, paddingBottom: 32 }
         }
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<Empty icon="bell" title="All caught up" body="No notifications here." />}
+        ListEmptyComponent={
+          notifsLoading
+            ? (
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 48 }}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            )
+            : <Empty icon="bell" title="All caught up" body="No notifications here." />
+        }
         renderItem={({ item: group }) => (
           Platform.OS === 'web' ? (
             <NotifItem

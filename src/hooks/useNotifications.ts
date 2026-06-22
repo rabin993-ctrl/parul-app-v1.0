@@ -103,6 +103,9 @@ function rowToAppNotif(row: DbNotifRow, actors: Record<string, ActorUser>): AppN
 export function useNotifications() {
   const { user } = useAuth();
   const [notifs, setNotifs] = useState<AppNotification[]>([]);
+  // True until the first load resolves, so the screen can show a spinner instead
+  // of flashing the "no notifications" empty state before data arrives.
+  const [loading, setLoading] = useState(true);
   const [actorsByUid, setActorsByUid] = useState<Record<string, ActorUser>>({});
   const actorsCacheRef = useRef<Record<string, ActorUser>>({});
   const notifsRef = useRef(notifs);
@@ -135,29 +138,33 @@ export function useNotifications() {
   }, []);
 
   const load = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('notifications')
-      .select('id, type, title, body, actor_user_id, entity_id, data, read, created_at')
-      .eq('recipient_id', user.id)
-      .in('type', [...INBOX_TYPES])
-      .order('created_at', { ascending: false })
-      .limit(100);
+    if (!user) { setLoading(false); return; }
+    try {
+      const { data } = await supabase
+        .from('notifications')
+        .select('id, type, title, body, actor_user_id, entity_id, data, read, created_at')
+        .eq('recipient_id', user.id)
+        .in('type', [...INBOX_TYPES])
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-    if (!data) return;
-    const rows = data as DbNotifRow[];
-    const actorIds = [...new Set(rows.map(r => r.actor_user_id).filter(Boolean) as string[])];
-    const actors = await fetchActors(actorIds);
-    let mapped = rows.map(r => rowToAppNotif(r, actors));
-    const requestFilter = await filterActiveCircleRequestNotifs(mapped);
-    mapped = requestFilter.active;
-    const inviteFilter = await filterActiveCircleInviteNotifs(mapped);
-    mapped = inviteFilter.active;
-    const staleIds = [...requestFilter.staleIds, ...inviteFilter.staleIds];
-    if (staleIds.length > 0) {
-      supabase.from('notifications').delete().in('id', staleIds).then(() => {});
+      if (!data) return;
+      const rows = data as DbNotifRow[];
+      const actorIds = [...new Set(rows.map(r => r.actor_user_id).filter(Boolean) as string[])];
+      const actors = await fetchActors(actorIds);
+      let mapped = rows.map(r => rowToAppNotif(r, actors));
+      const requestFilter = await filterActiveCircleRequestNotifs(mapped);
+      mapped = requestFilter.active;
+      const inviteFilter = await filterActiveCircleInviteNotifs(mapped);
+      mapped = inviteFilter.active;
+      const staleIds = [...requestFilter.staleIds, ...inviteFilter.staleIds];
+      if (staleIds.length > 0) {
+        supabase.from('notifications').delete().in('id', staleIds).then(() => {});
+      }
+      setNotifs(mapped);
+    } finally {
+      setLoading(false);
     }
-    setNotifs(mapped);
   }, [user, fetchActors]);
 
   useEffect(() => { load(); }, [load]);
@@ -228,5 +235,5 @@ export function useNotifications() {
     supabase.from('notifications').delete().eq('id', id).then(() => {});
   }, []);
 
-  return { notifs, actorsByUid, markRead, markAllRead, dismissNotification, reload: load };
+  return { notifs, loading, actorsByUid, markRead, markAllRead, dismissNotification, reload: load };
 }
