@@ -33,6 +33,14 @@ export function CommentReplyInput({
   const mobileWeb = useMobileWeb();
   const { me } = useCurrentUserProfile();
 
+  function handleKeyPress(e: { nativeEvent: { key: string; shiftKey?: boolean }; preventDefault?: () => void }) {
+    if (Platform.OS !== 'web') return;
+    if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+      e.preventDefault?.();
+      onSubmit();
+    }
+  }
+
   return (
     <View style={styles.row}>
       <Avatar user={me} size={28} />
@@ -47,6 +55,8 @@ export function CommentReplyInput({
           autoFocus={autoFocus && !mobileWeb}
           showSoftInputOnFocus
           multiline
+          onKeyPress={handleKeyPress}
+          enterKeyHint="send"
           {...commentTextInputProps(isDark)}
         />
         {value.trim().length > 0 && (

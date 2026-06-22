@@ -335,7 +335,7 @@ export function FeedCommentInputBar({
             styles.replyInputWrap,
             { backgroundColor: groupedBg, borderColor: colors.border },
           ]}
-          pointerEvents="box-none"
+          pointerEvents={Platform.OS === 'web' ? undefined : 'box-none'}
         >
           <MentionComposerInput
             ref={inputRef}

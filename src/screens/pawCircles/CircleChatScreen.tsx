@@ -143,6 +143,14 @@ function ChatComposer({
             maxLength={2000}
             textAlignVertical="center"
             editable={!busy}
+            enterKeyHint="send"
+            onKeyPress={(e: any) => {
+              if (Platform.OS !== 'web') return;
+              if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                e.preventDefault?.();
+                if (canSend && !busy) onSend();
+              }
+            }}
           />
         </View>
 
@@ -831,7 +839,7 @@ const styles = StyleSheet.create({
     margin: 0,
     maxHeight: 88,
     ...Platform.select({
-      web: { outlineStyle: 'none', minHeight: 22 } as object,
+      web: { outlineStyle: 'none', minHeight: 22, cursor: 'text' } as object,
       default: { minHeight: 22 },
     }),
   },

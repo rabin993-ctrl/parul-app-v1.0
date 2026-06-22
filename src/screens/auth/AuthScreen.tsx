@@ -266,6 +266,8 @@ export function AuthScreen() {
             secureTextEntry={!showPassword}
             autoCapitalize="none"
             autoComplete={isSignup ? 'new-password' : 'password'}
+            returnKeyType="go"
+            onSubmitEditing={() => { void onSubmit(); }}
             colors={colors}
             accessory={
               <Pressable hitSlop={8} onPress={() => setShowPassword(s => !s)}>
@@ -386,6 +388,8 @@ type FieldProps = {
   keyboardType?: 'default' | 'email-address';
   autoCapitalize?: 'none' | 'words' | 'sentences';
   autoComplete?: 'name' | 'email' | 'password' | 'new-password' | 'username';
+  returnKeyType?: 'go' | 'send' | 'next' | 'done' | 'search' | 'default';
+  onSubmitEditing?: () => void;
   colors: ReturnType<typeof useTheme>['colors'];
   accessory?: React.ReactNode;
   prefix?: string;

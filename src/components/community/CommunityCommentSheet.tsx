@@ -269,6 +269,14 @@ export function CommunityCommentSheet({
     return () => clearTimeout(t);
   }, [mobileWeb]);
 
+  function handleCommentKeyPress(e: { nativeEvent: { key: string; shiftKey?: boolean }; preventDefault?: () => void }) {
+    if (Platform.OS !== 'web') return;
+    if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+      e.preventDefault?.();
+      void submitNewComment();
+    }
+  }
+
   const renderInlineReply = (anchorKey: string) => {
     if (replyTo?.anchorKey !== anchorKey) return null;
     return (
@@ -315,7 +323,7 @@ export function CommunityCommentSheet({
                 styles.replyInputWrap,
                 { backgroundColor: groupedBg, borderColor: colors.border },
               ]}
-              pointerEvents="box-none"
+              pointerEvents={Platform.OS === 'web' ? undefined : 'box-none'}
             >
               <MentionComposerInput
                 ref={commentInputRef}
@@ -328,6 +336,8 @@ export function CommunityCommentSheet({
                 autoComplete="off"
                 autoFocus={!mobileWeb}
                 showSoftInputOnFocus
+                onKeyPress={handleCommentKeyPress}
+                enterKeyHint="send"
                 {...commentTextInputProps(isDark)}
               />
               {newCommentText.trim().length > 0 && (

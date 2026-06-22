@@ -105,6 +105,8 @@ export function ForgotPasswordSheet({
                   autoCapitalize="none"
                   autoComplete="email"
                   autoFocus={Platform.OS === 'web' && !mobileWeb}
+                  returnKeyType="send"
+                  onSubmitEditing={() => { void onSubmit(); }}
                   style={[styles.input, { color: colors.text }]}
                 />
               </View>
