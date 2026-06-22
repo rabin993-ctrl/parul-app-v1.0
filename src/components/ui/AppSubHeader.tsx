@@ -9,6 +9,7 @@ export const APP_HEADER_PADDING_H = 12;
 export const APP_HEADER_PADDING_TOP = 8;
 export const APP_HEADER_PADDING_BOTTOM = 4;
 export const APP_HEADER_BACK_SIZE = 50;
+export const APP_HEADER_LOGO_SIZE = 36;
 export const APP_HEADER_TRAILING_SLOT = 50;
 export const APP_HEADER_ACTION_ICON_SIZE = 26;
 export const APP_CENTERED_HEADER_SIDE = 108;

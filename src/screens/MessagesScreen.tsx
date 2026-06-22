@@ -12,6 +12,7 @@ import { useAdoption, type ChatThread } from '../context/AdoptionContext';
 import { useTabBarScrollPadding } from '../navigation/tabBarInsets';
 import { useTabBarScrollProps } from '../context/TabBarScrollContext';
 import { groupThreads } from '../utils/chatThreadMeta';
+import { dmThreadHasInboxActivity } from '../utils/unifiedInbox';
 import { useAuth } from '../context/AuthContext';
 import { chatThreadParticipantUser } from '../utils/chatParticipant';
 import { refreshUserPrivacyFlags } from '../lib/userPrivacyFlagCache';
@@ -27,13 +28,13 @@ export function MessagesScreen() {
   const navigation = useNavigation<Nav>();
   const tabBarPad = useTabBarScrollPadding();
   const tabBarScrollProps = useTabBarScrollProps();
-  const { threads, records } = useAdoption();
+  const { threads, records, messages } = useAdoption();
   const { user } = useAuth();
 
   const visibleThreads = useMemo(() => {
     const grouped = groupThreads(threads, records, user?.id ?? '');
-    return grouped.general;
-  }, [threads, records, user?.id]);
+    return grouped.general.filter(t => dmThreadHasInboxActivity(t, messages));
+  }, [threads, records, messages, user?.id]);
 
   const peerIds = useMemo(
     () => visibleThreads.map(t => t.participantId).filter(Boolean),

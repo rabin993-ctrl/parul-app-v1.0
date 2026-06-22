@@ -2089,59 +2089,63 @@ export function ProfileCompanionsSection({
         <Text style={[styles.companionsSectionLabel, { color: colors.textTertiary }]}>
           Companions
         </Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.companionsChipsScroll}
-          contentContainerStyle={styles.companionsChipsScrollContent}
-        >
-          {companions.map(companion => (
-            <View
-              key={companion.id}
-              style={[styles.companionChip, { width: COMPANION_CHIP_WIDTH }]}
-            >
-              {editing ? (
-                <View style={styles.companionChipContent}>
-                  <View style={styles.companionAvatarWrap}>
-                    <CompanionAvatar companion={companion} size={COMPANION_AVATAR_SIZE} />
-                    <Pressable
-                      onPress={() => setRemoveTarget(companion)}
-                      hitSlop={6}
-                      style={[styles.companionRemoveBtn, { backgroundColor: colors.danger, borderColor: colors.surface }]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Remove ${companion.name}`}
-                    >
-                      <Icon name="close" size={9} color={colors.onAccent} sw={2.5} />
-                    </Pressable>
+        {companions.length === 0 && !editing ? (
+          <CompanionHeaderAddButton onPress={onAdd} />
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.companionsChipsScroll}
+            contentContainerStyle={styles.companionsChipsScrollContent}
+          >
+            {companions.map(companion => (
+              <View
+                key={companion.id}
+                style={[styles.companionChip, { width: COMPANION_CHIP_WIDTH }]}
+              >
+                {editing ? (
+                  <View style={styles.companionChipContent}>
+                    <View style={styles.companionAvatarWrap}>
+                      <CompanionAvatar companion={companion} size={COMPANION_AVATAR_SIZE} />
+                      <Pressable
+                        onPress={() => setRemoveTarget(companion)}
+                        hitSlop={6}
+                        style={[styles.companionRemoveBtn, { backgroundColor: colors.danger, borderColor: colors.surface }]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${companion.name}`}
+                      >
+                        <Icon name="close" size={9} color={colors.onAccent} sw={2.5} />
+                      </Pressable>
+                    </View>
+                    <Text style={[styles.companionChipName, { color: colors.text }]} numberOfLines={1}>
+                      {companion.name}
+                    </Text>
                   </View>
-                  <Text style={[styles.companionChipName, { color: colors.text }]} numberOfLines={1}>
-                    {companion.name}
-                  </Text>
-                </View>
-              ) : (
-                <Pressable
-                  onPress={() => onSelect(companion.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`View ${companion.name}'s profile`}
-                  style={({ pressed }) => [
-                    styles.companionChipContent,
-                    pressed && { opacity: 0.75 },
-                  ]}
-                >
-                  <CompanionAvatar companion={companion} size={COMPANION_AVATAR_SIZE} />
-                  <Text style={[styles.companionChipName, { color: colors.text }]} numberOfLines={1}>
-                    {companion.name}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-          ))}
-          {!editing ? (
-            <View style={styles.companionAddInline}>
-              <CompanionHeaderAddButton onPress={onAdd} />
-            </View>
-          ) : null}
-        </ScrollView>
+                ) : (
+                  <Pressable
+                    onPress={() => onSelect(companion.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`View ${companion.name}'s profile`}
+                    style={({ pressed }) => [
+                      styles.companionChipContent,
+                      pressed && { opacity: 0.75 },
+                    ]}
+                  >
+                    <CompanionAvatar companion={companion} size={COMPANION_AVATAR_SIZE} />
+                    <Text style={[styles.companionChipName, { color: colors.text }]} numberOfLines={1}>
+                      {companion.name}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            ))}
+            {!editing ? (
+              <View style={styles.companionAddInline}>
+                <CompanionHeaderAddButton onPress={onAdd} />
+              </View>
+            ) : null}
+          </ScrollView>
+        )}
         {companions.length > 0 ? (
           <Pressable
             onPress={toggleEdit}
@@ -2897,8 +2901,8 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
   },
   heroBio: {
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 16,
+    lineHeight: 22,
   },
   heroTrustWrap: { alignSelf: 'flex-start' },
   profileOwnerHero: {
@@ -3398,11 +3402,11 @@ const styles = StyleSheet.create({
     height: COMPANION_AVATAR_SIZE,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: -4,
   },
   companionsSectionLabel: {
     ...typography.statLabel,
-    fontSize: 11,
+    fontSize: 14,
+    lineHeight: 17,
     letterSpacing: 0.2,
     textTransform: 'uppercase',
     textAlign: 'left',

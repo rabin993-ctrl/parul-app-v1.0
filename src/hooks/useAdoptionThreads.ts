@@ -330,7 +330,7 @@ export function useAdoptionThreads() {
               });
             })()
           : '',
-        time: lastMsg ? formatMessageTime(lastMsg.created_at) : formatMessageTime(t.updated_at),
+        time: lastMsg ? formatMessageTime(lastMsg.created_at) : '',
         unread,
         muted: mutedThreads.has(t.id),
         adoptionPostId: t.adoption_listing_id ?? undefined,

@@ -117,8 +117,8 @@ const styles = StyleSheet.create({
   },
   bio: {
     flexShrink: 1,
-    fontSize: 12.5,
-    lineHeight: 17,
+    fontSize: 16,
+    lineHeight: 22,
     textAlign: 'left',
   },
   bioLocationRow: {
@@ -129,8 +129,8 @@ const styles = StyleSheet.create({
     maxWidth: PROFILE_IDENTITY_RAIL_MAX,
   },
   bioLocationSep: {
-    fontSize: 12.5,
-    lineHeight: 17,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '600',
   },
   locationRow: {

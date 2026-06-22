@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { radius, shadows, sheetLayout, spacing, typography } from '../theme/tokens';
-import { AppSubHeader, AppHeaderIconButton, APP_HEADER_BACK_SIZE } from '../components/ui/AppSubHeader';
+import { AppSubHeader, AppHeaderIconButton, APP_HEADER_LOGO_SIZE } from '../components/ui/AppSubHeader';
 import { AppLogo } from '../components/ui/AppLogo';
 import { Avatar, CompanionAvatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
@@ -571,7 +571,7 @@ export function FeedScreen() {
       <AppSubHeader
         showBack={false}
         titleNode={
-          <AppLogo size={APP_HEADER_BACK_SIZE} onPress={handleFeedHomePress} />
+          <AppLogo size={APP_HEADER_LOGO_SIZE} onPress={handleFeedHomePress} />
         }
         trailing={(
           <View style={styles.headerActions}>

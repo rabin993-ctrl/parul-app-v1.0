@@ -1,4 +1,4 @@
-import type { ChatThread } from '../context/AdoptionContext';
+import type { ChatMessage, ChatThread } from '../context/AdoptionContext';
 import type { AdoptionRecord } from '../data/adoptionRecords';
 import type { AdoptionListing } from '../data/adoptionData';
 import type { AdoptionRequest } from '../context/AdoptionFeedContext';
@@ -207,9 +207,27 @@ export function filterDmThreadsOverlappingAdoption(
   return dmThreads.filter(t => !adoptionPeers.has(t.participantId));
 }
 
+/** General DMs with no messages yet (profile tap → start_dm) should not appear in inbox lists. */
+export function dmThreadHasInboxActivity(
+  thread: ChatThread,
+  messagesByThread: Record<string, ChatMessage[]>,
+): boolean {
+  if ((thread.unread ?? 0) > 0) return true;
+  if (thread.preview?.trim()) return true;
+  return (messagesByThread[thread.id]?.length ?? 0) > 0;
+}
+
+export function filterInboxVisibleDmThreads(
+  dmThreads: ChatThread[],
+  messagesByThread: Record<string, ChatMessage[]>,
+): ChatThread[] {
+  return dmThreads.filter(t => dmThreadHasInboxActivity(t, messagesByThread));
+}
+
 export function buildUnifiedInboxItems(params: {
   adoptionThreads: ChatThread[];
   dmThreads: ChatThread[];
+  messages: Record<string, ChatMessage[]>;
   circles: PawCircle[];
   previews: Record<string, CirclePreviewData | undefined>;
   createdIds: Set<string>;
@@ -224,6 +242,7 @@ export function buildUnifiedInboxItems(params: {
   const {
     adoptionThreads,
     dmThreads,
+    messages,
     circles,
     previews,
     createdIds,
@@ -294,7 +313,10 @@ export function buildUnifiedInboxItems(params: {
     });
   }
 
-  for (const thread of filterDmThreadsOverlappingAdoption(dmThreads, adoptionThreads)) {
+  for (const thread of filterInboxVisibleDmThreads(
+    filterDmThreadsOverlappingAdoption(dmThreads, adoptionThreads),
+    messages,
+  )) {
     if (unreadOnly && thread.unread <= 0) continue;
     if (query) {
       const name = (thread.participantName ?? thread.participantId).toLowerCase();
@@ -333,6 +355,7 @@ export type RescueInboxItem =
 export function buildRescueInboxItems(params: {
   adoptionThreads: ChatThread[];
   dmThreads: ChatThread[];
+  messages: Record<string, ChatMessage[]>;
   records: AdoptionRecord[];
   listings: AdoptionListing[];
   requests: AdoptionRequest[];
@@ -344,6 +367,7 @@ export function buildRescueInboxItems(params: {
   const {
     adoptionThreads,
     dmThreads,
+    messages,
     records,
     listings,
     requests,
@@ -390,9 +414,12 @@ export function buildRescueInboxItems(params: {
     });
   }
 
-  for (const thread of filterDmThreadsOverlappingAdoption(
-    dmThreads.filter(isRescueDmThread),
-    adoptionThreads,
+  for (const thread of filterInboxVisibleDmThreads(
+    filterDmThreadsOverlappingAdoption(
+      dmThreads.filter(isRescueDmThread),
+      adoptionThreads,
+    ),
+    messages,
   )) {
     if (query) {
       const name = (thread.participantName ?? thread.participantId).toLowerCase();

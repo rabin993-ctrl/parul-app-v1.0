@@ -23,6 +23,7 @@ import {
   buildUnifiedInboxItems,
   collectAdoptionInboxActionSections,
   filterDmThreadsOverlappingAdoption,
+  filterInboxVisibleDmThreads,
 } from '../../utils/unifiedInbox';
 import { sortCirclesByRecency, sortThreadsByRecency } from '../../utils/inboxRecency';
 import { PawCircle } from '../../data/pawCircles';
@@ -175,6 +176,7 @@ export function PawCircleInbox({
     return buildUnifiedInboxItems({
       adoptionThreads,
       dmThreads: adoptionOnly ? [] : rescueDmThreads,
+      messages,
       circles: adoptionOnly ? [] : uniqueCircles,
       previews,
       createdIds,
@@ -191,6 +193,7 @@ export function PawCircleInbox({
     filter,
     adoptionThreads,
     rescueDmThreads,
+    messages,
     uniqueCircles,
     previews,
     createdIds,
@@ -211,6 +214,7 @@ export function PawCircleInbox({
   const rescueInboxParams = useMemo(() => ({
     adoptionThreads,
     dmThreads: rescueDmThreads,
+    messages,
     records,
     listings,
     requests,
@@ -265,9 +269,12 @@ export function PawCircleInbox({
 
   const filteredDms = useMemo(() => {
     if (filter !== 'direct') return [];
-    let list = filterDmThreadsOverlappingAdoption(
-      rescueDmThreads.filter(t => !isRescueHelpThread(t, messages[t.id])),
-      adoptionThreads,
+    let list = filterInboxVisibleDmThreads(
+      filterDmThreadsOverlappingAdoption(
+        rescueDmThreads.filter(t => !isRescueHelpThread(t, messages[t.id])),
+        adoptionThreads,
+      ),
+      messages,
     );
     if (q) {
       list = list.filter(t => {

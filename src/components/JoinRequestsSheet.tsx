@@ -15,6 +15,8 @@ import { runJoinRequestAction, runJoinRequestActionsBatch } from '../lib/joinReq
 import { usePawCircles } from '../context/PawCircleContext';
 import { formatJoinRequestsTitle } from '../lib/groupChrome';
 import { RelativeTime } from './ui/RelativeTime';
+import { useUserProfile } from '../hooks/useUserProfile';
+import { resolveUserDisplayName, looksLikeAutoHandle } from '../utils/userDisplayName';
 
 const REQUEST_ROW_H = 72;
 
@@ -75,14 +77,33 @@ export function JoinRequestRow({
   layout?: 'sheet' | 'list';
 }) {
   const { colors } = useTheme();
-  const avatarUser = joinRequestToAvatarUser(request);
+  const liveProfile = useUserProfile(request.userId);
+  const displayName = resolveUserDisplayName({
+    name: liveProfile?.name ?? request.name,
+    handle: liveProfile?.handle ?? request.handle,
+    userId: request.userId,
+  });
+  const displayHandle = liveProfile?.handle ?? request.handle;
+  const avatarUser = {
+    ...joinRequestToAvatarUser(request),
+    name: displayName,
+    tint: liveProfile?.tint ?? request.tint,
+    avatarUrl: liveProfile?.avatarUrl ?? request.avatarUrl,
+    avatarFallbackUrl: liveProfile?.avatarFallbackUrl ?? request.avatarFallbackUrl,
+    avatarOriginalUrl: liveProfile?.avatarOriginalUrl ?? request.avatarOriginalUrl,
+  };
   const circleLabel = showCircleName && request.circleName ? request.circleName : null;
 
   const invitedLine = request.invitedByName
     ? `Invited by ${request.invitedByName}`
     : null;
-  const metaLine = invitedLine ?? request.note ?? `@${request.handle}`;
-  const metaWithCircle = circleLabel ? `${circleLabel} · ${metaLine}` : metaLine;
+  const handleLine = displayHandle && !looksLikeAutoHandle(displayHandle)
+    ? `@${displayHandle}`
+    : null;
+  const metaLine = invitedLine ?? request.note ?? handleLine ?? '';
+  const metaWithCircle = circleLabel
+    ? (metaLine ? `${circleLabel} · ${metaLine}` : circleLabel)
+    : metaLine;
 
   const profile = onPressProfile ? (
     <Pressable onPress={onPressProfile}>
@@ -94,7 +115,7 @@ export function JoinRequestRow({
 
   const body = onPressProfile ? (
     <Pressable style={styles.rowBody} onPress={onPressProfile}>
-      <Text style={[styles.rowName, { color: colors.text }]} numberOfLines={1}>{request.name}</Text>
+      <Text style={[styles.rowName, { color: colors.text }]} numberOfLines={1}>{displayName}</Text>
       <Text style={[styles.rowMeta, { color: colors.textSecondary }]} numberOfLines={2}>
         {metaWithCircle}
       </Text>
@@ -104,7 +125,7 @@ export function JoinRequestRow({
     </Pressable>
   ) : (
     <View style={styles.rowBody}>
-      <Text style={[styles.rowName, { color: colors.text }]} numberOfLines={1}>{request.name}</Text>
+      <Text style={[styles.rowName, { color: colors.text }]} numberOfLines={1}>{displayName}</Text>
       <Text style={[styles.rowMeta, { color: colors.textSecondary }]} numberOfLines={2}>
         {metaWithCircle}
       </Text>

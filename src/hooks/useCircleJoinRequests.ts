@@ -8,6 +8,7 @@ import {
   USER_AVATAR_MEDIA_SELECT,
 } from '../lib/avatarMedia';
 import { seedUserProfiles } from './useUserProfile';
+import { resolveUserDisplayName } from '../utils/userDisplayName';
 
 export type CircleJoinRequestProfile = {
   id: string;
@@ -86,11 +87,17 @@ function mapJoinRequestRows(rows: JoinRequestRow[]): CircleJoinRequestProfile[] 
   return rows.map(row => {
     const profile = row.users;
     const urls = avatarUrlsFromMedia(normalizeJoinedMedia(profile?.avatar_media as never));
+    const handle = profile?.handle ?? '';
+    const name = resolveUserDisplayName({
+      name: profile?.name,
+      handle,
+      userId: row.user_id,
+    });
     return {
       id: row.id,
       userId: row.user_id,
-      name: profile?.name ?? row.user_id.slice(0, 8),
-      handle: profile?.handle ?? row.user_id.slice(0, 8),
+      name,
+      handle: handle || row.user_id.slice(0, 8),
       tint: profile?.tint ?? '#888888',
       note: row.note ?? undefined,
       time: row.created_at,
@@ -109,12 +116,26 @@ async function enrichJoinRequestRows(rows: JoinRequestRow[]): Promise<JoinReques
   const inviterIds = [...new Set(rows.map(r => r.invited_by_user_id).filter(Boolean) as string[])];
   const lookupIds = [...new Set([...userIds, ...inviterIds])];
 
-  const { data: users } = await (supabase as any)
+  let users: { id: string; name: string; handle: string | null; tint: string | null; avatar_media?: unknown }[] | null = null;
+  const withAvatar = await (supabase as any)
     .from('users')
     .select(`id, name, handle, tint, ${USER_AVATAR_MEDIA_SELECT}`)
     .in('id', lookupIds);
+  if (!withAvatar.error && withAvatar.data) {
+    users = withAvatar.data;
+  } else {
+    const basic = await (supabase as any)
+      .from('users')
+      .select('id, name, handle, tint')
+      .in('id', lookupIds);
+    if (!basic.error && basic.data) {
+      users = basic.data;
+    } else if (__DEV__) {
+      console.warn('[useCircleJoinRequests] user profile enrich failed:', withAvatar.error ?? basic.error);
+    }
+  }
 
-  const byId = new Map((users ?? []).map((u: { id: string }) => [u.id, u]));
+  const byId = new Map((users ?? []).map(u => [u.id, u]));
 
   return rows.map(row => ({
     ...row,
