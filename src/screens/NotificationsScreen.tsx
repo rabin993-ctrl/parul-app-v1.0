@@ -499,14 +499,21 @@ function NotifItem({
           <View style={[styles.notifIconWrap, { backgroundColor: color + '18' }]}>
             <Icon name={icon} size={18} color={color} />
           </View>
-        ) : (
+        ) : display.avatarUser ? (
           <View style={{ position: 'relative' }}>
-            {display.avatarUser && <Avatar user={display.avatarUser} size={46} />}
+            <Avatar user={display.avatarUser} size={46} />
             {display.showTypeBadge && (
               <View style={[styles.notifIconDot, { backgroundColor: color }]}>
                 <Icon name={icon} size={10} color="#fff" />
               </View>
             )}
+          </View>
+        ) : (
+          // No actor avatar resolved — render the type icon in a proper 46px
+          // circle (same as the iconOnly rows) instead of a naked, absolutely
+          // positioned badge that collapses to the screen edge and gets clipped.
+          <View style={[styles.notifIconWrap, { backgroundColor: color + '18' }]}>
+            <Icon name={icon} size={18} color={color} />
           </View>
         )}
       </View>
