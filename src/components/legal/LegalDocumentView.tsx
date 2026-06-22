@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
 import { radius } from '../../theme/tokens';
 import { Icon } from '../icons/Icon';
-import { ProfileSubHeader } from '../profile/ProfileChrome';
+import { AppSubHeader } from '../ui/AppSubHeader';
 import type { LegalDocument } from '../../data/legalDocuments';
 
 type LegalDocumentViewProps = {
@@ -12,6 +12,10 @@ type LegalDocumentViewProps = {
   onBack?: () => void;
   bottomInset?: number;
 };
+
+function heroIconForDocument(id: LegalDocument['id']) {
+  return id === 'privacy' ? 'shield' : 'lock';
+}
 
 export function LegalDocumentView({
   document,
@@ -22,14 +26,14 @@ export function LegalDocumentView({
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']}>
-      <ProfileSubHeader title={document.title} onBack={onBack} />
+      <AppSubHeader title={document.title} onBack={onBack} />
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: bottomInset }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.hero, { backgroundColor: colors.primary + '12' }]}>
-          <Icon name="shield" size={28} color={colors.primary} />
+          <Icon name={heroIconForDocument(document.id)} size={28} color={colors.primary} />
           <Text style={[styles.heroTitle, { color: colors.text }]}>{document.title}</Text>
           <Text style={[styles.heroBody, { color: colors.textSecondary }]}>
             {document.summary}

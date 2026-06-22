@@ -242,8 +242,11 @@ function FeedPostList({
   }, [shownPosts, shownCases, rescueFilterActive]);
 
   const listExtraData = useMemo(
-    () => shownPosts.map(p => `${p.id}:${p.images}:${p.mediaUrls?.[0] ?? ''}:${p.lost?.resolved ? 1 : 0}:${p.found?.resolved ? 1 : 0}:${p.paws}:${p.saved ? 1 : 0}`).join('|'),
-    [shownPosts],
+    () => [
+      shownPosts.map(p => `${p.id}:${p.images}:${p.mediaUrls?.[0] ?? ''}:${p.publishStatus ?? ''}:${p.lost?.resolved ? 1 : 0}:${p.found?.resolved ? 1 : 0}:${p.paws}:${p.saved ? 1 : 0}`).join('|'),
+      shownCases.map(c => `${c.id}:${c.publishStatus ?? ''}:${c.coverUrl ?? ''}`).join('|'),
+    ].join('||'),
+    [shownPosts, shownCases],
   );
 
   const caseById = useMemo(() => new Map(cases.map(c => [c.id, c])), [cases]);
@@ -659,7 +662,10 @@ export function FeedScreen() {
           createdCircles={createdCircles}
           joinedCircles={joinedCircles}
           onClose={() => setCommentPostId(null)}
-          onSubmit={(text, replyToThreadIndex) => addComment(commentSheetPost.id, text, { replyToThreadIndex })}
+          onSubmit={(text, replyToThreadIndex, meta) => addComment(commentSheetPost.id, text, {
+            replyToThreadIndex,
+            confirmedTokens: meta?.confirmedTokens,
+          })}
           onCommentPaw={threadIndex => pawComment(commentSheetPost.id, threadIndex)}
           onToast={showToast}
           onAuthorPress={openCommentAuthorProfile}

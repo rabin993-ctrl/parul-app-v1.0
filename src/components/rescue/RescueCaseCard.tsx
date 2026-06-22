@@ -9,6 +9,9 @@ import { Avatar } from '../ui/Avatar';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { RescueCase } from '../../data/profileData';
 import { RescueStatusPill } from './RescueCaseUI';
+import { PublishingOverlay } from '../ui/PublishingOverlay';
+import { PublishingShell } from '../ui/PublishingShell';
+import { PUBLISH_LABELS } from '../../types/publishStatus';
 
 type Props = {
   item: RescueCase;
@@ -31,9 +34,11 @@ export function RescueCaseCard({
   const poster = useUserProfile(item.userId);
   const headline = item.headline ?? item.story.split('.')[0];
   const updateCount = item.updates?.length ?? 0;
+  const isUploading = item.publishStatus === 'uploading';
 
   return (
-    <Pressable
+    <PublishingShell publishStatus={item.publishStatus} label={PUBLISH_LABELS.rescueCase}>
+      <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
@@ -53,6 +58,9 @@ export function RescueCaseCard({
           borderRadius={0}
           label=""
         />
+        {isUploading ? (
+          <PublishingOverlay visible label={PUBLISH_LABELS.rescueCase} variant="media" />
+        ) : null}
         <View style={styles.imageOverlay}>
           <RescueStatusPill status={item.status} size="sm" />
         </View>
@@ -113,6 +121,7 @@ export function RescueCaseCard({
         </View>
       </View>
     </Pressable>
+    </PublishingShell>
   );
 }
 

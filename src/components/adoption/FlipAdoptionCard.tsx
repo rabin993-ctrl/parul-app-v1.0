@@ -11,6 +11,9 @@ import { Button } from '../ui/Button';
 import { Icon } from '../icons/Icon';
 import { Avatar } from '../ui/Avatar';
 import { AdoptionListing, statusBadgeTone } from '../../data/adoptionData';
+import { PublishingOverlay } from '../ui/PublishingOverlay';
+import { PublishingShell } from '../ui/PublishingShell';
+import { PUBLISH_LABELS } from '../../types/publishStatus';
 import {
   isActiveAdoptionRequest,
   type AdoptionRequest,
@@ -73,6 +76,7 @@ export function FlipAdoptionCard({
   const hasOwnerRequests = isOwner && !adopted && ownerRequestCount > 0 && !!onManageRequests;
   const canOwnerRelist = isOwner && adopted && !!onRelist;
   const statusLabel = adopted ? 'Adopted' : listing.status;
+  const isUploading = listing.publishStatus === 'uploading';
   const useNativeDriver = Platform.OS !== 'web';
 
   const ownerPrimaryLabel = canOwnerRelist ? 'Re-list' : 'Edit profile';
@@ -210,6 +214,9 @@ export function FlipAdoptionCard({
           borderRadius={0}
           label=""
         />
+        {isUploading ? (
+          <PublishingOverlay visible label={PUBLISH_LABELS.adoption} variant="media" />
+        ) : null}
         <LinearGradient
           colors={['rgba(0,0,0,0.22)', 'transparent', 'rgba(0,0,0,0.64)']}
           style={StyleSheet.absoluteFill}
@@ -337,7 +344,8 @@ export function FlipAdoptionCard({
   );
 
   return (
-    <View style={[styles.shell, shellShadow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <PublishingShell publishStatus={listing.publishStatus} label={PUBLISH_LABELS.adoption}>
+      <View style={[styles.shell, shellShadow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <Animated.View
         style={[
           styles.flipStage,
@@ -362,7 +370,8 @@ export function FlipAdoptionCard({
           {backFace}
         </View>
       </Animated.View>
-    </View>
+      </View>
+    </PublishingShell>
   );
 }
 

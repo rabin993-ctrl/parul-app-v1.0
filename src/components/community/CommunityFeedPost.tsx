@@ -5,10 +5,13 @@ import { radius } from '../../theme/tokens';
 import { CommunityPostAuthorRow } from './CommunityPostAuthorRow';
 export { CommunitySourcePill } from './CommunitySourcePill';
 import { PhotoSlot } from '../ui/PhotoSlot';
+import { PublishingOverlay } from '../ui/PublishingOverlay';
+import { PublishingShell } from '../ui/PublishingShell';
 import { Icon } from '../icons/Icon';
 import { CommunityPost } from '../../data/communityPosts';
 import { countCommunityThreadComments } from '../../utils/postComments';
 import { CommunityPostLabelBadge } from './CommunityChrome';
+import { PUBLISH_LABELS } from '../../types/publishStatus';
 
 function ReactionBtn({ icon, count, active, activeColor, fill, onPress }: {
   icon: string; count: number; active?: boolean; activeColor: string; fill?: boolean; onPress: () => void;
@@ -56,9 +59,11 @@ export function CommunityFeedPost({
   const commentCount = post.comments > 0 ? post.comments : countCommunityThreadComments(post.threads);
   const [bodyExpanded, setBodyExpanded] = useState(false);
   const [bodyTruncated, setBodyTruncated] = useState(false);
+  const isUploading = post.publishStatus === 'uploading';
 
   return (
-    <View style={styles.post}>
+    <PublishingShell publishStatus={post.publishStatus} label={PUBLISH_LABELS.community}>
+      <View style={styles.post}>
       <CommunityPostAuthorRow
         post={post}
         communityTint={communityTint}
@@ -97,13 +102,16 @@ export function CommunityFeedPost({
       )}
 
       {post.hasImage && (
-        <View style={styles.postMedia}>
+        <View style={styles.postMediaWrap}>
           <PhotoSlot
             height={240}
             imageKey={post.id}
             label=""
             borderRadius={radius.lg}
           />
+          {isUploading ? (
+            <PublishingOverlay visible label={PUBLISH_LABELS.community} variant="media" />
+          ) : null}
         </View>
       )}
 
@@ -129,7 +137,8 @@ export function CommunityFeedPost({
         />
       </View>
 
-    </View>
+      </View>
+    </PublishingShell>
   );
 }
 
@@ -140,6 +149,7 @@ const styles = StyleSheet.create({
   postTagRow: { paddingTop: 8 },
   alertMeta: { paddingTop: 6 },
   alertMetaText: { fontSize: 13, lineHeight: 18 },
+  postMediaWrap: { paddingTop: 12, position: 'relative' },
   postMedia: { paddingTop: 12 },
   reactionBar: {
     flexDirection: 'row',

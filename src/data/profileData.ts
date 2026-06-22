@@ -3,6 +3,7 @@ import {
   filterOutgoingAdoptions,
   type AdoptionRecord,
 } from './adoptionRecords';
+import type { PublishStatus } from '../types/publishStatus';
 
 export type RescueStatus = 'recovered' | 'under_treatment' | 'active';
 
@@ -14,6 +15,8 @@ export type RescueUpdate = {
   /** @deprecated use photoCount / mediaUrls */
   hasPhoto?: boolean;
   mediaUrls?: string[];
+  /** Transient: client-side publish lifecycle for optimistic upload UI */
+  publishStatus?: PublishStatus;
 };
 
 export type RescueCase = {
@@ -35,6 +38,8 @@ export type RescueCase = {
   updates?: RescueUpdate[];
   /** Cover photo URL (public CDN), shown in feed cards + detail hero. */
   coverUrl?: string;
+  /** Transient: client-side publish lifecycle for optimistic upload UI */
+  publishStatus?: PublishStatus;
 };
 
 export type AdoptionShowcase = {

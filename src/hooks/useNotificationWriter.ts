@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { resolveMentionRecipientIds } from '../utils/notificationMentions';
 
 /**
  * Client-side notification row inserts for Wave 2 feed events.
@@ -43,6 +44,15 @@ export function useNotificationWriter() {
   ) => {
     if (!user || postAuthorId === user.id) return;
     const name = actorName?.trim() || 'Someone';
+
+    await supabase
+      .from('notifications')
+      .delete()
+      .eq('recipient_id', postAuthorId)
+      .eq('actor_user_id', user.id)
+      .eq('type', 'like')
+      .eq('entity_id', postId);
+
     const { error } = await supabase.from('notifications').insert({
       recipient_id: postAuthorId,
       type: 'like',
@@ -56,5 +66,44 @@ export function useNotificationWriter() {
     if (error) console.error('[notifyLike]', error.message);
   }, [user]);
 
-  return { notifyComment, notifyLike };
+  const notifyMentions = useCallback(async (
+    postId: string,
+    text: string,
+    actorName?: string,
+    opts?: {
+      commentId?: string;
+      confirmedTokens?: string[];
+      /** Skip mention rows for users who already get another notif (e.g. post author on comments). */
+      skipRecipientIds?: string[];
+    },
+  ) => {
+    if (!user || !text.includes('@')) return;
+    const name = actorName?.trim() || 'Someone';
+    const recipientIds = await resolveMentionRecipientIds(text, {
+      confirmedTokens: opts?.confirmedTokens,
+      excludeUserIds: [user.id],
+    });
+    const skip = new Set(opts?.skipRecipientIds ?? []);
+    const preview = text.trim().slice(0, 120);
+
+    for (const recipientId of recipientIds) {
+      if (skip.has(recipientId)) continue;
+      const { error } = await supabase.from('notifications').insert({
+        recipient_id: recipientId,
+        type: 'mention',
+        actor_user_id: user.id,
+        entity_type: 'post',
+        entity_id: postId,
+        title: `${name} mentioned you`,
+        body: preview ? `"${preview}"` : 'Tap to view the post.',
+        data: {
+          post_id: postId,
+          ...(opts?.commentId ? { comment_id: opts.commentId } : {}),
+        },
+      });
+      if (error) console.error('[notifyMentions]', error.message);
+    }
+  }, [user]);
+
+  return { notifyComment, notifyLike, notifyMentions };
 }

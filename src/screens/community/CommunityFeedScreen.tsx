@@ -15,7 +15,7 @@ import { CommunityCommentSheet } from '../../components/community/CommunityComme
 import { ForwardSheet, type ForwardDest } from '../../components/ForwardSheet';
 import { CompanionProfileOverlay } from '../../components/CompanionProfileOverlay';
 import { usePawCircles } from '../../context/PawCircleContext';
-import { useCommunityFeed } from '../../context/CommunityFeedContext';
+import { useCommunityFeed, bindCommunityPublishToast } from '../../context/CommunityFeedContext';
 import { useCommunityGroups } from '../../context/CommunityGroupsContext';
 import {
   CommunityFeedFilter,
@@ -90,6 +90,11 @@ export function CommunityFeedScreen({
     return () => clearTimeout(t);
   }, []);
 
+  useEffect(() => {
+    bindCommunityPublishToast(setToast);
+    return () => bindCommunityPublishToast(null);
+  }, []);
+
   const joinedIds = joinedCommunities.map(c => c.id);
 
   const openCommunityComposer = (initialCategory: string) => {
@@ -114,6 +119,11 @@ export function CommunityFeedScreen({
       joinedGroupIds: joinedIds.length > 0 ? joinedIds : undefined,
     }),
     [posts, filter, joinedIds],
+  );
+
+  const listExtraData = useMemo(
+    () => shown.map(p => `${p.id}:${p.publishStatus ?? ''}`).join('|'),
+    [shown],
   );
 
   const communityAuthorIds = useMemo(
@@ -204,6 +214,7 @@ export function CommunityFeedScreen({
     <Root {...rootProps}>
       <FlatList
         data={shown}
+        extraData={listExtraData}
         keyExtractor={p => p.id}
         nestedScrollEnabled={embedded}
         ListHeaderComponent={listHeader}

@@ -1,17 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
+import { PAW_LOADER_TIMING } from '../theme/pawAnimation';
 import { Icon } from './icons/Icon';
 
 const PAW_COUNT = 3;
+const { fadeInMs, fadeOutMs, staggerMs, holdMs, pauseMs } = PAW_LOADER_TIMING;
 
 /**
  * Lightweight paw-themed loading indicator — three paw prints pulsing in a
  * rolling wave. Distinct from AppSplash (no logo / wordmark / tagline); used for
  * in-app loading states in place of a plain ActivityIndicator.
- *
- * `fullScreen` (default) centers it on a themed background; pass false to drop it
- * inline wherever a spinner would go.
  */
 export function PawLoader({
   size = 22,
@@ -32,13 +31,13 @@ export function PawLoader({
       Animated.sequence([
         Animated.timing(v, {
           toValue: 1,
-          duration: 260,
+          duration: fadeInMs,
           easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.timing(v, {
           toValue: 0,
-          duration: 260,
+          duration: fadeOutMs,
           easing: Easing.in(Easing.quad),
           useNativeDriver: true,
         }),
@@ -46,8 +45,8 @@ export function PawLoader({
 
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.stagger(170, paws.map(pulse)),
-        Animated.delay(220),
+        Animated.stagger(staggerMs, paws.map(pulse)),
+        Animated.delay(holdMs + pauseMs),
       ]),
     );
     loop.start();

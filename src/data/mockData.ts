@@ -316,6 +316,8 @@ export interface Post {
   }[];
   /** Client-side hint for companion profile tabs (update vs gallery). */
   companionContentStyle?: 'update' | 'gallery';
+  /** Transient: client-side publish lifecycle for optimistic upload UI */
+  publishStatus?: import('../types/publishStatus').PublishStatus;
 }
 
 export interface Adoption {

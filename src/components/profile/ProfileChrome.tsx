@@ -2296,8 +2296,11 @@ export function ProfilePostsFeed({
           createdCircles={createdCircles}
           joinedCircles={joinedCircles}
           onClose={() => setCommentPostId(null)}
-          onSubmit={(text, replyToThreadIndex) =>
-            addComment(commentSheetPost.id, text, { replyToThreadIndex })
+          onSubmit={(text, replyToThreadIndex, meta) =>
+            addComment(commentSheetPost.id, text, {
+              replyToThreadIndex,
+              confirmedTokens: meta?.confirmedTokens,
+            })
           }
           onCommentPaw={threadIndex => pawComment(commentSheetPost.id, threadIndex)}
           onToast={showToast}

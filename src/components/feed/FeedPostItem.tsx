@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { View } from 'react-native';
 import type { Post } from '../../data/mockData';
 import type { ToastData } from '../ui/Toast';
+import { PublishingShell } from '../ui/PublishingShell';
+import { PUBLISH_LABELS } from '../../types/publishStatus';
 import { FeedPostCard } from './FeedPostCard';
 import { FeedAdoptionCard } from './FeedAdoptionCard';
 import { LostCard, FoundCard } from './AlertCards';
@@ -71,6 +73,11 @@ export function FeedPostItem({
   );
 
   const ownerMenuProps = isOwner ? { onEdit, onDelete } : {};
+  const wrapPublishing = (card: React.ReactNode) => (
+    <PublishingShell publishStatus={post.publishStatus} label={PUBLISH_LABELS.feed}>
+      {card}
+    </PublishingShell>
+  );
   const wrapAlert = (card: React.ReactNode) =>
     alertPadding ? (
       <View style={{ paddingHorizontal: 16, marginVertical: 8 }}>{card}</View>
@@ -81,7 +88,8 @@ export function FeedPostItem({
   if (isLostAlertPost(post)) {
     const companion = post.companionName ?? 'Companion';
     return wrapAlert(
-      <LostCard
+      wrapPublishing(
+        <LostCard
         post={post}
         pulseActive={pulseActive}
         onToast={onToast ?? (() => {})}
@@ -94,13 +102,15 @@ export function FeedPostItem({
         onResolve={isOwner && onResolve ? () => onResolve(post) : undefined}
         resolveLabel={`${companion} has returned home`}
         {...ownerMenuProps}
-      />,
+        />,
+      ),
     );
   }
 
   if (isFoundAlertPost(post)) {
     return wrapAlert(
-      <FoundCard
+      wrapPublishing(
+        <FoundCard
         post={post}
         pulseActive={pulseActive}
         onToast={onToast ?? (() => {})}
@@ -113,12 +123,13 @@ export function FeedPostItem({
         onResolve={isOwner && onResolve ? () => onResolve(post) : undefined}
         resolveLabel="This pet found its home"
         {...ownerMenuProps}
-      />,
+        />,
+      ),
     );
   }
 
   if (isAdoptionTaggedPost(post) && adoptionListing) {
-    const card = (
+    const card = wrapPublishing(
       <FeedAdoptionCard
         post={post}
         listing={adoptionListing}
@@ -131,7 +142,7 @@ export function FeedPostItem({
         onToast={onToast}
         isOwner={isOwner}
         compact={compact}
-      />
+      />,
     );
     if (alertPadding) {
       return <View style={{ marginVertical: 8 }}>{card}</View>;
@@ -139,7 +150,7 @@ export function FeedPostItem({
     return card;
   }
 
-  return (
+  return wrapPublishing(
     <FeedPostCard
       post={post}
       onPaw={onPaw}
@@ -152,6 +163,6 @@ export function FeedPostItem({
       onEdit={onEdit}
       onDelete={onDelete}
       compact={compact}
-    />
+    />,
   );
 }

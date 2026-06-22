@@ -19,6 +19,13 @@ import {
   type RescueStatus,
   type RescueUpdate,
 } from '../data/profileData';
+import type { ToastData } from '../components/ui/Toast';
+
+let rescuePublishToast: ((data: ToastData) => void) | null = null;
+
+export function bindRescuePublishToast(handler: ((data: ToastData) => void) | null) {
+  rescuePublishToast = handler;
+}
 
 // ─────────────────────────────────────────────────────────
 // Public types
@@ -359,6 +366,7 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
       photoCount: payload.photoCount,
       hasPhoto: payload.photoCount > 0,
       mediaUrls: optimisticMediaUrls,
+      publishStatus: 'uploading',
     };
 
     setCases(prev =>
@@ -399,6 +407,11 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
               : c,
           ),
         );
+        rescuePublishToast?.({
+          msg: 'Could not post update. Try again.',
+          icon: 'close',
+          tone: 'danger',
+        });
         return;
       }
 
@@ -422,13 +435,18 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
                 ...c,
                 updates: (c.updates ?? []).map(u =>
                   u.id === optimisticId
-                    ? { ...u, id: realId, mediaUrls }
+                    ? { ...u, id: realId, mediaUrls, publishStatus: undefined }
                     : u,
                 ),
               }
             : c,
         ),
       );
+      rescuePublishToast?.({
+        msg: 'Update posted 🐾',
+        icon: 'paw',
+        tone: 'success',
+      });
     })();
   }, []);
 
@@ -458,6 +476,7 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
       tags: [input.species === 'dog' ? 'Dog' : input.species === 'cat' ? 'Cat' : 'Other'],
       coverUrl: input.photos?.[0]?.uri,
       updates: [],
+      publishStatus: 'uploading',
     };
 
     setCases(prev => [item, ...prev]);
@@ -500,13 +519,29 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
 
       if (error) {
         setCases(prev => prev.filter(c => c.id !== caseId));
+        rescuePublishToast?.({
+          msg: 'Could not open rescue case. Try again.',
+          icon: 'close',
+          tone: 'danger',
+        });
         return;
       }
 
       // Swap the optimistic local file URI for the persisted CDN URL.
       if (coverDisplayUrl) {
-        setCases(prev => prev.map(c => (c.id === caseId ? { ...c, coverUrl: coverDisplayUrl } : c)));
+        setCases(prev => prev.map(c => (
+          c.id === caseId ? { ...c, coverUrl: coverDisplayUrl, publishStatus: undefined } : c
+        )));
+      } else {
+        setCases(prev => prev.map(c => (
+          c.id === caseId ? { ...c, publishStatus: undefined } : c
+        )));
       }
+      rescuePublishToast?.({
+        msg: 'Rescue case opened 🐾',
+        icon: 'shield',
+        tone: 'success',
+      });
     })();
 
     return item;

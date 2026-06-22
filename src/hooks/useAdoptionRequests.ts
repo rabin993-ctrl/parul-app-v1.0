@@ -403,7 +403,7 @@ export function useAdoptionRequests() {
       actor_user_id: user.id,
       entity_type: 'adoption_request',
       entity_id: requestId,
-      title: `${target.listingName} found a home!`,
+      title: `${target.listingName} found a home`,
       body: note ?? 'The poster marked this adoption complete.',
       data: { listing_id: target.listingId, request_id: requestId },
     }).then(() => {});

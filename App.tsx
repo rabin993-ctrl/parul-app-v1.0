@@ -39,6 +39,7 @@ import { useOnlinePresence } from './src/hooks/useOnlinePresence';
 import { useAppTutorial } from './src/hooks/useAppTutorial';
 import { AppTutorialCarousel } from './src/components/tutorial/AppTutorialCarousel';
 import { ConfirmDialogHost } from './src/components/ui/ConfirmDialog';
+import { MIN_SPLASH_MS } from './src/theme/pawAnimation';
 
 function AppInner() {
   const { mode } = useTheme();
@@ -54,7 +55,7 @@ function AppInner() {
   // would otherwise make the splash flash by too fast to see.
   const [minSplash, setMinSplash] = React.useState(true);
   React.useEffect(() => {
-    const t = setTimeout(() => setMinSplash(false), 1600);
+    const t = setTimeout(() => setMinSplash(false), MIN_SPLASH_MS);
     return () => clearTimeout(t);
   }, []);
 

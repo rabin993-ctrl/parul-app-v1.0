@@ -85,7 +85,6 @@ export function CommunityCreatePostScreen() {
       threads: [],
     };
     const newId = await addPost(post);
-    setToast({ msg: 'Posted to community', icon: 'check', tone: 'success' });
     setTimeout(() => {
       navigation.replace('PostDetail', { postId: newId });
     }, 350);

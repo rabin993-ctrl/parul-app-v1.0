@@ -8,7 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Toast, ToastData } from '../../components/ui/Toast';
 import { AppCenteredHeader } from '../../components/ui/AppSubHeader';
 import { RescuePostUpdateForm } from '../../components/rescue/RescuePostUpdateForm';
-import { useRescueFeedOptional } from '../../context/RescueFeedContext';
+import { useRescueFeedOptional, bindRescuePublishToast } from '../../context/RescueFeedContext';
 import { useRescueOpenCaseBack } from '../../context/RescueOpenCaseFlowContext';
 import type { RescueCase } from '../../data/profileData';
 import type { RescueStackParamList } from '../../navigation/RescueNavigator';
@@ -40,6 +40,11 @@ export function RescuePostUpdateScreen() {
   const [selectedStatus, setSelectedStatus] = useState<RescueStatusKey>(
     (item?.status as RescueStatusKey) ?? 'active',
   );
+
+  useEffect(() => {
+    bindRescuePublishToast(setToast);
+    return () => bindRescuePublishToast(null);
+  }, []);
 
   useEffect(() => {
     if (feedItem || !caseId) return;
@@ -92,7 +97,6 @@ export function RescuePostUpdateScreen() {
       photos,
       newStatus: statusChanged ? selectedStatus : undefined,
     });
-    setToast({ msg: `Update posted for ${item.name}`, icon: 'paw', tone: 'success' });
     setTimeout(() => navigation.goBack(), 480);
   };
 

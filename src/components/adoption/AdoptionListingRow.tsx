@@ -11,6 +11,9 @@ import {
   AdoptionStatus,
   statusBadgeTone,
 } from '../../data/adoptionData';
+import { PublishingOverlay } from '../ui/PublishingOverlay';
+import { PublishingShell } from '../ui/PublishingShell';
+import { PUBLISH_LABELS } from '../../types/publishStatus';
 
 const AVATAR_SIZE = 48;
 const PET_FRAME = getPetAvatarFrameSize(AVATAR_SIZE);
@@ -49,9 +52,11 @@ export function AdoptionListingRow({
   const { colors } = useTheme();
   const adopted = listing.status === 'Adopted';
   const photoUri = listing.mediaUrls?.[0];
+  const isUploading = listing.publishStatus === 'uploading';
 
   return (
-    <Pressable
+    <PublishingShell publishStatus={listing.publishStatus} label={PUBLISH_LABELS.adoption}>
+      <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
@@ -79,6 +84,9 @@ export function AdoptionListingRow({
             </View>
           </View>
         )}
+        {isUploading && photoUri ? (
+          <PublishingOverlay visible label={PUBLISH_LABELS.adoption} variant="media" style={{ borderRadius: radius.md }} />
+        ) : null}
       </View>
 
       <View style={styles.meta}>
@@ -135,6 +143,7 @@ export function AdoptionListingRow({
         </Text>
       </View>
     </Pressable>
+    </PublishingShell>
   );
 }
 
@@ -150,6 +159,7 @@ const styles = StyleSheet.create({
   rowPressed: { opacity: 0.7 },
   thumbWrap: {
     flexShrink: 0,
+    position: 'relative',
   },
   thumb: {
     width: THUMB,

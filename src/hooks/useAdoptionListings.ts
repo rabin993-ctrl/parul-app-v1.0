@@ -4,6 +4,13 @@ import { loadListingMediaUrls, uploadListingPhotos } from '../lib/adoptionMedia'
 import { useAuth } from '../context/AuthContext';
 import type { AdoptionListing, AdoptionStatus, VaccinationStatus } from '../data/adoptionData';
 import type { CreateListingInput } from '../context/AdoptionFeedContext';
+import type { ToastData } from '../components/ui/Toast';
+
+let adoptionPublishToast: ((data: ToastData) => void) | null = null;
+
+export function bindAdoptionPublishToast(handler: ((data: ToastData) => void) | null) {
+  adoptionPublishToast = handler;
+}
 
 type DbListingRow = {
   id: string;
@@ -196,6 +203,7 @@ export function useAdoptionListings() {
       gallery: localUrls?.length ? localUrls : [tint],
       mediaUrls: localUrls,
       postedAt: 'Just now',
+      publishStatus: 'uploading',
     };
     setListings(prev => [listing, ...prev]);
 
@@ -223,25 +231,34 @@ export function useAdoptionListings() {
       }).select('id').single().then(async ({ data, error }) => {
         if (error || !data) {
           setListings(prev => prev.filter(l => l.id !== optimisticId));
+          adoptionPublishToast?.({
+            msg: 'Could not publish listing. Try again.',
+            icon: 'alert',
+            tone: 'danger',
+          });
           reject(error ?? new Error('Failed to create listing'));
           return;
         }
         const realId = (data as { id: string }).id;
-        let resolved = { ...listing, id: realId };
+        let resolved: AdoptionListing = { ...listing, id: realId };
         setListings(prev => prev.map(l => l.id === optimisticId ? resolved : l));
 
         if (input.photos?.length) {
           try {
             const urls = await uploadListingPhotos(realId, user.id, input.photos);
             resolved = { ...resolved, mediaUrls: urls, gallery: urls };
-            setListings(prev => prev.map(l => (
-              l.id === realId ? resolved : l
-            )));
           } catch {
             // listing saved without photos
           }
         }
-        resolve(resolved);
+        const { publishStatus: _removed, ...published } = resolved;
+        setListings(prev => prev.map(l => (l.id === realId ? published : l)));
+        adoptionPublishToast?.({
+          msg: 'Listing published 🐾',
+          icon: 'adoption',
+          tone: 'success',
+        });
+        resolve(published);
       });
     });
   }, [user]);

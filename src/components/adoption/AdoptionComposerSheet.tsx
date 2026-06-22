@@ -165,7 +165,6 @@ export function AdoptionComposerSheet({
       });
       onClose();
       reset();
-      onToast({ msg: `${trimmedName} listed for adoption 🐾`, icon: 'adoption', tone: 'success' });
     } catch {
       onToast({ msg: 'Could not publish listing. Try again.', icon: 'alert', tone: 'danger' });
     } finally {

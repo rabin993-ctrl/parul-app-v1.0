@@ -12,7 +12,7 @@ import {
   RescueHubBar,
   RescueFilterField,
 } from '../../components/rescue/RescueChrome';
-import { useRescueFeed } from '../../context/RescueFeedContext';
+import { useRescueFeed, bindRescuePublishToast } from '../../context/RescueFeedContext';
 import { useFeedPosts } from '../../context/FeedPostContext';
 import {
   DEFAULT_RESCUE_FILTERS,
@@ -93,6 +93,11 @@ export function RescueListingScreen({
     onOpenCreateHandled?.();
   }, [openCreateOnMount, navigation, onOpenCreateHandled]);
 
+  useEffect(() => {
+    bindRescuePublishToast(setToast);
+    return () => bindRescuePublishToast(null);
+  }, []);
+
   const handleOpenCase = () => {
     if (embedded) {
       openCaseFlow();
@@ -142,6 +147,14 @@ export function RescueListingScreen({
     return items;
   }, [shownCases, rescueFeedPosts, showCases]);
 
+  const listExtraData = useMemo(
+    () => [
+      shownCases.map(c => `${c.id}:${c.publishStatus ?? ''}:${c.coverUrl ?? ''}`).join('|'),
+      rescueFeedPosts.map(p => `${p.id}:${p.publishStatus ?? ''}`).join('|'),
+    ].join('||'),
+    [shownCases, rescueFeedPosts],
+  );
+
   const listHeader = (
     <View style={styles.listHeader}>
       {scrollHeader}
@@ -170,6 +183,7 @@ export function RescueListingScreen({
     <View style={[styles.wrap, { backgroundColor: colors.bg }]}>
       <FlatList
         data={listData}
+        extraData={listExtraData}
         keyExtractor={item => item.id}
         nestedScrollEnabled={embedded}
         ListHeaderComponent={listHeader}

@@ -865,17 +865,6 @@ export function PostComposer({
     if (postAsCompanionId) {
       options.onSuccess?.();
     }
-    const destName = formatFeedDestinationsLabel(destinations);
-    const msg = postingAs
-      ? `${postingAs.name} posted to ${destName} 🐾`
-      : companionNames
-        ? `Posted with ${companionNames} to ${destName} 🐾`
-        : `Posted to ${destName} 🐾`;
-    onToast({
-      msg,
-      icon: hasCommunityDest ? 'communities' : 'check',
-      tone: 'success',
-    });
   };
 
   return (

@@ -1,4 +1,5 @@
 import { adoptions as baseAdoptions } from './mockData';
+import type { PublishStatus } from '../types/publishStatus';
 
 export type AdoptionStatus = 'Available' | 'Urgent' | 'Adopted';
 export type AdoptionSpecies = 'dog' | 'cat' | 'other';
@@ -40,6 +41,8 @@ export type AdoptionListing = {
   posterName?: string;
   posterHandle?: string;
   posterTint?: string;
+  /** Transient: client-side publish lifecycle for optimistic upload UI */
+  publishStatus?: PublishStatus;
 };
 
 export type AdoptionFilters = {

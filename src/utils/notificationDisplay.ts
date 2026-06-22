@@ -44,6 +44,19 @@ export type ResolvedNotifDisplay = {
   showCircleActions: boolean;
 };
 
+/** Strip pictographs from stored notification copy — keep inbox text on-brand. */
+export function sanitizeNotificationCopy(text: string | undefined | null): string {
+  if (!text) return '';
+  return text
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]/gu, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function notifCopy(value: string | undefined | null, fallback = ''): string {
+  return sanitizeNotificationCopy(value) || fallback;
+}
+
 export function getToneForType(type: string): NotifTone {
   switch (type) {
     case 'like': return { icon: 'heart', color: '#e85d7d' };
@@ -94,14 +107,42 @@ export function resolveCircleName(
   return notif.circleName ?? getCircleName(notif.circleId ?? notif.entityId);
 }
 
+const TITLE_NAME_PATTERNS: Record<string, RegExp> = {
+  like: /^(.+?) liked your post$/i,
+  comment: /^(.+?) commented on your post$/i,
+  mention: /^(.+?) mentioned you$/i,
+  circle_request: /^(.+?) wants to join your circle$/i,
+  circle_invite: /^(.+?) invited you to /i,
+  request_received: /^(.+?) requested to adopt /i,
+  rescue_help: /^(.+?) offered help on your rescue$/i,
+  endorsement_received: /^(.+?) endorsed you$/i,
+};
+
+/** Parse actor display name from notification title when users lookup is unavailable. */
+export function parseActorNameFromTitle(type: string, title: string | null | undefined): string | undefined {
+  const trimmed = title?.trim();
+  if (!trimmed) return undefined;
+  const pattern = TITLE_NAME_PATTERNS[type];
+  if (!pattern) return undefined;
+  const match = trimmed.match(pattern);
+  const name = match?.[1]?.trim();
+  return name && name !== 'Someone' ? name : undefined;
+}
+
 function actorName(notif: AppNotification, actor: ActorUser | null): string {
-  return actor?.name || notif.userName || 'Someone';
+  return actor?.name
+    || notif.userName
+    || parseActorNameFromTitle(notif.type, notif.text)
+    || 'Someone';
 }
 
 export function groupedBody(group: GroupedAppNotif): string {
   const { actors, extras, primary } = group;
   if (extras.length === 0) return primary.body;
-  const firstName = actors[0]?.name || primary.userName || 'Someone';
+  const firstName = actors[0]?.name
+    || primary.userName
+    || parseActorNameFromTitle(primary.type, primary.text)
+    || 'Someone';
   const rest = extras.length;
   const action = primary.type === 'like'
     ? 'liked your post'
@@ -191,21 +232,22 @@ export function resolveNotifDisplay(
         body: 'liked your post',
         avatarUser: actor,
         useActorStack: false,
-        showTypeBadge: true,
+        showTypeBadge: false,
         iconOnly: false,
         showCircleActions: false,
       };
 
     case 'comment': {
-      const preview = primary.commentPreview
+      const previewRaw = primary.commentPreview
         ?? (primary.body.trim().startsWith('"') ? primary.body.trim() : undefined);
+      const preview = previewRaw ? notifCopy(previewRaw) : undefined;
       return {
         bold: name,
         body: 'commented on your post',
-        subtitle: preview,
+        subtitle: preview || undefined,
         avatarUser: actor,
         useActorStack: false,
-        showTypeBadge: true,
+        showTypeBadge: false,
         iconOnly: false,
         showCircleActions: false,
       };
@@ -215,10 +257,10 @@ export function resolveNotifDisplay(
       return {
         bold: name,
         body: 'mentioned you',
-        subtitle: primary.body.trim() || undefined,
+        subtitle: notifCopy(primary.body) || undefined,
         avatarUser: actor,
         useActorStack: false,
-        showTypeBadge: true,
+        showTypeBadge: false,
         iconOnly: false,
         showCircleActions: false,
       };
@@ -228,10 +270,12 @@ export function resolveNotifDisplay(
       return {
         bold: name,
         body: `wants to join ${cName}`,
-        subtitle: primary.body.trim().startsWith('Invited by') ? primary.body.trim() : undefined,
+        subtitle: primary.body.trim().startsWith('Invited by')
+          ? notifCopy(primary.body) || undefined
+          : undefined,
         avatarUser: actor,
         useActorStack: false,
-        showTypeBadge: true,
+        showTypeBadge: false,
         iconOnly: false,
         showCircleActions: !circleHandled,
       };
@@ -240,7 +284,7 @@ export function resolveNotifDisplay(
     case 'circle_invite': {
       const cName = circleName(primary, getCircleName);
       const inviteBody = primary.body.trim().includes('admin approval')
-        ? primary.body.trim()
+        ? notifCopy(primary.body) || undefined
         : undefined;
       return {
         bold: name,
@@ -248,7 +292,7 @@ export function resolveNotifDisplay(
         subtitle: inviteBody,
         avatarUser: actor,
         useActorStack: false,
-        showTypeBadge: true,
+        showTypeBadge: false,
         iconOnly: false,
         showCircleActions: !circleHandled,
       };
@@ -256,7 +300,7 @@ export function resolveNotifDisplay(
 
     case 'circle_accept': {
       const cName = circleName(primary, getCircleName);
-      const acceptBody = primary.body.trim()
+      const acceptBody = notifCopy(primary.body)
         || (cName !== 'your circle' ? `You're now a member of ${cName}.` : 'Your circle join request was accepted.');
       return {
         bold: null,
@@ -276,10 +320,10 @@ export function resolveNotifDisplay(
         : 'Lost pet alert nearby';
       return {
         bold: alertTitle,
-        body: primary.body.trim() || primary.area || '',
+        body: notifCopy(primary.body) || primary.area || '',
         avatarUser: actor,
         useActorStack: false,
-        showTypeBadge: true,
+        showTypeBadge: false,
         iconOnly: false,
         showCircleActions: false,
       };
@@ -291,10 +335,10 @@ export function resolveNotifDisplay(
         body: primary.rescueAction === 'accepted'
           ? 'accepted your help on a rescue case'
           : 'offered help on your rescue',
-        subtitle: primary.body.trim() || undefined,
+        subtitle: notifCopy(primary.body) || undefined,
         avatarUser: actor,
         useActorStack: false,
-        showTypeBadge: true,
+        showTypeBadge: false,
         iconOnly: false,
         showCircleActions: false,
       };
@@ -304,10 +348,10 @@ export function resolveNotifDisplay(
       return {
         bold: name,
         body: pet ? `requested to adopt ${pet}` : 'sent an adoption request',
-        subtitle: primary.body.trim() || undefined,
+        subtitle: notifCopy(primary.body) || undefined,
         avatarUser: actor,
         useActorStack: false,
-        showTypeBadge: true,
+        showTypeBadge: false,
         iconOnly: false,
         showCircleActions: false,
       };
@@ -316,9 +360,9 @@ export function resolveNotifDisplay(
     case 'approved':
       return {
         bold: null,
-        body: primary.text.trim()
+        body: notifCopy(primary.text)
           || (primary.petName ? `Your request for ${primary.petName} was approved` : 'Your adoption request was approved'),
-        subtitle: primary.body.trim() || undefined,
+        subtitle: notifCopy(primary.body) || undefined,
         avatarUser: actor,
         useActorStack: false,
         showTypeBadge: false,
@@ -329,8 +373,8 @@ export function resolveNotifDisplay(
     case 'rejected':
       return {
         bold: null,
-        body: primary.text.trim() || 'Update on your adoption request',
-        subtitle: primary.body.trim() || undefined,
+        body: notifCopy(primary.text) || 'Update on your adoption request',
+        subtitle: notifCopy(primary.body) || undefined,
         avatarUser: null,
         useActorStack: false,
         showTypeBadge: false,
@@ -341,9 +385,9 @@ export function resolveNotifDisplay(
     case 'adopted':
       return {
         bold: null,
-        body: primary.text.trim()
-          || (primary.petName ? `${primary.petName} found a home!` : 'Adoption marked complete'),
-        subtitle: primary.body.trim() || undefined,
+        body: notifCopy(primary.text)
+          || (primary.petName ? `${primary.petName} found a home` : 'Adoption marked complete'),
+        subtitle: notifCopy(primary.body) || undefined,
         avatarUser: actor,
         useActorStack: false,
         showTypeBadge: false,
@@ -354,9 +398,9 @@ export function resolveNotifDisplay(
     case 'update_request':
       return {
         bold: null,
-        body: primary.text.trim()
+        body: notifCopy(primary.text)
           || (primary.petName ? `Home update due for ${primary.petName}` : 'Home update requested'),
-        subtitle: primary.body.trim() || undefined,
+        subtitle: notifCopy(primary.body) || undefined,
         avatarUser: null,
         useActorStack: false,
         showTypeBadge: false,
@@ -367,9 +411,9 @@ export function resolveNotifDisplay(
     case 'adoption_confirmed':
       return {
         bold: null,
-        body: primary.text.trim()
+        body: notifCopy(primary.text)
           || (primary.petName ? `Adoption confirmed for ${primary.petName}` : 'Adoption confirmed'),
-        subtitle: primary.body.trim() || undefined,
+        subtitle: notifCopy(primary.body) || undefined,
         avatarUser: null,
         useActorStack: false,
         showTypeBadge: false,
@@ -381,10 +425,10 @@ export function resolveNotifDisplay(
       return {
         bold: name,
         body: 'endorsed you',
-        subtitle: primary.body.trim() || undefined,
+        subtitle: notifCopy(primary.body) || undefined,
         avatarUser: actor,
         useActorStack: false,
-        showTypeBadge: true,
+        showTypeBadge: false,
         iconOnly: false,
         showCircleActions: false,
       };
@@ -392,10 +436,10 @@ export function resolveNotifDisplay(
     default:
       return {
         bold: name,
-        body: primary.body.trim() || primary.text.trim() || 'New notification',
+        body: notifCopy(primary.body) || notifCopy(primary.text) || 'New notification',
         avatarUser: actor,
         useActorStack: false,
-        showTypeBadge: true,
+        showTypeBadge: false,
         iconOnly: false,
         showCircleActions: false,
       };

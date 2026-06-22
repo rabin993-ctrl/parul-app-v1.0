@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import type { AppNotification } from '../data/mockData';
 import { formatNotificationTimestamp } from '../utils/time';
-import { INBOX_TYPES } from '../utils/notificationDisplay';
+import { INBOX_TYPES, parseActorNameFromTitle } from '../utils/notificationDisplay';
 import { filterActiveCircleRequestNotifs } from '../utils/circleRequestNotifications';
 import { filterActiveCircleInviteNotifs } from '../utils/circleInviteNotifications';
 import { adjustNotificationCount } from '../lib/notificationCountSync';
@@ -79,7 +79,7 @@ function rowToAppNotif(row: DbNotifRow, actors: Record<string, ActorUser>): AppN
     body: row.body ?? '',
     actor: actor?.handle ?? '',
     userId: row.actor_user_id ?? '',
-    userName: actor?.name ?? '',
+    userName: actor?.name ?? parseActorNameFromTitle(row.type, row.title) ?? '',
     entityId: row.entity_id ?? undefined,
     postId: data.post_id
       ?? (POST_ACTIVITY_TYPES.has(row.type) ? row.entity_id ?? undefined : undefined),
@@ -98,6 +98,35 @@ function rowToAppNotif(row: DbNotifRow, actors: Record<string, ActorUser>): AppN
     requiresAdminApproval: data.requires_admin_approval,
     rescueAction: data.action,
   };
+}
+
+async function fetchCircleNames(circleIds: string[]): Promise<Record<string, string>> {
+  const unique = [...new Set(circleIds.filter(Boolean))];
+  if (unique.length === 0) return {};
+  const { data } = await supabase
+    .from('circles')
+    .select('id, name')
+    .in('id', unique);
+  const map: Record<string, string> = {};
+  for (const row of data ?? []) {
+    const id = (row as { id: string; name: string | null }).id;
+    const name = (row as { id: string; name: string | null }).name;
+    if (name?.trim()) map[id] = name.trim();
+  }
+  return map;
+}
+
+function enrichCircleNames(
+  notifs: AppNotification[],
+  circleNames: Record<string, string>,
+): AppNotification[] {
+  if (Object.keys(circleNames).length === 0) return notifs;
+  return notifs.map(n => {
+    if (n.circleName?.trim()) return n;
+    const circleId = n.circleId;
+    if (!circleId || !circleNames[circleId]) return n;
+    return { ...n, circleName: circleNames[circleId] };
+  });
 }
 
 export function useNotifications() {
@@ -161,6 +190,11 @@ export function useNotifications() {
       if (staleIds.length > 0) {
         supabase.from('notifications').delete().in('id', staleIds).then(() => {});
       }
+      const circleIds = mapped
+        .filter(n => !n.circleName?.trim() && n.circleId)
+        .map(n => n.circleId as string);
+      const circleNames = await fetchCircleNames(circleIds);
+      mapped = enrichCircleNames(mapped, circleNames);
       setNotifs(mapped);
     } finally {
       setLoading(false);
@@ -186,7 +220,12 @@ export function useNotifications() {
           if (!(INBOX_TYPES as readonly string[]).includes(row.type)) return;
           const actorIds = row.actor_user_id ? [row.actor_user_id] : [];
           const actors = await fetchActors(actorIds);
-          setNotifs(prev => [rowToAppNotif(row, actors), ...prev]);
+          let mapped = rowToAppNotif(row, actors);
+          if (mapped.circleId && !mapped.circleName?.trim()) {
+            const circleNames = await fetchCircleNames([mapped.circleId]);
+            [mapped] = enrichCircleNames([mapped], circleNames);
+          }
+          setNotifs(prev => [mapped, ...prev]);
         },
       )
       .subscribe();

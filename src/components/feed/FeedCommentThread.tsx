@@ -223,7 +223,7 @@ export function FeedCommentInputBar({
 }: {
   createdCircles: PawCircle[];
   joinedCircles: PawCircle[];
-  onSubmit: (text: string) => boolean | void;
+  onSubmit: (text: string, meta?: { confirmedTokens?: string[] }) => boolean | void;
   onSubmitted?: () => void;
   onToast: (t: ToastData) => void;
   onMentionPickerOpenChange?: (open: boolean) => void;
@@ -283,7 +283,7 @@ export function FeedCommentInputBar({
     }
     isSubmittingRef.current = true;
     setIsSubmitting(true);
-    const ok = onSubmit(trimmed);
+    const ok = onSubmit(trimmed, { confirmedTokens: confirmedMentions });
     if (ok === false) {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
@@ -382,7 +382,7 @@ export function FeedCommentThreadList({
   useInlineInput = false,
 }: {
   post: Post;
-  onSubmit: (text: string, replyToThreadIndex?: number) => boolean | void;
+  onSubmit: (text: string, replyToThreadIndex?: number, meta?: { confirmedTokens?: string[] }) => boolean | void;
   onCommentPaw?: (threadIndex: number) => void;
   onAuthorPress?: (userId: string) => void;
   onMentionPress?: (target: MentionTarget) => void;
@@ -527,7 +527,7 @@ export function FeedCommentThread({
   post: Post;
   createdCircles: PawCircle[];
   joinedCircles: PawCircle[];
-  onSubmit: (text: string, replyToThreadIndex?: number) => boolean | void;
+  onSubmit: (text: string, replyToThreadIndex?: number, meta?: { confirmedTokens?: string[] }) => boolean | void;
   onCommentPaw?: (threadIndex: number) => void;
   onToast: (t: ToastData) => void;
   onAuthorPress?: (userId: string) => void;
@@ -544,7 +544,7 @@ export function FeedCommentThread({
       <FeedCommentInputBar
         createdCircles={createdCircles}
         joinedCircles={joinedCircles}
-        onSubmit={text => onSubmit(text)}
+        onSubmit={(text, meta) => onSubmit(text, undefined, meta)}
         onToast={onToast}
       />
     </View>

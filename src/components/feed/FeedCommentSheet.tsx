@@ -41,7 +41,7 @@ export function FeedCommentSheet({
   createdCircles: PawCircle[];
   joinedCircles: PawCircle[];
   onClose: () => void;
-  onSubmit: (text: string, replyToThreadIndex?: number) => boolean | void;
+  onSubmit: (text: string, replyToThreadIndex?: number, meta?: { confirmedTokens?: string[] }) => boolean | void;
   onCommentPaw?: (threadIndex: number) => void;
   onToast: (t: ToastData) => void;
   onAuthorPress?: (userId: string) => void;
@@ -75,7 +75,10 @@ export function FeedCommentSheet({
     handleMentionPress(target, { returnTo: 'Feed', onBeforeNavigate: onClose });
   }, [handleMentionPress, onClose]);
 
-  const handleTopLevelSubmit = useCallback((text: string) => onSubmit(text), [onSubmit]);
+  const handleTopLevelSubmit = useCallback(
+    (text: string, meta?: { confirmedTokens?: string[] }) => onSubmit(text, undefined, meta),
+    [onSubmit],
+  );
 
   const handleCommentSubmitted = useCallback(() => {
     scrollToEnd({ animated: true });

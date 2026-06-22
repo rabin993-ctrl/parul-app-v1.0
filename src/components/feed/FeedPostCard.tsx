@@ -12,6 +12,8 @@ import { getPostPoster } from '../../utils/postAuthor';
 import { type Post, type PostTag } from '../../data/mockData';
 import { countFeedThreadComments } from '../../utils/postComments';
 import { getPostImageUrls } from '../../utils/postMedia';
+import { PublishingOverlay } from '../ui/PublishingOverlay';
+import { PUBLISH_LABELS } from '../../types/publishStatus';
 
 export function resolvePostTagKey(post: Post): PostTag {
   if (post.companionAuthorId || post.tag === 'paw-posting') return 'paw-posting';
@@ -89,11 +91,26 @@ export function FeedPostCard({
   const hasCaption = caption.length > 0;
   const isGalleryPhoto = post.companionContentStyle === 'gallery' && imageUrls.length > 0;
   const showTag = resolvePostTagKey(post) !== 'lost-found';
+  const isUploading = post.publishStatus === 'uploading';
   const openViewer = (index: number) => setViewerIndex(index);
 
-  const mediaBlock = imageUrls.length === 1 ? (
-    <View style={styles.postMedia}>
-      <PhotoSlot
+  const wrapMedia = (block: React.ReactNode) => (
+    block ? (
+      <View style={styles.postMediaWrap}>
+        {block}
+        {isUploading && imageUrls.length > 0 ? (
+          <PublishingOverlay
+            visible
+            label={PUBLISH_LABELS.feed}
+            variant="media"
+          />
+        ) : null}
+      </View>
+    ) : null
+  );
+
+  const mediaBlock = imageUrls.length === 1 ? wrapMedia(
+    <PhotoSlot
         height={240}
         uri={imageUrls[0]}
         fallbackUri={post.mediaFallbackUrls?.[0]}
@@ -102,10 +119,9 @@ export function FeedPostCard({
         borderRadius={radius.lg}
         label=""
         onPress={() => openViewer(0)}
-      />
-    </View>
-  ) : imageUrls.length >= 2 ? (
-    <View style={[styles.imgGrid2, styles.postMedia]}>
+      />,
+  ) : imageUrls.length >= 2 ? wrapMedia(
+    <View style={styles.imgGrid2}>
       <PhotoSlot
         height={160}
         uri={imageUrls[0]}
@@ -128,7 +144,7 @@ export function FeedPostCard({
         borderRadius={radius.md}
         onPress={() => openViewer(1)}
       />
-    </View>
+    </View>,
   ) : null;
 
   const captionBlock = hasCaption ? (
@@ -234,6 +250,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   postTagText: { fontSize: 12, fontWeight: '700' },
+  postMediaWrap: { paddingTop: 12, position: 'relative' },
   postMedia: { paddingTop: 12 },
   imgGrid2: { flexDirection: 'row', gap: 6 },
   reactionBar: {

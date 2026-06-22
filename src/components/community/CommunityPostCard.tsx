@@ -8,6 +8,8 @@ import { Icon } from '../icons/Icon';
 import { CommunityPost } from '../../data/communityPosts';
 import { countCommunityThreadComments } from '../../utils/postComments';
 import { CommunityCategoryBadge } from './CommunityChrome';
+import { PublishingShell } from '../ui/PublishingShell';
+import { PUBLISH_LABELS } from '../../types/publishStatus';
 
 function HelpfulBtn({
   count,
@@ -94,13 +96,14 @@ export function CommunityPostCard({
   const authorUser = { id: author?.id, name: author?.name ?? author?.handle ?? 'you', tint: author?.tint ?? '#F2972E' };
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.96 : 1 },
-      ]}
-    >
+    <PublishingShell publishStatus={post.publishStatus} label={PUBLISH_LABELS.community}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.96 : 1 },
+        ]}
+      >
       <View style={styles.header}>
         <Avatar user={authorUser} size={40} />
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -146,7 +149,8 @@ export function CommunityPostCard({
           <Icon name="forward" size={18} color={colors.textSecondary} />
         </Pressable>
       </View>
-    </Pressable>
+      </Pressable>
+    </PublishingShell>
   );
 }
 

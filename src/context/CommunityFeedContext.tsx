@@ -9,6 +9,7 @@ import {
   AuthorProfile,
 } from '../data/communityPosts';
 import { countCommunityThreadComments } from '../utils/postComments';
+import type { ToastData } from '../components/ui/Toast';
 
 type CommunityFeedContextValue = {
   posts: CommunityPost[];
@@ -27,6 +28,12 @@ type CommunityFeedContextValue = {
 };
 
 const CommunityFeedContext = createContext<CommunityFeedContextValue | null>(null);
+
+let communityPublishToast: ((data: ToastData) => void) | null = null;
+
+export function bindCommunityPublishToast(handler: ((data: ToastData) => void) | null) {
+  communityPublishToast = handler;
+}
 
 function formatRelativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -327,6 +334,14 @@ export function CommunityFeedProvider({ children }: { children: React.ReactNode 
   const addPost = useCallback(async (post: CommunityPost): Promise<string> => {
     if (!user) return post.id;
 
+    const optimisticId = post.id;
+    const optimisticPost: CommunityPost = {
+      ...post,
+      publishStatus: 'uploading',
+      time: post.time || 'Just now',
+    };
+    setPosts(prev => [optimisticPost, ...prev]);
+
     const { data: newRow, error } = await supabase
       .from('community_posts')
       .insert({
@@ -352,17 +367,34 @@ export function CommunityFeedProvider({ children }: { children: React.ReactNode 
       .single();
 
     if (error || !newRow) {
+      setPosts(prev => prev.filter(p => p.id !== optimisticId));
+      communityPublishToast?.({
+        msg: 'Could not publish post. Try again.',
+        icon: 'close',
+        tone: 'danger',
+      });
       throw new Error(error?.message ?? 'Could not publish post');
     }
 
     if (post.companionIds && post.companionIds.length > 0) {
       await supabase.from('community_post_companions').insert(
-        post.companionIds.map(cid => ({ post_id: (newRow as any).id, companion_id: cid })),
+        post.companionIds.map(cid => ({ post_id: (newRow as { id: string }).id, companion_id: cid })),
       );
     }
 
     const mapped = mapDbPostRow(newRow, user.id);
-    setPosts(prev => [mapped, ...prev]);
+    setPosts(prev => {
+      const rest = prev.filter(p => p.id !== optimisticId);
+      if (rest.some(p => p.id === mapped.id)) {
+        return rest.map(p => (p.id === mapped.id ? mapped : p));
+      }
+      return [mapped, ...rest];
+    });
+    communityPublishToast?.({
+      msg: 'Posted to community 🐾',
+      icon: 'communities',
+      tone: 'success',
+    });
     return mapped.id;
   }, [user]);
 

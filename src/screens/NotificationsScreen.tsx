@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
-  View, Text, FlatList, Pressable, StyleSheet, Platform, Animated, PanResponder, ActivityIndicator,
+  View, Text, FlatList, Pressable, StyleSheet, Platform, Animated, PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native';
@@ -15,6 +15,7 @@ import { Button } from '../components/ui/Button';
 import { AppSubHeader } from '../components/ui/AppSubHeader';
 import { Toast, ToastData } from '../components/ui/Toast';
 import { Empty } from '../components/ui/Empty';
+import { PawLoader } from '../components/PawLoader';
 import { Segmented } from '../components/ui/Segmented';
 import { Icon } from '../components/icons/Icon';
 import type { AppNotification } from '../data/mockData';
@@ -259,8 +260,8 @@ export function NotificationsScreen() {
         ListEmptyComponent={
           notifsLoading
             ? (
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 48 }}>
-                <ActivityIndicator color={colors.primary} />
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <PawLoader fullScreen={false} size={22} style={{ paddingVertical: 48 }} />
               </View>
             )
             : <Empty icon="bell" title="All caught up" body="No notifications here." />
@@ -464,9 +465,11 @@ function NotifItem({
   const { primary, extras, actors } = group;
   const isUnread = primary.unread || extras.some(e => e.unread);
   const display = resolveNotifDisplay(group, actorsByUid, getCircleName, false);
-  const { icon, color } = getToneForType(primary.type);
+  const { color: alertColor } = getToneForType(primary.type);
   const isAlert = primary.type === 'lost' || primary.type === 'found';
   const isGrouped = extras.length > 0;
+  const iconWrapBg = isDark ? colors.surface2 : colors.primary + '12';
+  const iconColor = colors.primary;
 
   const rowStyle = [
     styles.notifRow,
@@ -496,24 +499,14 @@ function NotifItem({
             </View>
           </View>
         ) : display.iconOnly ? (
-          <View style={[styles.notifIconWrap, { backgroundColor: color + '18' }]}>
-            <Icon name={icon} size={18} color={color} />
+          <View style={[styles.notifIconWrap, { backgroundColor: iconWrapBg }]}>
+            <Icon name="bell" size={18} color={iconColor} />
           </View>
         ) : display.avatarUser ? (
-          <View style={{ position: 'relative' }}>
-            <Avatar user={display.avatarUser} size={46} />
-            {display.showTypeBadge && (
-              <View style={[styles.notifIconDot, { backgroundColor: color }]}>
-                <Icon name={icon} size={10} color="#fff" />
-              </View>
-            )}
-          </View>
+          <Avatar user={display.avatarUser} size={46} />
         ) : (
-          // No actor avatar resolved — render the type icon in a proper 46px
-          // circle (same as the iconOnly rows) instead of a naked, absolutely
-          // positioned badge that collapses to the screen edge and gets clipped.
-          <View style={[styles.notifIconWrap, { backgroundColor: color + '18' }]}>
-            <Icon name={icon} size={18} color={color} />
+          <View style={[styles.notifIconWrap, { backgroundColor: iconWrapBg }]}>
+            <Icon name="bell" size={18} color={iconColor} />
           </View>
         )}
       </View>
@@ -525,7 +518,7 @@ function NotifItem({
           ) : (
             <>
               {display.bold ? (
-                <Text style={{ fontWeight: '700', color: isAlert ? color : colors.text }}>
+                <Text style={{ fontWeight: '700', color: isAlert ? alertColor : colors.text }}>
                   {display.bold}{' '}
                 </Text>
               ) : null}
@@ -614,11 +607,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-  notifIconDot: {
-    position: 'absolute', bottom: -2, right: -2, width: 20, height: 20,
-    borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: '#fff',
   },
   notifBody: { fontSize: 14, lineHeight: 20 },
   notifSub: { fontSize: 13, lineHeight: 18 },

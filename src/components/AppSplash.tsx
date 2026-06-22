@@ -3,20 +3,20 @@ import { Animated, Easing, Image, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { fonts } from '../theme/fonts';
 import { spacing } from '../theme/tokens';
+import { PAW_SPLASH_TIMING } from '../theme/pawAnimation';
 import { Icon } from './icons/Icon';
 
 const LOGO = require('../../assets/logo.png');
 
 const PAW_COUNT = 3;
+const { fadeInMs, fadeOutMs, staggerMs, holdMs, pauseMs } = PAW_SPLASH_TIMING;
 
 /**
  * Branded loading splash. Shows the logo + "connecting paws", with three paw
- * prints appearing one after another (in place of the usual loading dots) and
- * looping while the app initializes.
+ * prints appearing one after another and looping while the app initializes.
  */
 export function AppSplash() {
   const { colors } = useTheme();
-  // One animated value per paw, driving opacity + scale.
   const paws = useRef(
     Array.from({ length: PAW_COUNT }, () => new Animated.Value(0)),
   ).current;
@@ -25,7 +25,7 @@ export function AppSplash() {
     const fadeIn = paws.map(v =>
       Animated.timing(v, {
         toValue: 1,
-        duration: 260,
+        duration: fadeInMs,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
@@ -34,7 +34,7 @@ export function AppSplash() {
       paws.map(v =>
         Animated.timing(v, {
           toValue: 0,
-          duration: 220,
+          duration: fadeOutMs,
           easing: Easing.in(Easing.quad),
           useNativeDriver: true,
         }),
@@ -43,10 +43,10 @@ export function AppSplash() {
 
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.stagger(220, fadeIn),
-        Animated.delay(450),
+        Animated.stagger(staggerMs, fadeIn),
+        Animated.delay(holdMs),
         reset,
-        Animated.delay(180),
+        Animated.delay(pauseMs),
       ]),
     );
     loop.start();
@@ -107,7 +107,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    // Reserve width so the tagline doesn't shift as paws appear/disappear.
     width: PAW_COUNT * 21,
   },
 });

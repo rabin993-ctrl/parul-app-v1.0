@@ -1,4 +1,6 @@
 
+import type { PublishStatus } from '../types/publishStatus';
+
 export type CommunityCategory =
   | 'general'
   | 'rescue'
@@ -66,6 +68,8 @@ export type CommunityPost = {
   imageTint?: string;
   trendingScore: number;
   threads: CommunityThread[];
+  /** Transient: client-side publish lifecycle for optimistic upload UI */
+  publishStatus?: PublishStatus;
 };
 
 export const COMMUNITY_CATEGORIES: {

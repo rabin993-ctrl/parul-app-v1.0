@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,6 +31,7 @@ import type { AdoptionRequest } from '../../context/AdoptionFeedContext';
 import type { AdoptionStackParamList } from '../../navigation/AdoptionNavigator';
 import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
 import { useTabBarScrollProps } from '../../context/TabBarScrollContext';
+import { bindAdoptionPublishToast } from '../../hooks/useAdoptionListings';
 type Nav = NativeStackNavigationProp<AdoptionStackParamList, 'Listing'>;
 
 export function AdoptionListingScreen({
@@ -90,6 +91,11 @@ export function AdoptionListingScreen({
   const [toast, setToast] = useState<ToastData | null>(null);
   const [inboxListing, setInboxListing] = useState<AdoptionListing | null>(null);
 
+  useEffect(() => {
+    bindAdoptionPublishToast(setToast);
+    return () => bindAdoptionPublishToast(null);
+  }, []);
+
   const hubListings = useMemo(
     () => mergeAdoptionHubListings(listings, feedPosts),
     [listings, feedPosts],
@@ -114,6 +120,11 @@ export function AdoptionListingScreen({
       return aOwn - bOwn;
     });
   }, [hubListings, filters, species, browseFilter, tab, user?.id, getMyOutgoingRequests]);
+
+  const listExtraData = useMemo(
+    () => listingsShown.map(l => `${l.id}:${l.publishStatus ?? ''}`).join('|'),
+    [listingsShown],
+  );
 
   const inboxRequests = useMemo(
     () => (inboxListing ? getRequestsForListing(inboxListing.id) : []),
@@ -218,6 +229,7 @@ export function AdoptionListingScreen({
       <FlatList
         style={styles.list}
         data={listingsShown}
+        extraData={listExtraData}
         keyExtractor={l => l.id}
         nestedScrollEnabled={embedded}
         ListHeaderComponent={listHeader}

@@ -8,6 +8,8 @@ import { Icon } from '../icons/Icon';
 import { Button } from '../ui/Button';
 import { PhotoViewerModal } from '../ui/PhotoViewerModal';
 import { RescueUpdateMedia } from './RescueUpdateMedia';
+import { PublishingOverlay } from '../ui/PublishingOverlay';
+import { PUBLISH_LABELS } from '../../types/publishStatus';
 import type { RescueUpdate } from '../../data/profileData';
 import {
   groupRescueUpdatesByDay,
@@ -35,6 +37,7 @@ function UpdateEntry({
   const mediaUrls = update.mediaUrls ?? [];
   const caption = update.text?.trim();
   const showExpand = truncated && !expanded;
+  const isUploading = update.publishStatus === 'uploading';
 
   return (
     <View style={styles.entryRow}>
@@ -53,6 +56,11 @@ function UpdateEntry({
       </View>
 
       <View style={[styles.entryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {isUploading ? (
+          <View style={styles.uploadBanner}>
+            <PublishingOverlay visible label={PUBLISH_LABELS.rescueUpdate} variant="banner" />
+          </View>
+        ) : null}
         <Text style={[styles.entryTime, { color: colors.textTertiary }]}>
           {rescueUpdateClock(update.time)}
         </Text>
@@ -79,10 +87,15 @@ function UpdateEntry({
         ) : null}
 
         {mediaUrls.length > 0 ? (
-          <RescueUpdateMedia
-            urls={mediaUrls}
-            onPressImage={index => onImagePress(mediaUrls, index, caption ?? '')}
-          />
+          <View style={styles.mediaWrap}>
+            <RescueUpdateMedia
+              urls={mediaUrls}
+              onPressImage={index => onImagePress(mediaUrls, index, caption ?? '')}
+            />
+            {isUploading ? (
+              <PublishingOverlay visible label={PUBLISH_LABELS.rescueUpdate} variant="media" />
+            ) : null}
+          </View>
         ) : update.photoCount && update.photoCount > 0 ? (
           <View style={[styles.mediaPending, { backgroundColor: colors.surface2, borderColor: colors.border }]}>
             <Text style={[styles.mediaPendingText, { color: colors.textTertiary }]}>
@@ -308,6 +321,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 4,
+    overflow: 'hidden',
+  },
+  uploadBanner: {
+    marginHorizontal: -14,
+    marginTop: -14,
+    marginBottom: -4,
+  },
+  mediaWrap: {
+    position: 'relative',
   },
   entryTime: {
     fontSize: 12,

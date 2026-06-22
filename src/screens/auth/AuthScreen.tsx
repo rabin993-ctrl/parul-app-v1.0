@@ -322,23 +322,31 @@ export function AuthScreen() {
           </Button>
 
           {isSignup && (
-            <Text style={[styles.legalText, { color: colors.textTertiary }]}>
-              By creating an account, you agree to our{' '}
-              <Text
-                style={[styles.legalLink, { color: colors.primary }]}
+            <View style={styles.legalRow}>
+              <Text style={[styles.legalText, { color: colors.textTertiary }]}>
+                By creating an account, you agree to our{' '}
+              </Text>
+              <Pressable
+                hitSlop={6}
                 onPress={() => setLegalDoc('terms')}
+                accessibilityRole="link"
               >
-                Terms of Service
-              </Text>
-              {' '}and{' '}
-              <Text
-                style={[styles.legalLink, { color: colors.primary }]}
+                <Text style={[styles.legalLink, { color: colors.primary }]}>
+                  Terms of Service
+                </Text>
+              </Pressable>
+              <Text style={[styles.legalText, { color: colors.textTertiary }]}> and </Text>
+              <Pressable
+                hitSlop={6}
                 onPress={() => setLegalDoc('privacy')}
+                accessibilityRole="link"
               >
-                Privacy Policy
-              </Text>
-              .
-            </Text>
+                <Text style={[styles.legalLink, { color: colors.primary }]}>
+                  Privacy Policy
+                </Text>
+              </Pressable>
+              <Text style={[styles.legalText, { color: colors.textTertiary }]}>.</Text>
+            </View>
           )}
 
           {(awaitingConfirmation || pendingConfirmationEmail) && (
@@ -460,8 +468,15 @@ const styles = StyleSheet.create({
   dividerLine: { flex: 1, height: StyleSheet.hairlineWidth },
   dividerText: { fontSize: 12.5, fontFamily: fonts.regular },
   usernameHint: { fontSize: 12.5, fontFamily: fonts.medium, marginTop: spacing.xs },
+  legalRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 2,
+  },
   legalText: { fontSize: 12.5, fontFamily: fonts.regular, lineHeight: 18, textAlign: 'center' },
-  legalLink: { fontFamily: fonts.semibold },
+  legalLink: { fontSize: 12.5, fontFamily: fonts.semibold, lineHeight: 18 },
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
   footerText: { fontSize: 14, fontFamily: fonts.regular },
   footerLink: { fontSize: 14, fontFamily: fonts.bold },

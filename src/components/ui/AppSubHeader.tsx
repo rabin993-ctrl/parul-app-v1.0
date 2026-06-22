@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { NavigationContext } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
 import { typography } from '../../theme/tokens';
 import { Icon } from '../icons/Icon';
@@ -146,8 +146,8 @@ export function AppSubHeader({
   trailing?: React.ReactNode;
 }) {
   const { colors } = useTheme();
-  const navigation = useNavigation();
-  const handleBack = onBack ?? (() => navigation.goBack());
+  const navigation = React.useContext(NavigationContext);
+  const handleBack = onBack ?? (() => navigation?.goBack());
 
   const trailingContent = trailing ?? (rightIcon ? (
     <AppHeaderIconButton

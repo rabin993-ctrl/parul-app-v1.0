@@ -229,7 +229,10 @@ export function CompanionPostDetailScreen() {
                 post={post}
                 createdCircles={createdCircles}
                 joinedCircles={joinedCircles}
-                onSubmit={(text, replyToThreadIndex) => addComment(post.id, text, { replyToThreadIndex })}
+                onSubmit={(text, replyToThreadIndex, meta) => addComment(post.id, text, {
+                  replyToThreadIndex,
+                  confirmedTokens: meta?.confirmedTokens,
+                })}
                 onCommentPaw={threadIdx => pawComment(post.id, threadIdx)}
                 onToast={showToast}
                 onAuthorPress={openUserProfile}

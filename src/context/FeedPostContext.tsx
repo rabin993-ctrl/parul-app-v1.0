@@ -8,6 +8,8 @@ import { PostComposer, PostComposerOptions } from '../components/feed/PostCompos
 import { AdoptionComposerSheet } from '../components/adoption/AdoptionComposerSheet';
 import { RescueOpenCaseModal } from '../navigation/RescueOpenCaseModal';
 import { Toast, ToastData } from '../components/ui/Toast';
+import { bindAdoptionPublishToast } from '../hooks/useAdoptionListings';
+import { bindRescuePublishToast } from '../context/RescueFeedContext';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useCurrentUserProfile } from './CurrentUserProfileContext';
@@ -50,7 +52,7 @@ type FeedPostContextValue = {
   pawComment: (postId: string, threadIndex: number) => void;
   addPost: (post: Post) => void;
   addAdoptionListingPost: (input: AdoptionListingPostInput) => void;
-  addComment: (postId: string, text: string, opts?: { userId?: string; replyToThreadIndex?: number }) => boolean;
+  addComment: (postId: string, text: string, opts?: { userId?: string; replyToThreadIndex?: number; confirmedTokens?: string[] }) => boolean;
   deletePost: (postId: string) => void;
   removePostsForCompanion: (companionId: string) => void;
   updatePost: (postId: string, post: Post) => void;
@@ -97,6 +99,13 @@ function upsertConfirmedPost(
   realId: string,
   confirmedPost: Post,
 ): Post[] {
+  // Client UUID optimistic ids match the persisted row id — replace in place.
+  if (optimisticId === realId) {
+    if (prev.some(p => p.id === realId)) {
+      return prev.map(p => (p.id === realId ? confirmedPost : p));
+    }
+    return [confirmedPost, ...prev];
+  }
   if (prev.some(p => p.id === realId)) {
     return prev
       .filter(p => p.id !== optimisticId)
@@ -182,7 +191,7 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
   const { me } = useCurrentUserProfile();
   const { posts: rawPosts, setPosts, reload: reloadFeed, loading: feedLoading } = useFeedQuery();
   const { insertComment } = usePostComments();
-  const { notifyComment, notifyLike } = useNotificationWriter();
+  const { notifyComment, notifyLike, notifyMentions } = useNotificationWriter();
   const [resolvedOverlay, setResolvedOverlay] = useState<Set<string>>(() => new Set());
   const deletedPostIdsRef = useRef<Set<string>>(new Set());
   const [deletedRevision, setDeletedRevision] = useState(0);
@@ -633,6 +642,7 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
       companionContentStyle: resolvedStyle ?? post.companionContentStyle,
       _pendingMedia: undefined,
       _pendingMedias: undefined,
+      publishStatus: 'uploading',
       userId: user.id,
       author: me.handle ?? me.name ?? post.author,
       authorName: me.name,
@@ -646,6 +656,7 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
       setAlertDraftRevision(v => v + 1);
     }
     setPosts(prev => [realPost, ...prev]);
+    requestFeedPostFocus(optimisticId, { post: realPost });
 
     (async () => {
       const insertPayload: Record<string, unknown> = {
@@ -789,10 +800,19 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
           return prev;
         }
         if (deletedPostIdsRef.current.has(realId)) return prev;
-        return upsertConfirmedPost(prev, optimisticId, realId, confirmedPost);
+        const { publishStatus: _removed, ...withoutStatus } = confirmedPost;
+        return upsertConfirmedPost(prev, optimisticId, realId, withoutStatus);
       });
+      feedPublishToast?.({
+        msg: 'Your post is live 🐾',
+        icon: 'check',
+        tone: 'success',
+      });
+      if (post.text?.includes('@')) {
+        void notifyMentions(realId, post.text, me?.name);
+      }
     })();
-  }, [user, me, setPosts]);
+  }, [user, me, setPosts, requestFeedPostFocus, notifyMentions]);
 
   const addAdoptionListingPost = useCallback((input: AdoptionListingPostInput) => {
     if (!user) return;
@@ -827,7 +847,7 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
   const addComment = useCallback((
     postId: string,
     text: string,
-    opts?: { userId?: string; replyToThreadIndex?: number },
+    opts?: { userId?: string; replyToThreadIndex?: number; confirmedTokens?: string[] },
   ): boolean => {
     const trimmed = text.trim();
     if (!trimmed || !user) return false;
@@ -892,10 +912,17 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
       }));
       const postAuthor = postsRef.current.find(p => p.id === postId)?.userId;
       if (postAuthor) notifyComment(postId, postAuthor, commentId, me?.name, trimmed);
+      if (trimmed.includes('@')) {
+        void notifyMentions(postId, trimmed, me?.name, {
+          commentId,
+          confirmedTokens: opts?.confirmedTokens,
+          skipRecipientIds: postAuthor ? [postAuthor] : [],
+        });
+      }
     });
 
     return true;
-  }, [user, me, insertComment, notifyComment, setPosts]);
+  }, [user, me, insertComment, notifyComment, notifyMentions, setPosts]);
 
   // ── Companion / count queries ─────────────────────────────────────────────
 
@@ -1224,7 +1251,13 @@ export function FeedPostOverlays() {
 
   useEffect(() => {
     bindFeedPublishToast(setToast);
-    return () => bindFeedPublishToast(null);
+    bindAdoptionPublishToast(setToast);
+    bindRescuePublishToast(setToast);
+    return () => {
+      bindFeedPublishToast(null);
+      bindAdoptionPublishToast(null);
+      bindRescuePublishToast(null);
+    };
   }, []);
 
   return (
