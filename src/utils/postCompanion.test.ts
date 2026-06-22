@@ -30,6 +30,9 @@ function post(partial: Partial<Post> & Pick<Post, 'id'>): Post {
     userId: 'u1',
     companions: [],
     circle: false,
+    reacted: false,
+    forwards: 0,
+    threads: [],
     ...partial,
   };
 }

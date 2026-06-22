@@ -124,11 +124,14 @@ export function AuthScreen() {
     setError(null);
     setInfo(null);
     setGoogleLoading(true);
-    const res = await signInWithGoogle();
-    // On web the call redirects the page to Google, so we only get here on a
-    // failure to start the flow.
-    if (res.error) {
-      setError(res.error);
+    try {
+      const res = await signInWithGoogle();
+      // On web the call redirects the page to Google, so we only get here on a
+      // failure to start the flow. On native we always return here (cancel or success).
+      if (res.error) setError(res.error);
+    } finally {
+      // Always reset — on native cancel the session never arrives so the screen
+      // stays visible; without this the button spins forever.
       setGoogleLoading(false);
     }
   }
@@ -285,7 +288,16 @@ export function AuthScreen() {
             </Pressable>
           )}
 
-          {error && <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>}
+          {error && (
+            <View>
+              <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>
+              {!isSignup && (
+                <Text style={[styles.googleHint, { color: colors.textTertiary }]}>
+                  Signed up with Google? Use the Google button below.
+                </Text>
+              )}
+            </View>
+          )}
           {info && <Text style={[styles.info, { color: colors.textSecondary }]}>{info}</Text>}
 
           <Button full size="lg" loading={loading} onPress={onSubmit} style={styles.submit}>
@@ -435,6 +447,7 @@ const styles = StyleSheet.create({
   forgotRow: { alignSelf: 'flex-end', marginTop: -spacing.sm },
   forgotLink: { fontSize: 13.5, fontFamily: fonts.semibold },
   error: { fontSize: 13.5, fontFamily: fonts.medium, marginTop: -spacing.xs },
+  googleHint: { fontSize: 12, fontFamily: fonts.regular, marginTop: 4, lineHeight: 16 },
   info: { fontSize: 13.5, fontFamily: fonts.regular, lineHeight: 20 },
   resendBlock: { gap: spacing.sm, marginTop: spacing.sm },
   resendHint: { fontSize: 13, fontFamily: fonts.regular, textAlign: 'center', lineHeight: 18 },

@@ -58,6 +58,7 @@ import { startDirectMessage } from '../../utils/startDirectMessage';
 import { useAdoption, type ChatThread } from '../../context/AdoptionContext';
 import { navigateToChatThread } from '../../navigation/chatThreadRouting';
 import type { User } from '../../data/mockData';
+import { PawLoader } from '../../components/PawLoader';
 
 const BUBBLE_MAX_WIDTH_RATIO = 0.68;
 const BUBBLE_MAX_WIDTH_CAP = 280;
@@ -181,7 +182,7 @@ export function CircleChatScreen() {
   const { circleId, returnTo } = route.params;
   const { user } = useAuth();
   const { registerDmThread, reloadThreads } = useAdoption();
-  const { getCircle, resolveCircleDbId, createdCircles, pendingCountByCircle } = usePawCircles();
+  const { getCircle, resolveCircleDbId, createdCircles, pendingCountByCircle, ready: circlesReady } = usePawCircles();
   const circle = getCircle(circleId);
   const circleDbId = resolveCircleDbId(circleId);
   const isAdmin = createdCircles.some(c => c.id === circleId);
@@ -337,8 +338,8 @@ export function CircleChatScreen() {
 
   useEffect(() => {
     const caseIds = messages
-      .filter(m => m.type === 'text' && isRescueCaseShareText(m.text))
-      .map(m => parseRescueCaseShareText(m.text)!.caseId)
+      .filter(m => m.type === 'text' && isRescueCaseShareText((m as { text: string }).text))
+      .map(m => parseRescueCaseShareText((m as { text: string }).text)!.caseId)
       .filter(id => {
         if (rescueCaseMap[id]) return false;
         if (rescueFeed?.cases.find(c => c.id === id)) return false;
@@ -400,7 +401,12 @@ export function CircleChatScreen() {
   if (!circle) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']}>
-        <Text style={{ padding: 20, color: colors.text }}>Circle not found</Text>
+        {/* While circles are still hydrating (cold-start / deep-link) show a
+            blank loader rather than a permanent "not found" message. */}
+        {!circlesReady && <PawLoader />}
+        {circlesReady && (
+          <Text style={{ padding: 20, color: colors.text }}>Circle not found</Text>
+        )}
       </SafeAreaView>
     );
   }

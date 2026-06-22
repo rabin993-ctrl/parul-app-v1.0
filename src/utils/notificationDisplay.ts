@@ -95,13 +95,13 @@ export function resolveCircleName(
 }
 
 function actorName(notif: AppNotification, actor: ActorUser | null): string {
-  return actor?.name ?? notif.userName ?? 'Someone';
+  return actor?.name || notif.userName || 'Someone';
 }
 
 export function groupedBody(group: GroupedAppNotif): string {
   const { actors, extras, primary } = group;
   if (extras.length === 0) return primary.body;
-  const firstName = actors[0]?.name ?? primary.userName ?? 'Someone';
+  const firstName = actors[0]?.name || primary.userName || 'Someone';
   const rest = extras.length;
   const action = primary.type === 'like'
     ? 'liked your post'

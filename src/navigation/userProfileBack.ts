@@ -17,11 +17,11 @@ export function useUserProfileBack(returnTo?: UserProfileReturnTo) {
     const tabNav = navigation.getParent();
 
     if (returnTo === 'Feed') {
-      tabNav?.navigate('Feed' as never, { screen: 'FeedHome' } as never);
+      (tabNav as any)?.navigate('Feed', { screen: 'FeedHome' });
       return;
     }
     if (returnTo === 'Profile') {
-      tabNav?.navigate('Profile' as never, { screen: 'Home' } as never);
+      (tabNav as any)?.navigate('Profile', { screen: 'Home' });
       return;
     }
     if (returnTo === 'Hub' || returnTo === 'Messages') {

@@ -77,9 +77,9 @@ export function AdoptedDetailScreen() {
           onUserPress={id => navigateToUserProfileFromNested(navigation, id, viewerId)}
           onOpenRecord={id => {
             if (id === recordId) return;
-            navigation.push(route.name as never, { recordId: id } as never);
+            (navigation as any).push(route.name, { recordId: id });
           }}
-          onOpenListing={id => navigateToAdoptionListingFromNested(navigation, id)}
+          onOpenListing={id => navigateToAdoptionListingFromNested(navigation as any, id)}
           onSubmitUpdate={isAdopter && canAdopterPostUpdate(record) ? payload => {
             submitAdopterUpdate(record.id, payload);
             setToast({ msg: `Update posted for ${record.petName}`, icon: 'check', tone: 'success' });

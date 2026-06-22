@@ -20,7 +20,7 @@ export const CIRCLES_HIDE_TAB_BAR_ROUTES = [
   'CircleAdmin',
 ] as const;
 
-type NestedRoute = Partial<Pick<RouteProp<ParamListBase>, 'name' | 'state'>>;
+type NestedRoute = Partial<Pick<RouteProp<ParamListBase>, 'name'>> & { state?: unknown };
 
 export function getNestedFocusedRouteName(
   route: NestedRoute | undefined,

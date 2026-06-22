@@ -195,22 +195,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'visible',
   },
-  iconBtnGhost: Platform.OS === 'web'
-    ? {
-        backgroundColor: 'transparent',
-        padding: 0,
-        borderWidth: 0,
-        borderStyle: 'solid',
-        boxSizing: 'border-box',
-        outlineStyle: 'none',
-        appearance: 'none',
-        WebkitAppearance: 'none',
-        boxShadow: 'none',
-        cursor: 'pointer',
-      } as const
-    : {
-        backgroundColor: 'transparent',
-      },
+  iconBtnGhost: {
+    backgroundColor: 'transparent',
+    ...(Platform.OS === 'web'
+      ? {
+          padding: 0,
+          borderWidth: 0,
+          borderStyle: 'solid',
+          boxSizing: 'border-box',
+          outlineStyle: 'none',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          boxShadow: 'none',
+          cursor: 'pointer',
+        } as object
+      : null),
+  },
   countBadge: {
     position: 'absolute',
     top: 0,

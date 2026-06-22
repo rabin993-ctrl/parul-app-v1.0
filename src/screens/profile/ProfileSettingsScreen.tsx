@@ -234,6 +234,7 @@ export function ProfileSettingsScreen() {
   const notifyAdoption = settings.notifyAdoptionUpdates;
   const [profileEditing, setProfileEditing] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
 
@@ -256,6 +257,7 @@ export function ProfileSettingsScreen() {
   };
 
   const save = useCallback(async () => {
+    if (saving) return;
     const nextBio = bio.trim();
     const nextLocation = location.trim();
     const nextName = name.trim();
@@ -269,6 +271,7 @@ export function ProfileSettingsScreen() {
       setToast({ msg: handleError, icon: 'close', tone: 'danger' });
       return;
     }
+    setSaving(true);
     try {
       await updateProfile({
         bio: nextBio,
@@ -288,8 +291,10 @@ export function ProfileSettingsScreen() {
         ? err.message
         : 'Could not update profile';
       setToast({ msg, icon: 'close', tone: 'danger' });
+    } finally {
+      setSaving(false);
     }
-  }, [bio, location, name, handle, updateProfile]);
+  }, [saving, bio, location, name, handle, updateProfile]);
 
   const toggleProfileEdit = () => {
     if (profileEditing && dirty) {
@@ -345,9 +350,12 @@ export function ProfileSettingsScreen() {
           trailing={dirty ? (
             <Pressable
               onPress={() => { void save(); }}
-              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+              disabled={saving}
+              style={({ pressed }) => [{ opacity: pressed || saving ? 0.5 : 1 }]}
             >
-              <Text style={[styles.saveLabel, { color: colors.primary }]}>Save</Text>
+              <Text style={[styles.saveLabel, { color: colors.primary }]}>
+                {saving ? 'Saving…' : 'Save'}
+              </Text>
             </Pressable>
           ) : undefined}
         />

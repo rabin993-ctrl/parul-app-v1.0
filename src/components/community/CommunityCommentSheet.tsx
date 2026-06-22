@@ -170,7 +170,7 @@ export function CommunityCommentSheet({
   createdCircles: PawCircle[];
   joinedCircles: PawCircle[];
   onClose: () => void;
-  onSubmit: (text: string, replyToThreadId?: string) => void;
+  onSubmit: (text: string, replyToThreadId?: string) => Promise<boolean>;
   onToast: (t: ToastData) => void;
   onAuthorPress?: (userId: string) => void;
 }) {
@@ -184,6 +184,7 @@ export function CommunityCommentSheet({
   const [confirmedNewMentions, setConfirmedNewMentions] = useState<string[]>([]);
   const [confirmedReplyMentions, setConfirmedReplyMentions] = useState<string[]>([]);
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const activeComposerText = replyTo ? inlineReplyText : newCommentText;
   const activeMentionQuery = useMemo(
     () => extractActiveMentionQuery(activeComposerText),
@@ -222,21 +223,33 @@ export function CommunityCommentSheet({
     }
   };
 
-  const submitNewComment = () => {
-    if (!newCommentText.trim()) return;
-    onSubmit(newCommentText.trim());
-    setNewCommentText('');
-    setConfirmedNewMentions([]);
-    onToast({ msg: 'Comment posted!', icon: 'check', tone: 'success' });
+  const submitNewComment = async () => {
+    if (!newCommentText.trim() || submitting) return;
+    setSubmitting(true);
+    const ok = await onSubmit(newCommentText.trim());
+    setSubmitting(false);
+    if (ok) {
+      setNewCommentText('');
+      setConfirmedNewMentions([]);
+      onToast({ msg: 'Comment posted!', icon: 'check', tone: 'success' });
+    } else {
+      onToast({ msg: 'Could not post comment — please try again', icon: 'close', tone: 'danger' });
+    }
   };
 
-  const submitInlineReply = () => {
-    if (!inlineReplyText.trim() || !replyTo) return;
-    onSubmit(inlineReplyText.trim(), replyTo.threadId);
-    setInlineReplyText('');
-    setConfirmedReplyMentions([]);
-    setReplyTo(null);
-    onToast({ msg: 'Reply posted!', icon: 'check', tone: 'success' });
+  const submitInlineReply = async () => {
+    if (!inlineReplyText.trim() || !replyTo || submitting) return;
+    setSubmitting(true);
+    const ok = await onSubmit(inlineReplyText.trim(), replyTo.threadId);
+    setSubmitting(false);
+    if (ok) {
+      setInlineReplyText('');
+      setConfirmedReplyMentions([]);
+      setReplyTo(null);
+      onToast({ msg: 'Reply posted!', icon: 'check', tone: 'success' });
+    } else {
+      onToast({ msg: 'Could not post reply — please try again', icon: 'close', tone: 'danger' });
+    }
   };
 
   const dismissMentionPicker = () => {
@@ -322,8 +335,8 @@ export function CommunityCommentSheet({
                   name="send"
                   size={32}
                   tone="ghost"
-                  color={colors.primary}
-                  onPress={submitNewComment}
+                  color={submitting ? colors.textTertiary : colors.primary}
+                  onPress={submitting ? undefined : () => { void submitNewComment(); }}
                 />
               )}
             </View>

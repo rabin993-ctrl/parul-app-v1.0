@@ -52,6 +52,7 @@ export function AdoptionDetailScreen({ onCloseOverride }: { onCloseOverride?: ()
   const tabBarScrollProps = useTabBarScrollProps();
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [requesting, setRequesting] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
 
   const listing = useMemo(() => getAdoptionListing(listingId, listings), [listingId, listings]);
@@ -86,7 +87,8 @@ export function AdoptionDetailScreen({ onCloseOverride }: { onCloseOverride?: ()
   };
 
   const handleRequest = () => {
-    if (!listing || isOwner || adopted) return;
+    if (!listing || isOwner || adopted || requesting) return;
+    setRequesting(true);
     submitRequest({
       listingId: listing.id,
       listingName: listing.name,
@@ -94,12 +96,16 @@ export function AdoptionDetailScreen({ onCloseOverride }: { onCloseOverride?: ()
       message: `I'd like to adopt ${listing.name}.`,
     });
     setToast({ msg: `Request sent for ${listing.name}`, icon: 'adoption', tone: 'success' });
+    // Reset after a short delay — submitRequest is optimistic so UI updates immediately.
+    setTimeout(() => setRequesting(false), 2000);
   };
 
   const handleCancelRequest = () => {
-    if (!myRequest || !listing) return;
+    if (!myRequest || !listing || requesting) return;
+    setRequesting(true);
     cancelRequest(myRequest.id);
     setToast({ msg: `Request for ${listing.name} cancelled`, icon: 'close', tone: 'success' });
+    setTimeout(() => setRequesting(false), 2000);
   };
 
   const handleBackFromReturn = useAdoptionListingDetailBack(returnTo);
@@ -289,11 +295,11 @@ export function AdoptionDetailScreen({ onCloseOverride }: { onCloseOverride?: ()
           {!isOwner && !adopted && (
             <View style={styles.footer}>
               {hasActiveRequest ? (
-                <Button variant="danger" style={{ flex: 1 }} onPress={handleCancelRequest}>
+                <Button variant="danger" style={{ flex: 1 }} disabled={requesting} onPress={handleCancelRequest}>
                   Cancel request
                 </Button>
               ) : (
-                <Button variant="primary" icon="adoption" style={{ flex: 1 }} onPress={handleRequest}>
+                <Button variant="primary" icon="adoption" style={{ flex: 1 }} disabled={requesting} onPress={handleRequest}>
                   Request to adopt
                 </Button>
               )}

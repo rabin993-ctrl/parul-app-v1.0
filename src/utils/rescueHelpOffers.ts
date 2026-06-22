@@ -113,7 +113,7 @@ export async function fetchCaseHelpOffers(caseId: string): Promise<RescueHelpOff
     .order('created_at', { ascending: false });
 
   if (!withJoin.error && withJoin.data) {
-    return attachHelperNames(withJoin.data as DbOfferRow[]);
+    return attachHelperNames(withJoin.data as unknown as DbOfferRow[]);
   }
 
   const { data, error } = await supabase

@@ -60,7 +60,7 @@ export function RescueListingScreen({
   const { colors } = useTheme();
   const navigation = useNavigation<Nav>();
   const { user } = useAuth();
-  const { cases, followedIds, isFollowing, toggleFollow } = useRescueFeed();
+  const { cases, loading: casesLoading, followedIds, isFollowing, toggleFollow } = useRescueFeed();
   const { posts, openCaseFlow } = useFeedPosts();
   const tabBarPad = useTabBarScrollPadding();
   const tabBarScrollProps = useTabBarScrollProps();
@@ -73,7 +73,7 @@ export function RescueListingScreen({
   const filters = filtersProp ?? filtersInternal;
   const setFilters = onFiltersChange ?? setFiltersInternal;
   const filterPinned = hubBarPinned && filtersProp !== undefined;
-  const [loading, setLoading] = useState(true);
+  const loading = casesLoading;
   const [toast, setToast] = useState<ToastData | null>(null);
 
   const showToast = useCallback((t: ToastData) => setToast(t), []);
@@ -86,11 +86,6 @@ export function RescueListingScreen({
     joinedCircles,
     joinedCommunities,
   } = useRescueCaseShare(showToast);
-
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 420);
-    return () => clearTimeout(t);
-  }, []);
 
   useEffect(() => {
     if (!openCreateOnMount) return;

@@ -45,6 +45,7 @@ export type RescueUpdatePayload = {
 
 type RescueFeedContextValue = {
   cases: RescueCase[];
+  loading: boolean;
   followedIds: Set<string>;
   isFollowing: (id: string) => boolean;
   toggleFollow: (id: string) => void;
@@ -174,6 +175,7 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
   const userId = user?.id ?? null;
 
   const [cases, setCases] = useState<RescueCase[]>([]);
+  const [loading, setLoading] = useState(true);
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
 
   // Keep a ref so async callbacks always see latest userId
@@ -182,7 +184,9 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
 
   // ── Load data ───────────────────────────────────────────
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
+    try {
     // Fetch cases, updates and (if authed) current user's followed IDs in parallel
     const casesQuery = supabase
       .from('rescue_cases')
@@ -242,11 +246,33 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
       return [...pending, ...fetched];
     });
     setFollowedIds(myFollowed);
+    } finally {
+      if (!opts?.silent) setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData, userId]); // re-load when auth state changes
+
+  // Realtime: silently refresh when cases or updates change.
+  useEffect(() => {
+    if (!userId) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReload = () => {
+      if (timer) return;
+      timer = setTimeout(() => { timer = null; void loadData({ silent: true }); }, 1500);
+    };
+    const channel = supabase
+      .channel('rescue-feed-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rescue_cases' }, scheduleReload)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rescue_updates' }, scheduleReload)
+      .subscribe();
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [userId, loadData]);
 
   // ── Dev reset ───────────────────────────────────────────
 
@@ -485,8 +511,8 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
   // ── Context value ───────────────────────────────────────
 
   const value = useMemo(
-    () => ({ cases, followedIds, isFollowing, toggleFollow, addCase, addUpdate }),
-    [cases, followedIds, isFollowing, toggleFollow, addCase, addUpdate],
+    () => ({ cases, loading, followedIds, isFollowing, toggleFollow, addCase, addUpdate }),
+    [cases, loading, followedIds, isFollowing, toggleFollow, addCase, addUpdate],
   );
 
   return (

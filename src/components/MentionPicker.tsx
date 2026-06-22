@@ -338,7 +338,7 @@ export function MentionPicker({
     children: React.ReactNode,
     opts?: {
       showScrollIndicator?: boolean;
-      contentContainerStyle?: typeof styles.resultsInner;
+      contentContainerStyle?: object;
     },
   ) => {
     const scroll = (

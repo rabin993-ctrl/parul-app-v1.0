@@ -101,21 +101,26 @@ export function CommunityCommentThread({
   onAuthorPress,
 }: {
   threads: CommunityThread[];
-  onSubmit: (text: string, replyToThreadId?: string) => void;
+  onSubmit: (text: string, replyToThreadId?: string) => Promise<boolean>;
   onAuthorPress?: (userId: string) => void;
 }) {
   const { colors } = useTheme();
   const { user } = useAuth();
   const meUser = { id: user?.id ?? 'you', name: user?.email?.split('@')[0] ?? 'Me', tint: '#F2972E' };
   const [text, setText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<{ threadId: string; userName: string } | null>(null);
   const commentCount = countCommunityThreadComments(threads ?? []);
 
-  const submit = () => {
-    if (!text.trim()) return;
-    onSubmit(text.trim(), replyTo?.threadId);
-    setText('');
-    setReplyTo(null);
+  const submit = async () => {
+    if (!text.trim() || submitting) return;
+    setSubmitting(true);
+    const ok = await onSubmit(text.trim(), replyTo?.threadId);
+    setSubmitting(false);
+    if (ok) {
+      setText('');
+      setReplyTo(null);
+    }
   };
 
   return (
@@ -162,7 +167,7 @@ export function CommunityCommentThread({
           style={[styles.input, { color: colors.text }]}
           multiline
         />
-        <Button size="sm" variant="primary" onPress={submit} disabled={!text.trim()}>
+        <Button size="sm" variant="primary" onPress={() => { void submit(); }} disabled={!text.trim() || submitting} loading={submitting}>
           Post
         </Button>
       </View>

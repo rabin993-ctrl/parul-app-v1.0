@@ -369,7 +369,13 @@ export function useFeedQuery() {
     }
 
     const rows = postsData as unknown as DbPostRow[];
-    const hydrated = await hydrateFeedPosts(rows, user.id);
+    let hydrated: Post[];
+    try {
+      hydrated = await hydrateFeedPosts(rows, user.id);
+    } catch {
+      setLoading(false);
+      return;
+    }
     setPosts(prev => {
       const prevById = new Map(prev.map(p => [p.id, p]));
       const merged = hydrated.map(fresh => {

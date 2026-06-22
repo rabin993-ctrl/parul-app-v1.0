@@ -77,6 +77,8 @@ type FeedPostContextValue = {
   refreshPostsPrivacy: () => Promise<void>;
   /** Bumps when posts are deleted — companion profile lists can refetch. */
   postMutationsRevision: number;
+  /** True while the initial feed fetch is in-flight — prevents a false empty-state flash. */
+  feedLoading: boolean;
 };
 
 const FeedPostContext = createContext<FeedPostContextValue | null>(null);
@@ -178,7 +180,7 @@ function resolveForwardDestinationId(dest: ForwardDest): string | null {
 export function FeedPostProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { me } = useCurrentUserProfile();
-  const { posts: rawPosts, setPosts, reload: reloadFeed } = useFeedQuery();
+  const { posts: rawPosts, setPosts, reload: reloadFeed, loading: feedLoading } = useFeedQuery();
   const { insertComment } = usePostComments();
   const { notifyComment, notifyLike } = useNotificationWriter();
   const [resolvedOverlay, setResolvedOverlay] = useState<Set<string>>(() => new Set());
@@ -1190,6 +1192,7 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
     ensureFeedPost,
     refreshPostsPrivacy,
     postMutationsRevision: deletedRevision,
+    feedLoading,
   }), [
     posts, setPosts, displaySavedPosts, toggleSaved, togglePaw, persistForward, pawComment,
     addPost, addAdoptionListingPost, addComment, deletePost, removePostsForCompanion, updatePost, openComposerForEdit, resolveAlert, getPostsForCompanion, getCompanionPostCount,
@@ -1199,6 +1202,7 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
     focusFeedPostId, focusFeedFilters, requestFeedPostFocus, clearFeedPostFocus, ensureFeedPost,
     refreshPostsPrivacy,
     deletedRevision,
+    feedLoading,
   ]);
 
   return (

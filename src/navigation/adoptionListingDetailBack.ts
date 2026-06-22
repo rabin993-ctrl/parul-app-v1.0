@@ -16,10 +16,7 @@ export function useAdoptionListingDetailBack(returnTo?: AdoptionListingReturnTo)
     if (returnTo) {
       const feedNav = navigation.getParent();
       const tabNav = feedNav?.getParent();
-      tabNav?.navigate(
-        returnTo.tab as never,
-        { screen: returnTo.screen, params: returnTo.params } as never,
-      );
+      (tabNav as any)?.navigate(returnTo.tab, { screen: returnTo.screen, params: returnTo.params });
       return;
     }
 
@@ -29,6 +26,6 @@ export function useAdoptionListingDetailBack(returnTo?: AdoptionListingReturnTo)
     }
 
     const feedNav = navigation.getParent();
-    feedNav?.navigate('AdoptionHub' as never, { screen: 'Listing' } as never);
+    (feedNav as any)?.navigate('AdoptionHub', { screen: 'Listing' });
   }, [navigation, returnTo]);
 }

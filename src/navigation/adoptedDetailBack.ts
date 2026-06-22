@@ -8,6 +8,7 @@ export function useAdoptedDetailBack() {
 
   return useCallback(() => {
     const state = navigation.getState();
+    if (!state) return;
 
     if (state.index > 0) {
       navigation.dispatch(StackActions.pop());

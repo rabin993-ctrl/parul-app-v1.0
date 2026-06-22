@@ -20,7 +20,7 @@ type CommunityFeedContextValue = {
     postId: string,
     text: string,
     opts?: { userId?: string; replyToThreadId?: string },
-  ) => void;
+  ) => Promise<boolean>;
   addPost: (post: CommunityPost) => Promise<string>;
   updatePost: (postId: string, patch: Partial<CommunityPost>) => void;
   loadPostThreads: (postId: string) => Promise<void>;
@@ -268,12 +268,12 @@ export function CommunityFeedProvider({ children }: { children: React.ReactNode 
     postId: string,
     text: string,
     opts?: { userId?: string; replyToThreadId?: string },
-  ) => {
-    if (!user) return;
+  ): Promise<boolean> => {
+    if (!user) return false;
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed) return false;
 
-    const { data: newRow } = await supabase
+    const { data: newRow, error } = await supabase
       .from('community_comments')
       .insert({
         post_id: postId,
@@ -284,7 +284,7 @@ export function CommunityFeedProvider({ children }: { children: React.ReactNode 
       .select('id, post_id, parent_id, author_user_id, text, created_at, author:users!community_comments_author_user_id_fkey(id, name, handle, tint)')
       .single();
 
-    if (!newRow) return;
+    if (error || !newRow) return false;
 
     const newAuthor: AuthorProfile | undefined = (newRow as any).author ?? undefined;
 
@@ -321,6 +321,7 @@ export function CommunityFeedProvider({ children }: { children: React.ReactNode 
       }
       return { ...p, threads, comments: countCommunityThreadComments(threads) };
     }));
+    return true;
   }, [user]);
 
   const addPost = useCallback(async (post: CommunityPost): Promise<string> => {
@@ -351,8 +352,7 @@ export function CommunityFeedProvider({ children }: { children: React.ReactNode 
       .single();
 
     if (error || !newRow) {
-      setPosts(prev => [post, ...prev]);
-      return post.id;
+      throw new Error(error?.message ?? 'Could not publish post');
     }
 
     if (post.companionIds && post.companionIds.length > 0) {

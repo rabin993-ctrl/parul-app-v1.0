@@ -14,108 +14,56 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts } from '../../theme/fonts';
-import { radius, shadows, spacing, typography } from '../../theme/tokens';
+import { radius, shadows, spacing } from '../../theme/tokens';
 import type { lightColors } from '../../theme/tokens';
 import { AppLogo } from '../ui/AppLogo';
 import { Button } from '../ui/Button';
 import { Icon } from '../icons/Icon';
 
-type SlideAccent = 'primary' | 'accent' | 'success' | 'info' | 'warning';
+type SlideAccent = 'primary' | 'accent' | 'success' | 'warning';
 
 type Slide = {
   id: string;
-  eyebrow: string;
   icon?: string;
   showLogo?: boolean;
-  title: string;
+  headline: string;
   body: string;
-  bullets: string[];
   accent: SlideAccent;
 };
 
 const SLIDES: Slide[] = [
   {
     id: 'welcome',
-    eyebrow: 'Getting started',
     showLogo: true,
-    title: 'Welcome to Parul',
-    body: 'Your community for pets, adoption, and rescue — all in one place.',
-    bullets: [
-      'Connect with pet people near you',
-      'Share updates about your companions',
-      'Help with adoption and rescue',
-    ],
+    headline: 'Your pet community,\nright here.',
+    body: 'Connect with pet lovers, help with adoption and rescue — all in one place.',
     accent: 'primary',
   },
   {
-    id: 'feed',
-    eyebrow: 'Home feed',
+    id: 'connect',
     icon: 'home',
-    title: 'Your daily pet timeline',
-    body: 'See what matters from people you follow and share your own moments.',
-    bullets: [
-      'Scroll posts from your network',
-      'React with treats on updates',
-      'Share photos of your pets',
-    ],
-    accent: 'primary',
-  },
-  {
-    id: 'hub',
-    eyebrow: 'Navigation',
-    icon: 'grid',
-    title: 'Switch hubs anytime',
-    body: 'Use the hub menu in the feed header to jump between main areas.',
-    bullets: [
-      'Feed — your main timeline',
-      'Communities — interest groups',
-      'Adoption — browse listings',
-    ],
-    accent: 'info',
-  },
-  {
-    id: 'circles',
-    eyebrow: 'Paw circles',
-    icon: 'circles',
-    title: 'Local pet-parent circles',
-    body: 'Join neighborhood groups and stay close to people who get it.',
-    bullets: [
-      'Discover circles near you',
-      'Chat with members in real time',
-      'Share tips and local alerts',
-    ],
+    headline: 'Follow friends.\nDiscover local circles.',
+    body: 'Your feed shows what matters. Join neighborhood groups and chat in real time.',
     accent: 'accent',
   },
   {
-    id: 'adoption',
-    eyebrow: 'Adoption',
-    icon: 'adoption',
-    title: 'Find a forever home',
-    body: 'Browse listings, apply to adopt, and follow along with posters.',
-    bullets: [
-      'Explore pets ready for adoption',
-      'Submit applications in-app',
-      'Track status and updates',
-    ],
+    id: 'adopt',
+    icon: 'heart',
+    headline: 'Find a home.\nSave a life.',
+    body: 'Browse adoption listings, submit applications, and respond to rescue alerts nearby.',
     accent: 'success',
   },
   {
-    id: 'rescue',
-    eyebrow: 'Rescue & profile',
-    icon: 'alert',
-    title: 'Help when it counts',
-    body: 'Report or respond to rescue cases, then manage everything from Profile.',
-    bullets: [
-      'Post or help with rescue alerts',
-      'Manage your pets and settings',
-      'Send beta feedback anytime',
-    ],
+    id: 'ready',
+    icon: 'paw',
+    headline: "You're all set.",
+    body: 'Start exploring Parul — your pets (and new friends) are waiting.',
     accent: 'warning',
   },
 ];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_MAX_WIDTH = 360;
+const CARD_MAX_WIDTH = 340;
 
 function shade(hex: string, pct: number): string {
   const n = parseInt(hex.slice(1), 16);
@@ -130,7 +78,7 @@ function shade(hex: string, pct: number): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
-function getSlideAccent(
+function getAccent(
   accent: SlideAccent,
   colors: typeof lightColors,
 ): { main: string; soft: string; gradient: [string, string, string] } {
@@ -138,105 +86,79 @@ function getSlideAccent(
     case 'accent':
       return {
         main: colors.accent,
-        soft: colors.accent + (colors.accent.length === 7 ? '1A' : ''),
-        gradient: [colors.accent, shade(colors.accent, -12), colors.accentDark],
+        soft: colors.accent + '18',
+        gradient: [colors.accent, shade(colors.accent, -10), colors.accentDark],
       };
     case 'success':
       return {
         main: colors.success,
         soft: colors.successBg,
-        gradient: [shade(colors.success, 14), colors.success, shade(colors.success, -18)],
-      };
-    case 'info':
-      return {
-        main: colors.info,
-        soft: colors.infoBg,
-        gradient: [colors.primaryLight, colors.primary, colors.primaryDark],
+        gradient: [shade(colors.success, 18), colors.success, shade(colors.success, -20)],
       };
     case 'warning':
       return {
         main: colors.warning,
         soft: colors.warningBg,
-        gradient: [shade(colors.warning, 16), colors.warning, shade(colors.warning, -16)],
+        gradient: [shade(colors.warning, 20), colors.warning, shade(colors.warning, -18)],
       };
     default:
       return {
         main: colors.primary,
-        soft: colors.infoBg,
+        soft: colors.primary + '14',
         gradient: [colors.primaryLight, colors.primary, colors.primaryDark],
       };
   }
 }
 
-function TutorialSlideCard({
-  slide,
-  slideIndex,
-}: {
-  slide: Slide;
-  slideIndex: number;
-}) {
+function SlideCard({ slide }: { slide: Slide }) {
   const { colors, isDark } = useTheme();
-  const accent = getSlideAccent(slide.accent, colors);
+  const ac = getAccent(slide.accent, colors);
 
   return (
     <View style={[styles.slide, { width: SCREEN_WIDTH }]}>
       <View
         style={[
           styles.card,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-          },
+          { backgroundColor: colors.surface, borderColor: colors.border },
           shadows.md,
         ]}
       >
-        <View style={styles.cardHeader}>
+        {/* Visual */}
+        <View style={styles.visual}>
           {slide.showLogo ? (
-            <View style={[styles.logoFrame, { backgroundColor: accent.soft, borderColor: colors.border }]}>
-              <AppLogo size={80} showWordmark />
+            <View style={[styles.logoWrap, { backgroundColor: ac.soft, borderColor: colors.border }]}>
+              <AppLogo size={72} showWordmark />
             </View>
           ) : (
             <LinearGradient
-              colors={accent.gradient}
-              start={{ x: 0.12, y: 0 }}
+              colors={ac.gradient}
+              start={{ x: 0.1, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.iconOrb}
+              style={styles.orb}
             >
-              <Icon
-                name={slide.icon!}
-                size={34}
-                color="#fff"
-                sw={2}
-              />
+              <Icon name={slide.icon!} size={42} color="#fff" sw={1.8} />
             </LinearGradient>
           )}
-          <View style={[styles.stepPill, { backgroundColor: accent.soft }]}>
-            <Text style={[styles.stepPillText, { color: accent.main }]}>
-              {slideIndex + 1} of {SLIDES.length}
-            </Text>
-          </View>
         </View>
 
-        <Text style={[styles.eyebrow, { color: accent.main }]}>{slide.eyebrow}</Text>
-        <Text style={[styles.title, { color: colors.text }]}>{slide.title}</Text>
+        {/* Text */}
+        <Text style={[styles.headline, { color: colors.text }]}>{slide.headline}</Text>
         <Text style={[styles.body, { color: colors.textSecondary }]}>{slide.body}</Text>
 
-        <View style={[styles.bulletList, { borderTopColor: colors.border }]}>
-          {slide.bullets.map(line => (
-            <View key={line} style={styles.bulletRow}>
-              <View style={[styles.bulletIcon, { backgroundColor: accent.soft }]}>
-                <Icon name="check" size={12} color={accent.main} sw={2.2} />
-              </View>
-              <Text style={[styles.bulletText, { color: colors.text }]}>{line}</Text>
-            </View>
-          ))}
-        </View>
+        {/* Accent bar */}
+        <LinearGradient
+          colors={ac.gradient}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.accentBar}
+        />
       </View>
 
+      {/* Decorative orbs (light mode only) */}
       {!isDark && (
-        <View pointerEvents="none" style={styles.decorWrap}>
-          <View style={[styles.decorOrb, styles.decorOrbPrimary, { backgroundColor: colors.primary + '14' }]} />
-          <View style={[styles.decorOrb, styles.decorOrbAccent, { backgroundColor: colors.accent + '12' }]} />
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <View style={[styles.decor1, { backgroundColor: ac.main + '10' }]} />
+          <View style={[styles.decor2, { backgroundColor: colors.accent + '0D' }]} />
         </View>
       )}
     </View>
@@ -249,17 +171,11 @@ export function AppTutorialCarousel({ onComplete }: { onComplete: () => void }) 
   const [index, setIndex] = useState(0);
 
   const isLast = index >= SLIDES.length - 1;
-  const progress = (index + 1) / SLIDES.length;
 
-  const finish = useCallback(() => {
-    void onComplete();
-  }, [onComplete]);
+  const finish = useCallback(() => { void onComplete(); }, [onComplete]);
 
   const goNext = useCallback(() => {
-    if (isLast) {
-      finish();
-      return;
-    }
+    if (isLast) { finish(); return; }
     listRef.current?.scrollToIndex({ index: index + 1, animated: true });
   }, [finish, index, isLast]);
 
@@ -273,10 +189,8 @@ export function AppTutorialCarousel({ onComplete }: { onComplete: () => void }) 
     if (Number.isFinite(next)) setIndex(next);
   }, []);
 
-  const renderSlide = useCallback(
-    ({ item, index: slideIndex }: { item: Slide; index: number }) => (
-      <TutorialSlideCard slide={item} slideIndex={slideIndex} />
-    ),
+  const renderItem = useCallback(
+    ({ item }: { item: Slide }) => <SlideCard slide={item} />,
     [],
   );
 
@@ -299,10 +213,11 @@ export function AppTutorialCarousel({ onComplete }: { onComplete: () => void }) 
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        {/* Top bar */}
         <View style={styles.topBar}>
-          <View style={[styles.tourBadge, { backgroundColor: colors.infoBg, borderColor: colors.border }]}>
-            <Icon name="sparkle" size={14} color={colors.primary} sw={2} />
-            <Text style={[styles.tourBadgeText, { color: colors.primary }]}>Quick tour</Text>
+          <View style={[styles.badge, { backgroundColor: colors.infoBg, borderColor: colors.border }]}>
+            <Icon name="sparkle" size={13} color={colors.primary} sw={2} />
+            <Text style={[styles.badgeText, { color: colors.primary }]}>Quick tour</Text>
           </View>
           <Pressable
             onPress={finish}
@@ -310,7 +225,7 @@ export function AppTutorialCarousel({ onComplete }: { onComplete: () => void }) 
             style={({ pressed }) => [
               styles.skipBtn,
               { backgroundColor: colors.surface, borderColor: colors.border },
-              pressed && { opacity: 0.72 },
+              pressed && { opacity: 0.7 },
             ]}
             accessibilityRole="button"
             accessibilityLabel="Skip tutorial"
@@ -319,11 +234,12 @@ export function AppTutorialCarousel({ onComplete }: { onComplete: () => void }) 
           </Pressable>
         </View>
 
+        {/* Slides */}
         <FlatList
           ref={listRef}
           data={SLIDES}
           keyExtractor={item => item.id}
-          renderItem={renderSlide}
+          renderItem={renderItem}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
@@ -331,25 +247,14 @@ export function AppTutorialCarousel({ onComplete }: { onComplete: () => void }) 
           onMomentumScrollEnd={onMomentumScrollEnd}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
-          getItemLayout={(_, i) => ({
-            length: SCREEN_WIDTH,
-            offset: SCREEN_WIDTH * i,
-            index: i,
-          })}
+          getItemLayout={(_, i) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * i, index: i })}
           style={styles.list}
           contentContainerStyle={styles.listContent}
         />
 
+        {/* Footer */}
         <View style={styles.footer}>
-          <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-            <LinearGradient
-              colors={[colors.primaryLight, colors.primary]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]}
-            />
-          </View>
-
+          {/* Dots */}
           <View style={styles.dots}>
             {SLIDES.map((slide, i) => (
               <View
@@ -358,8 +263,8 @@ export function AppTutorialCarousel({ onComplete }: { onComplete: () => void }) 
                   styles.dot,
                   {
                     backgroundColor: i === index ? colors.primary : colors.borderStrong,
-                    width: i === index ? 20 : 7,
-                    opacity: i === index ? 1 : 0.55,
+                    width: i === index ? 22 : 7,
+                    opacity: i === index ? 1 : 0.5,
                   },
                 ]}
               />
@@ -383,60 +288,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.xs,
   },
-  tourBadge: {
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
     borderRadius: radius.full,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  tourBadgeText: {
-    ...typography.caption,
-    fontSize: 12,
-    letterSpacing: 0.2,
-  },
+  badgeText: { fontSize: 12, fontFamily: fonts.semibold, letterSpacing: 0.2 },
   skipBtn: {
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
     borderRadius: radius.full,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  skipText: {
-    fontSize: 14,
-    fontFamily: fonts.semibold,
-  },
+  skipText: { fontSize: 14, fontFamily: fonts.semibold },
   list: { flex: 1 },
-  listContent: {
-    alignItems: 'center',
-  },
+  listContent: { alignItems: 'center' },
   slide: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
     position: 'relative',
   },
   card: {
     width: '100%',
     maxWidth: CARD_MAX_WIDTH,
-    alignSelf: 'center',
-    borderRadius: radius.xl,
+    borderRadius: radius.xl2 ?? radius.xl,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: spacing.xl2,
     paddingTop: spacing.xl2,
     paddingBottom: spacing.xl,
-    gap: spacing.sm,
-  },
-  cardHeader: {
-    alignItems: 'center',
     gap: spacing.md,
-    marginBottom: spacing.xs,
+    overflow: 'hidden',
   },
-  logoFrame: {
+  visual: { alignItems: 'center', marginBottom: spacing.sm },
+  logoWrap: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
@@ -444,100 +337,53 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  iconOrb: {
-    width: 92,
-    height: 92,
+  orb: {
+    width: 100,
+    height: 100,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-  },
-  stepPillText: {
-    ...typography.caption,
-    fontSize: 11,
-    letterSpacing: 0.3,
-  },
-  eyebrow: {
-    ...typography.sectionLabel,
+  headline: {
+    fontSize: 28,
+    fontFamily: fonts.bold,
     textAlign: 'center',
-  },
-  title: {
-    ...typography.heroName,
-    fontSize: 26,
-    lineHeight: 32,
-    textAlign: 'center',
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
+    lineHeight: 34,
   },
   body: {
-    ...typography.bodySm,
+    fontSize: 15,
+    fontFamily: fonts.regular,
     textAlign: 'center',
+    lineHeight: 22,
     marginBottom: spacing.sm,
   },
-  bulletList: {
+  accentBar: {
+    height: 3,
+    borderRadius: radius.full,
     marginTop: spacing.xs,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: spacing.sm,
+    marginHorizontal: -spacing.xl2,
   },
-  bulletRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  bulletIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-  },
-  bulletText: {
-    ...typography.bodySm,
-    flex: 1,
-    lineHeight: 21,
-  },
-  decorWrap: {
+  decor1: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: -1,
-  },
-  decorOrb: {
-    position: 'absolute',
+    width: 200,
+    height: 200,
     borderRadius: radius.full,
+    top: '5%',
+    right: '-20%',
   },
-  decorOrbPrimary: {
-    width: 180,
-    height: 180,
-    top: '8%',
-    right: '-18%',
-  },
-  decorOrbAccent: {
-    width: 140,
-    height: 140,
-    bottom: '12%',
-    left: '-16%',
+  decor2: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: radius.full,
+    bottom: '10%',
+    left: '-18%',
   },
   footer: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
-    gap: spacing.md,
-  },
-  progressTrack: {
-    height: 4,
-    borderRadius: radius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: radius.full,
+    gap: spacing.lg,
   },
   dots: {
     flexDirection: 'row',

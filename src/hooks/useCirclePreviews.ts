@@ -157,21 +157,31 @@ export function useCirclePreviews(
     if (!user || dbIds.length === 0) return;
     if (channelRef.current) supabase.removeChannel(channelRef.current);
 
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleLoad = () => {
+      if (timer) return;
+      timer = setTimeout(() => { timer = null; void load(); }, 800);
+    };
+
     const ch = supabase
       .channel(`${channelKeyRef.current}:${dbIds.join(',')}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'circle_messages' },
-        () => { load(); },
+        scheduleLoad,
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'circle_members', filter: `user_id=eq.${user.id}` },
-        () => { load(); },
+        scheduleLoad,
       )
       .subscribe();
     channelRef.current = ch;
-    return () => { supabase.removeChannel(ch); channelRef.current = null; };
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(ch);
+      channelRef.current = null;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(dbIds), load, user?.id]);
 

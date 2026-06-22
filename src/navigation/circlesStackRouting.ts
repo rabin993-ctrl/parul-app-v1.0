@@ -2,7 +2,9 @@ import { CommonActions } from '@react-navigation/native';
 import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 
 /** Open Paw Circles hub — switch to the tab and reset the nested stack to Hub only. */
-export function navigateCirclesHub(tabNavigation: NavigationProp<ParamListBase>) {
+export function navigateCirclesHub(
+  tabNavigation: Pick<NavigationProp<ParamListBase>, 'dispatch' | 'getState' | 'navigate'>,
+) {
   const state = tabNavigation.getState();
   if (!state?.routes) {
     tabNavigation.navigate('Circles', { screen: 'Hub' });

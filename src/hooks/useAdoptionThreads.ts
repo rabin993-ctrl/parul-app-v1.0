@@ -799,6 +799,13 @@ export function useAdoptionThreads() {
         t.id === threadId ? { ...t, preview, time: 'Now' } : t,
       ));
       return true;
+    } catch {
+      // upload() threw (network error) — remove the stuck optimistic bubble
+      setMessages(prev => ({
+        ...prev,
+        [threadId]: (prev[threadId] ?? []).filter(m => m.id !== optimisticId),
+      }));
+      return false;
     } finally {
       setSendingMedia(false);
     }

@@ -165,6 +165,7 @@ function FeedPostList({
   focusOpenComments,
   onFocusPostHandled,
   listHeader,
+  isLoading,
   onPaw,
   onSave,
   onComments,
@@ -189,6 +190,7 @@ function FeedPostList({
   focusOpenComments?: boolean;
   onFocusPostHandled?: () => void;
   listHeader?: React.ReactNode;
+  isLoading?: boolean;
   onPaw: (id: string) => void;
   onSave: (id: string) => void;
   onComments: (id: string) => void;
@@ -334,7 +336,9 @@ function FeedPostList({
         return renderPost(item.post);
       }}
       ListEmptyComponent={
-        <Empty title="Nothing here yet" icon="paw-line">No posts match this filter. Try another.</Empty>
+        isLoading
+          ? null
+          : <Empty title="Nothing here yet" icon="paw-line">No posts match this filter. Try another.</Empty>
       }
     />
   );
@@ -369,6 +373,7 @@ export function FeedScreen() {
     focusOpenComments,
     clearFeedPostFocus,
     refreshPostsPrivacy,
+    feedLoading,
   } = useFeedPosts();
   const [alertComposePost, setAlertComposePost] = useState<Post | null>(null);
   const [alertDmThread, setAlertDmThread] = useState<ChatThread | null>(null);
@@ -607,6 +612,7 @@ export function FeedScreen() {
         <FeedPostList
             posts={postList}
             postTypeFilters={postTypeFilters}
+            isLoading={feedLoading}
             isFeedFocused={isFeedFocused}
             tabBarPad={tabBarPad}
             tabBarScrollProps={tabBarScrollProps}

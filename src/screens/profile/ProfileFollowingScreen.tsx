@@ -133,7 +133,7 @@ export function ProfileFollowingScreen() {
       setCompanionProfileId(companionId);
       return;
     }
-    navigation.navigate('Companion' as never, { companionId } as never);
+    (navigation as any).navigate('Companion', { companionId });
   }, [fromPublicProfile, navigation]);
 
   const handleUnfollowCompanion = useCallback(async (companionId: string) => {
@@ -241,7 +241,7 @@ export function ProfileFollowingScreen() {
           onOwnerPress={ownerId => {
             setCompanionProfileId(null);
             if (ownerId !== targetUserId) {
-              navigation.navigate('UserProfile' as never, { userId: ownerId } as never);
+              (navigation as any).navigate('UserProfile', { userId: ownerId });
             }
           }}
           onToast={setToast}
@@ -250,7 +250,7 @@ export function ProfileFollowingScreen() {
             if (fromPublicProfile) {
               navigateToCompanionPostDetailFromNested(navigation, { postId, companionId: cid });
             } else {
-              navigation.navigate('CompanionPostDetail' as never, { postId, companionId: cid } as never);
+              (navigation as any).navigate('CompanionPostDetail', { postId, companionId: cid });
             }
           }}
         />

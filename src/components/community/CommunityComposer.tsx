@@ -220,12 +220,14 @@ export function CommunityComposer({
     });
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!canSubmit) return;
     const { title, body } = splitComposerText(text);
     const ts = Date.now();
-    destinations.forEach(dest => {
-      const post = buildCommunityPostFromComposer({
+    // Close immediately for snappy feel; await results then toast.
+    onClose();
+    const posts = destinations.map(dest =>
+      buildCommunityPostFromComposer({
         title,
         body,
         label,
@@ -247,19 +249,24 @@ export function CommunityComposer({
               looksLike: isFound ? foundLooksLike.trim() || undefined : undefined,
             }
           : undefined,
+      }),
+    );
+    try {
+      await Promise.all(posts.map((post, i) =>
+        addPost({ ...post, id: `cp-${ts}-${destinations[i].id}` }),
+      ));
+      const companionNames = companionIds.map(id => getCompanion(id)?.name).filter(Boolean).join(' & ');
+      const destLabel = formatGroupDestinationsLabel(destinations);
+      onToast({
+        msg: companionNames
+          ? `Posted with ${companionNames} to ${destLabel} 🐾`
+          : `Posted to ${destLabel} 🐾`,
+        icon: 'communities',
+        tone: 'success',
       });
-      addPost({ ...post, id: `cp-${ts}-${dest.id}` });
-    });
-    onClose();
-    const companionNames = companionIds.map(id => getCompanion(id)?.name).filter(Boolean).join(' & ');
-    const destLabel = formatGroupDestinationsLabel(destinations);
-    onToast({
-      msg: companionNames
-        ? `Posted with ${companionNames} to ${destLabel} 🐾`
-        : `Posted to ${destLabel} 🐾`,
-      icon: 'communities',
-      tone: 'success',
-    });
+    } catch {
+      onToast({ msg: 'Could not publish post — please try again', icon: 'close', tone: 'danger' });
+    }
   };
 
   if (!joinedCommunities.length) {

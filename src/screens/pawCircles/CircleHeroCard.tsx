@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     textAlign: 'center',
     ...(Platform.OS === 'web'
-      ? { outlineStyle: 'none', borderWidth: 0, backgroundColor: 'transparent' }
+      ? { outlineStyle: 'none', borderWidth: 0, backgroundColor: 'transparent' } as object
       : null),
   },
   username: {
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     padding: 0,
     margin: 0,
     ...(Platform.OS === 'web'
-      ? { outlineStyle: 'none', borderWidth: 0, backgroundColor: 'transparent' }
+      ? { outlineStyle: 'none', borderWidth: 0, backgroundColor: 'transparent' } as object
       : null),
   },
   locationInput: {
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     padding: 0,
     margin: 0,
     ...(Platform.OS === 'web'
-      ? { outlineStyle: 'none', borderWidth: 0, backgroundColor: 'transparent' }
+      ? { outlineStyle: 'none', borderWidth: 0, backgroundColor: 'transparent' } as object
       : null),
   },
   editFieldShell: {
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     ...(Platform.OS === 'web'
-      ? { outlineStyle: 'none', borderWidth: 0, backgroundColor: 'transparent', resize: 'none' as const }
+      ? { outlineStyle: 'none', borderWidth: 0, backgroundColor: 'transparent', resize: 'none' } as object
       : null),
   },
   bioHint: {

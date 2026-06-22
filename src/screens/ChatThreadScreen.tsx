@@ -335,7 +335,10 @@ export function ChatThreadScreen({
   const handleAcceptRequest = async () => {
     if (!incomingRequest || incomingRequest.status !== 'submitted') return;
     const threadId = await approveRequest(incomingRequest.id);
-    if (!threadId) return;
+    if (!threadId) {
+      setToast({ msg: 'Could not accept request — please try again', icon: 'close', tone: 'danger' });
+      return;
+    }
     await reloadThreads();
     setToast({ msg: 'Request accepted — you can chat now', icon: 'comment', tone: 'success' });
   };

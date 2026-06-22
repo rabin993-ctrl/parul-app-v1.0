@@ -414,26 +414,34 @@ export function PawCircleProvider({ children }: { children: React.ReactNode }) {
   // Realtime: reload when any join request changes (catches incoming requests for admin circles)
   useEffect(() => {
     if (!user) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleJoinedReload = () => {
+      if (timer) return;
+      timer = setTimeout(() => { timer = null; loadJoinedCircles(); }, 1500);
+    };
     const channel = supabase
       .channel(`circle_join_requests:incoming:${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'circle_join_requests' }, () => {
-        loadJoinedCircles();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'circle_join_requests' }, scheduleJoinedReload)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (timer) clearTimeout(timer); supabase.removeChannel(channel); };
   }, [user?.id, loadJoinedCircles]);
 
   // Realtime: refresh explore list when any circle changes
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleExploreReload = () => {
+      if (timer) return;
+      timer = setTimeout(() => { timer = null; loadExploreCircles(); }, 1500);
+    };
     const channel = supabase
       .channel('circles:all')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'circles' },
-        () => { loadExploreCircles(); },
+        scheduleExploreReload,
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (timer) clearTimeout(timer); supabase.removeChannel(channel); };
   }, [loadExploreCircles]);
 
   const joinCircle = useCallback(async (id: string) => {
