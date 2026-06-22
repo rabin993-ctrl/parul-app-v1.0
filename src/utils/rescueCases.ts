@@ -28,6 +28,7 @@ type DbCaseRow = {
   tags: string[];
   post_id: string | null;
   created_at: string;
+  cover: { url: string; thumb_url: string | null } | null;
 };
 
 type DbUpdateRow = {
@@ -66,6 +67,7 @@ function mapCaseRow(
     headline: row.headline ?? undefined,
     tags: row.tags ?? [],
     followers: followerCount,
+    coverUrl: row.cover?.url ?? undefined,
     updates: updates.map(u => ({
       id: u.id,
       time: formatDate(u.created_at),
@@ -95,7 +97,7 @@ export async function fetchRescueCaseById(caseId: string): Promise<RescueCase | 
   const [caseRes, updatesRes, followersRes] = await Promise.all([
     supabase
       .from('rescue_cases')
-      .select('id, poster_user_id, case_code, name, species, icon, tint, status, location, headline, story, tags, post_id, created_at')
+      .select('id, poster_user_id, case_code, name, species, icon, tint, status, location, headline, story, tags, post_id, created_at, cover_media_id, cover:media_assets!cover_media_id(url, thumb_url)')
       .eq('id', caseId)
       .is('deleted_at', null)
       .maybeSingle(),

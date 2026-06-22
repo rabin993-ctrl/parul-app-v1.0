@@ -8,7 +8,7 @@ import React, {
   useState,
 } from 'react';
 import { registerDevReset } from '../dev/devResetRegistry';
-import { loadRescueUpdateMediaUrls, uploadRescueUpdatePhotos } from '../lib/rescueMedia';
+import { loadRescueUpdateMediaUrls, uploadRescueCaseCover, uploadRescueUpdatePhotos } from '../lib/rescueMedia';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import type { PickedAsset } from '../hooks/useMediaPicker';
@@ -33,6 +33,7 @@ export type CreateCaseInput = {
   tint?: string;
   icon?: string;
   photoCount?: number;
+  photos?: PickedAsset[];
 };
 
 export type RescueUpdatePayload = {
@@ -70,6 +71,8 @@ type DbCaseRow = {
   tags: string[];
   post_id: string | null;
   created_at: string;
+  cover_media_id: string | null;
+  cover: { url: string; thumb_url: string | null } | null;
 };
 
 type DbUpdateRow = {
@@ -153,6 +156,7 @@ function mapCase(
     headline: row.headline ?? undefined,
     tags: row.tags ?? [],
     followers: followerCounts.get(row.id) ?? 0,
+    coverUrl: row.cover?.url ?? undefined,
     updates: allUpdates
       .filter(u => u.case_id === row.id)
       .map(mapUpdateRow),
@@ -182,7 +186,7 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
     // Fetch cases, updates and (if authed) current user's followed IDs in parallel
     const casesQuery = supabase
       .from('rescue_cases')
-      .select('id, poster_user_id, case_code, name, species, icon, tint, status, location, headline, story, tags, post_id, created_at')
+      .select('id, poster_user_id, case_code, name, species, icon, tint, status, location, headline, story, tags, post_id, created_at, cover_media_id, cover:media_assets!cover_media_id(url, thumb_url)')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(500);
@@ -422,6 +426,7 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
       caseId: caseCode,
       followers: 0,
       tags: [input.species === 'dog' ? 'Dog' : input.species === 'cat' ? 'Cat' : 'Other'],
+      coverUrl: input.photos?.[0]?.uri,
       updates: [],
     };
 
@@ -429,6 +434,21 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
 
     (async () => {
       if (!userIdRef.current) return;
+
+      // Upload the cover photo first so we can store its media id on the case.
+      // A failed upload must not block the case from being created.
+      let coverMediaId: string | undefined;
+      let coverDisplayUrl: string | undefined;
+      const coverPhoto = input.photos?.[0];
+      if (coverPhoto) {
+        try {
+          const up = await uploadRescueCaseCover(userIdRef.current, coverPhoto);
+          coverMediaId = up.mediaId;
+          coverDisplayUrl = up.displayUrl;
+        } catch (e) {
+          if (__DEV__) console.warn('[rescue] cover upload failed:', e);
+        }
+      }
 
       const { error } = await supabase
         .from('rescue_cases')
@@ -445,10 +465,17 @@ export function RescueFeedProvider({ children }: { children: React.ReactNode }) 
           headline: input.headline.trim(),
           story: input.story.trim(),
           tags: [input.species === 'dog' ? 'Dog' : input.species === 'cat' ? 'Cat' : 'Other'],
+          cover_media_id: coverMediaId ?? null,
         });
 
       if (error) {
         setCases(prev => prev.filter(c => c.id !== caseId));
+        return;
+      }
+
+      // Swap the optimistic local file URI for the persisted CDN URL.
+      if (coverDisplayUrl) {
+        setCases(prev => prev.map(c => (c.id === caseId ? { ...c, coverUrl: coverDisplayUrl } : c)));
       }
     })();
 

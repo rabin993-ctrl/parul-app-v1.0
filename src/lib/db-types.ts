@@ -2463,6 +2463,7 @@ export type Database = {
       rescue_cases: {
         Row: {
           case_code: string | null
+          cover_media_id: string | null
           created_at: string
           deleted_at: string | null
           headline: string | null
@@ -2481,6 +2482,7 @@ export type Database = {
         }
         Insert: {
           case_code?: string | null
+          cover_media_id?: string | null
           created_at?: string
           deleted_at?: string | null
           headline?: string | null
@@ -2499,6 +2501,7 @@ export type Database = {
         }
         Update: {
           case_code?: string | null
+          cover_media_id?: string | null
           created_at?: string
           deleted_at?: string | null
           headline?: string | null
@@ -2516,6 +2519,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rescue_cases_cover_media_id_fkey"
+            columns: ["cover_media_id"]
+            isOneToOne: false
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rescue_cases_post_id_fkey"
             columns: ["post_id"]

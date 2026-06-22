@@ -43,6 +43,32 @@ export async function loadRescueUpdateMediaUrls(
   return result;
 }
 
+/**
+ * Upload a rescue case COVER photo to the public post-media bucket (CDN-served,
+ * no signed URL needed since the rescue feed is public). Returns the media id to
+ * store on rescue_cases.cover_media_id and a display URL for optimistic UI.
+ */
+export async function uploadRescueCaseCover(
+  userId: string,
+  photo: PickedAsset,
+): Promise<{ mediaId: string; displayUrl: string }> {
+  const mediaId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const uploaded = await uploadMediaAsset({
+    bucket: 'post-media',
+    userId,
+    mediaId,
+    localUri: photo.uri,
+    ext: photo.ext,
+    mime: photo.mime,
+    width: photo.width,
+    height: photo.height,
+    bytes: photo.bytes,
+  });
+  return { mediaId, displayUrl: uploaded.originalUrl };
+}
+
 export async function uploadRescueUpdatePhotos(
   updateId: string,
   userId: string,

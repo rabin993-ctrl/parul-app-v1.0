@@ -48,6 +48,7 @@ export function RescueCaseCard({
       <View style={styles.imageWrap}>
         <PhotoSlot
           height={168}
+          uri={item.coverUrl}
           imageKey={item.id}
           borderRadius={0}
           label=""

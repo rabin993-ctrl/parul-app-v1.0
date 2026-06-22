@@ -33,6 +33,8 @@ export type RescueCase = {
   tags?: string[];
   followers?: number;
   updates?: RescueUpdate[];
+  /** Cover photo URL (public CDN), shown in feed cards + detail hero. */
+  coverUrl?: string;
 };
 
 export type AdoptionShowcase = {

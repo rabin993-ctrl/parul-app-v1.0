@@ -78,6 +78,7 @@ export function RescueGridCell({
       <View style={styles.gridPhotoWrap}>
         <PhotoSlot
           height={photoH}
+          uri={item.coverUrl}
           imageKey={item.id}
           imageIndex={item.species === 'cat' ? 1 : 0}
           borderRadius={0}
@@ -123,6 +124,7 @@ export function RescueListCard({
     >
       <PhotoSlot
         height={72}
+        uri={item.coverUrl}
         imageKey={item.id}
         borderRadius={radius.md}
         label=""
@@ -190,6 +192,7 @@ export function RescueCaseHero({
         </View>
         <PhotoSlot
           height={96}
+          uri={item.coverUrl}
           imageKey={`${item.id}-hero`}
           borderRadius={radius.lg}
           label=""

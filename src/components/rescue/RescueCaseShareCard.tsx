@@ -64,6 +64,7 @@ export function RescueCaseShareCard({
           <View style={styles.thumbWrap}>
             <PhotoSlot
               height={THUMB_SIZE}
+              uri={item?.coverUrl}
               imageKey={caseId}
               imageIndex={item?.species === 'cat' ? 1 : 0}
               borderRadius={radius.md}

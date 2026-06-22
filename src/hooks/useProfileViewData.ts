@@ -42,6 +42,7 @@ type DbRescaseCaseRow = {
   story: string | null;
   tags: string[];
   created_at: string;
+  cover: { url: string; thumb_url: string | null } | null;
 };
 
 const SPECIES_META = {
@@ -68,6 +69,7 @@ function mapDbRescue(row: DbRescaseCaseRow): RescueCase {
     caseId: row.case_code ?? undefined,
     tags: row.tags ?? [],
     followers: 0,
+    coverUrl: row.cover?.url ?? undefined,
     updates: [],
   };
 }
@@ -130,7 +132,7 @@ export function useProfileViewData(userId: string) {
         // Fetch rescue cases for display
         supabase
           .from('rescue_cases')
-          .select('id,poster_user_id,case_code,name,species,icon,tint,status,location,story,tags,created_at')
+          .select('id,poster_user_id,case_code,name,species,icon,tint,status,location,story,tags,created_at,cover_media_id,cover:media_assets!cover_media_id(url,thumb_url)')
           .eq('poster_user_id', userId)
           .is('deleted_at', null)
           .order('created_at', { ascending: false }),

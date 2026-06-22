@@ -33,6 +33,7 @@ export type RescueOpenCaseDraft = {
   story: string;
   status: RescueStatus;
   photoCount: number;
+  photos: PickedAsset[];
   tint: string;
   icon: string;
 };
@@ -94,6 +95,7 @@ export function RescueOpenCaseForm({ onCanPublishChange, onPublishHintChange, pu
         story: story.trim(),
         status,
         photoCount,
+        photos,
         tint: speciesMeta.tint,
         icon: speciesMeta.icon,
       };
@@ -101,7 +103,7 @@ export function RescueOpenCaseForm({ onCanPublishChange, onPublishHintChange, pu
     return () => {
       publishRef.current = null;
     };
-  }, [publishRef, canPublish, name, species, headline, location, story, status, photoCount, speciesMeta]);
+  }, [publishRef, canPublish, name, species, headline, location, story, status, photoCount, photos, speciesMeta]);
 
   return (
     <View style={styles.wrap}>
