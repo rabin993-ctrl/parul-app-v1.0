@@ -48,6 +48,15 @@ function AppInner() {
   useUserLocationSync();
   useOnlinePresence();
 
+  // Keep the startup splash on screen for a minimum time so it's actually
+  // visible — on web the session restores from localStorage in a few ms, which
+  // would otherwise make the splash flash by too fast to see.
+  const [minSplash, setMinSplash] = React.useState(true);
+  React.useEffect(() => {
+    const t = setTimeout(() => setMinSplash(false), 1600);
+    return () => clearTimeout(t);
+  }, []);
+
   const isAuthenticated = !!(session && user);
   const pendingRecovery = authConfirmPhase === 'recovery';
   // New OAuth (Google) users have no chosen username yet — prompt before the app.
@@ -71,14 +80,15 @@ function AppInner() {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
           <ActivityIndicator color={colors.primary} />
         </View>
-      ) : initializing ? (
-        <AppSplash />
       ) : authConfirmPhase === 'error' ? (
         <AuthConfirmErrorScreen />
       ) : authConfirmPhase === 'success' ? (
         <AuthConfirmSuccessScreen />
       ) : pendingRecovery ? (
         <SetNewPasswordScreen />
+      ) : initializing || minSplash ? (
+        // Branded startup splash (phase is 'none' by elimination here).
+        <AppSplash />
       ) : needsOnboarding ? (
         <OnboardingScreen />
       ) : showTutorial ? (
