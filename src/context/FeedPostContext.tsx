@@ -702,6 +702,7 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
               userId: user.id,
               mediaId,
               localUri: pendingMedia.uri,
+              blob: pendingMedia.blob,
               ext: pendingMedia.ext,
               mime: pendingMedia.mime,
               width: pendingMedia.width,

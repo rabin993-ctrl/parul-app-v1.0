@@ -586,6 +586,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       userId: user.id,
       mediaId,
       localUri: asset.uri,
+      blob: asset.blob,
       ext: asset.ext,
       mime: asset.mime,
       width: asset.width,

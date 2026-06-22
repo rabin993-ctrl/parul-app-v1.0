@@ -97,6 +97,8 @@ export type MediaAssetInput = {
   mediaId: string;
   /** Local URI (from expo-image-picker) or a Blob/Uint8Array for the original */
   localUri: string;
+  /** Pre-captured original bytes (web). When present, used instead of re-fetching localUri (which may be a stale blob: URL). */
+  blob?: Blob;
   /** File extension without dot, e.g. 'jpg', 'png', 'mp4' */
   ext: string;
   /** MIME type, e.g. 'image/jpeg'. Defaults to 'image/jpeg'. */
@@ -143,6 +145,7 @@ export async function uploadMediaAsset({
   userId,
   mediaId,
   localUri,
+  blob,
   ext,
   mime = 'image/jpeg',
   width,
@@ -161,11 +164,12 @@ export async function uploadMediaAsset({
   const thumbPath = `${basePath}/thumb.jpg`;
   const fullPath = `${basePath}/full.jpg`;
 
-  // 1. Fetch the original file bytes from the local URI, then 2. upload it.
-  //    Both are wrapped in a retry: this is the critical path — if it fails the
-  //    post is left with no image. Transient mobile-web failures here are the
-  //    cause of "image shows then vanishes on reload".
-  const originalBlob = await withUploadRetry(async () => (await fetch(localUri)).blob());
+  // 1. Get the original file bytes, then 2. upload them.
+  //    Prefer the pre-captured Blob (taken at pick time) — on web the localUri is
+  //    a blob: URL that is frequently dead by the time we upload (several awaits
+  //    after picking), which threw and left the post with no image. Only fall back
+  //    to fetching the URI when no Blob was captured (native).
+  const originalBlob = blob ?? await withUploadRetry(async () => (await fetch(localUri)).blob());
   await withUploadRetry(() =>
     uploadMedia({ bucket, path: originalPath, data: originalBlob, contentType: mime, upsert: true }),
   );

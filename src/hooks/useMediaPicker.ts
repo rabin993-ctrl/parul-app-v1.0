@@ -9,6 +9,13 @@ export type PickedAsset = {
   width?: number;
   height?: number;
   bytes?: number;
+  /**
+   * Web: the actual file bytes captured AT PICK TIME. On web `uri` is a `blob:`
+   * URL that can be revoked/stale by the time we upload (which happens several
+   * awaits later), causing the upload to throw and the image to vanish on reload.
+   * Holding the Blob in memory makes the upload immune to that.
+   */
+  blob?: Blob;
 };
 
 function extFromMime(mime: string): string {
@@ -20,6 +27,9 @@ function extFromMime(mime: string): string {
 
 function assetFromPicker(a: ImagePicker.ImagePickerAsset): PickedAsset {
   const mime = a.mimeType ?? 'image/jpeg';
+  // expo-image-picker exposes the underlying File on web — grab it synchronously
+  // (it's a Blob), so we never depend on the volatile blob: URL at upload time.
+  const file = (a as ImagePicker.ImagePickerAsset & { file?: File }).file;
   return {
     uri: a.uri,
     ext: extFromMime(mime),
@@ -27,7 +37,19 @@ function assetFromPicker(a: ImagePicker.ImagePickerAsset): PickedAsset {
     width: a.width,
     height: a.height,
     bytes: a.fileSize ?? undefined,
+    blob: file instanceof Blob ? file : undefined,
   };
+}
+
+/** Web fallback: if the picker didn't hand us a File, read the bytes NOW while the blob: URL is still fresh. */
+async function withCapturedBlob(asset: PickedAsset): Promise<PickedAsset> {
+  if (asset.blob || Platform.OS !== 'web') return asset;
+  try {
+    const blob = await (await fetch(asset.uri)).blob();
+    return { ...asset, blob };
+  } catch {
+    return asset; // fall back to upload-time fetch
+  }
 }
 
 export function useMediaPicker() {
@@ -48,7 +70,7 @@ export function useMediaPicker() {
       exif: false,
     });
     if (!result.canceled && result.assets[0]) {
-      const asset = assetFromPicker(result.assets[0]);
+      const asset = await withCapturedBlob(assetFromPicker(result.assets[0]));
       setSelectedAsset(asset);
       return asset;
     }
@@ -69,7 +91,7 @@ export function useMediaPicker() {
       exif: false,
     });
     if (result.canceled || result.assets.length === 0) return [];
-    const assets = result.assets.map(assetFromPicker);
+    const assets = await Promise.all(result.assets.map(a => withCapturedBlob(assetFromPicker(a))));
     if (assets[0]) setSelectedAsset(assets[assets.length - 1]);
     return assets;
   }, []);
@@ -88,7 +110,7 @@ export function useMediaPicker() {
       exif: false,
     });
     if (!result.canceled && result.assets[0]) {
-      const asset = assetFromPicker(result.assets[0]);
+      const asset = await withCapturedBlob(assetFromPicker(result.assets[0]));
       setSelectedAsset(asset);
       return asset;
     }

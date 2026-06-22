@@ -171,6 +171,7 @@ export function CurrentUserProfileProvider({ children }: { children: React.React
       userId: user.id,
       mediaId,
       localUri: asset.uri,
+      blob: asset.blob,
       ext: asset.ext,
       mime: asset.mime,
       width: asset.width,

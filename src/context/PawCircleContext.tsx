@@ -125,6 +125,7 @@ async function uploadCircleAvatar(
     userId,
     mediaId,
     localUri: avatar.uri,
+    blob: avatar.blob,
     ext: avatar.ext,
     mime: avatar.mime,
     width: avatar.width,

@@ -297,6 +297,7 @@ export interface Post {
   /** Transient: local file info captured from expo-image-picker; used by FeedPostContext to upload then stripped */
   _pendingMedia?: {
     uri: string;
+    blob?: Blob;
     ext: string;
     mime: string;
     width?: number;
@@ -306,6 +307,7 @@ export interface Post {
   /** Transient: multiple local files for multi-photo feed posts */
   _pendingMedias?: {
     uri: string;
+    blob?: Blob;
     ext: string;
     mime: string;
     width?: number;
