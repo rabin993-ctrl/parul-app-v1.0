@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { segmentComposerMentionText } from '../../utils/mentionText';
+import { webTextInputProps } from '../../theme/webInput';
 
 type MentionComposerInputProps = TextInputProps & {
   inputStyle?: TextStyle;
@@ -103,11 +104,10 @@ export const MentionComposerInput = forwardRef<TextInput, MentionComposerInputPr
           ref={ref}
           value={text}
           onChangeText={onChangeText}
-          style={plainInputStyle}
           selectionColor={colors.primary + '55'}
           placeholder={placeholder}
           placeholderTextColor={resolvedPlaceholderColor}
-          {...rest}
+          {...webTextInputProps({ ...rest, style: plainInputStyle })}
         />
       );
     }
@@ -149,10 +149,9 @@ export const MentionComposerInput = forwardRef<TextInput, MentionComposerInputPr
           ref={ref}
           value={text}
           onChangeText={onChangeText}
-          style={transparentInputStyle}
           selectionColor={colors.primary + '55'}
           placeholder=""
-          {...rest}
+          {...webTextInputProps({ ...rest, style: transparentInputStyle })}
         />
       </View>
     );

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, Image, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image, Alert } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
-import { radius, typography } from '../../theme/tokens';
+import { radius, typography, MOBILE_INPUT_FONT_SIZE } from '../../theme/tokens';
 import { Sheet } from '../ui/Sheet';
 import { Button } from '../ui/Button';
 import { Icon } from '../icons/Icon';
 import { CompanionAvatar } from '../ui/Avatar';
+import { AppTextInput } from '../ui/AppTextInput';
 import type { AdoptionRecord } from '../../data/adoptionRecords';
 import type { Companion } from '../../data/mockData';
 import { useMediaPicker, type PickedAsset } from '../../hooks/useMediaPicker';
@@ -34,7 +35,7 @@ function ManualField({
   return (
     <View style={[styles.fieldRow, { borderBottomColor: colors.border }]}>
       <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <TextInput
+      <AppTextInput
         style={[styles.fieldInput, { color: colors.text }]}
         placeholder={placeholder}
         placeholderTextColor={colors.textTertiary}
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
   fieldInput: {
     flex: 1,
     ...typography.body,
-    fontSize: 15,
+    fontSize: MOBILE_INPUT_FONT_SIZE,
     padding: 0,
     margin: 0,
   },

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
-const STYLE_ID = 'paw-web-input-focus-reset-v2';
+const STYLE_ID = 'paw-web-input-focus-reset-v3';
 const VIEWPORT_META_SELECTOR = 'meta[name="viewport"]';
 
 function ensureMobileWebViewportMeta() {
@@ -24,10 +24,29 @@ function ensureMobileWebViewportMeta() {
     (meta.content || 'width=device-width, initial-scale=1')
       .split(',')
       .map(part => part.trim())
-      .filter(Boolean),
+      .filter(Boolean)
+      .filter(part => !part.startsWith('shrink-to-fit')),
   );
   for (const token of required) parts.add(token);
   meta.content = [...parts].join(', ');
+}
+
+function isTextField(el: EventTarget | null): el is HTMLInputElement | HTMLTextAreaElement {
+  return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
+}
+
+/**
+ * Mobile Safari often ignores the first tap when a scroll container or modal
+ * ancestor handles touch in the capture phase. Focus the field directly and
+ * stop the event from reaching RN-web's ScrollView responder.
+ */
+function handleFieldTouch(e: Event) {
+  const target = e.target;
+  if (!isTextField(target)) return;
+  e.stopPropagation();
+  if (document.activeElement !== target) {
+    target.focus({ preventScroll: false });
+  }
 }
 
 export function WebInputFocusFix() {
@@ -36,7 +55,15 @@ export function WebInputFocusFix() {
 
     ensureMobileWebViewportMeta();
 
-    if (document.getElementById(STYLE_ID)) return;
+    document.addEventListener('touchstart', handleFieldTouch, true);
+    document.addEventListener('mousedown', handleFieldTouch, true);
+
+    if (document.getElementById(STYLE_ID)) {
+      return () => {
+        document.removeEventListener('touchstart', handleFieldTouch, true);
+        document.removeEventListener('mousedown', handleFieldTouch, true);
+      };
+    }
 
     const el = document.createElement('style');
     el.id = STYLE_ID;
@@ -54,22 +81,36 @@ export function WebInputFocusFix() {
       }
       @supports (-webkit-touch-callout: none) {
         textarea, input, select {
-          font-size: max(16px, 1em) !important;
+          font-size: 16px !important;
         }
       }
       /*
        * RN-Web puts -webkit-user-select:none on Views (incl. ScrollView content
        * containers). On iOS Safari that inherits into descendant inputs and makes
        * them non-editable — tapping focuses nothing and the keyboard never opens.
-       * This hits inputs inside a sheet's scrollable BODY (Add companion, Edit
-       * profile) while footer inputs (different container) still work. Force every
-       * form control back to selectable/editable + tap-friendly touch handling.
+       * Force every form control back to selectable/editable + tap-friendly touch
+       * handling. Also reset ancestors inside modals/sheets so inheritance breaks.
        */
+      [role="dialog"] input,
+      [role="dialog"] textarea,
+      [role="dialog"] select,
+      div[aria-modal="true"] input,
+      div[aria-modal="true"] textarea,
+      div[aria-modal="true"] select,
+      [data-sheet-scroll-body="true"] input,
+      [data-sheet-scroll-body="true"] textarea,
+      [data-sheet-scroll-body="true"] select,
       input, textarea, select {
         -webkit-user-select: text !important;
         user-select: text !important;
         touch-action: manipulation !important;
         -webkit-touch-callout: default;
+        pointer-events: auto !important;
+      }
+      [data-sheet-scroll-body="true"] {
+        -webkit-user-select: auto !important;
+        user-select: auto !important;
+        touch-action: auto !important;
       }
       div[aria-modal="true"] {
         background-color: transparent !important;
@@ -86,6 +127,11 @@ export function WebInputFocusFix() {
       }
     `;
     document.head.appendChild(el);
+
+    return () => {
+      document.removeEventListener('touchstart', handleFieldTouch, true);
+      document.removeEventListener('mousedown', handleFieldTouch, true);
+    };
   }, []);
 
   return null;

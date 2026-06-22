@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts } from '../../theme/fonts';
 import { MOBILE_INPUT_FONT_SIZE, radius, spacing } from '../../theme/tokens';
 import { Button } from '../../components/ui/Button';
+import { AppTextInput } from '../../components/ui/AppTextInput';
 import { Sheet } from '../../components/ui/Sheet';
 import { useAuth } from '../../context/AuthContext';
 import { useMobileWeb } from '../../hooks/useMobileWeb';
@@ -96,7 +97,7 @@ export function ForgotPasswordSheet({
                   { backgroundColor: colors.surface, borderColor: colors.border },
                 ]}
               >
-                <TextInput
+                <AppTextInput
                   value={email}
                   onChangeText={setEmail}
                   placeholder="you@email.com"

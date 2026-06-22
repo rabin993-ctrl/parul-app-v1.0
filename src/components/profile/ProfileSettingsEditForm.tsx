@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
-import { spacing, typography } from '../../theme/tokens';
+import { spacing, typography, MOBILE_INPUT_FONT_SIZE } from '../../theme/tokens';
 import { Icon } from '../icons/Icon';
 import { useMobileWeb } from '../../hooks/useMobileWeb';
+import { AppTextInput } from '../ui/AppTextInput';
 
-const webInputOutline = Platform.select({ web: { outlineStyle: 'none' } as object, default: {} });
 const webBioInputExtra = Platform.select({ web: { resize: 'none' } as object, default: {} });
 
 export function ProfileSettingsEditForm({
@@ -37,34 +37,34 @@ export function ProfileSettingsEditForm({
       <View style={styles.fieldBlock}>
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Name</Text>
         <View style={[styles.fieldShell, { borderBottomColor: colors.border }]}>
-          <TextInput
+          <AppTextInput
             value={name}
             onChangeText={onNameChange}
             placeholder="Your name"
             placeholderTextColor={colors.textTertiary}
             autoFocus={!mobileWeb}
-            style={[styles.fieldInput, { color: colors.text }, webInputOutline]}
+            style={[styles.fieldInput, { color: colors.text }]}
           />
         </View>
       </View>
       <View style={styles.fieldBlock}>
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Username</Text>
         <View style={[styles.fieldShell, { borderBottomColor: colors.border }]}>
-          <TextInput
+          <AppTextInput
             value={`@${handle}`}
             onChangeText={text => onHandleChange(text.replace(/^@+/, ''))}
             placeholder="@username"
             placeholderTextColor={colors.textTertiary}
             autoCapitalize="none"
             autoCorrect={false}
-            style={[styles.fieldInput, { color: colors.text }, webInputOutline]}
+            style={[styles.fieldInput, { color: colors.text }]}
           />
         </View>
       </View>
       <View style={styles.fieldBlock}>
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Bio</Text>
         <View style={[styles.fieldShell, { borderBottomColor: colors.border }]}>
-          <TextInput
+          <AppTextInput
             value={bio}
             onChangeText={onBioChange}
             placeholder="Write a short bio…"
@@ -75,7 +75,6 @@ export function ProfileSettingsEditForm({
               styles.fieldInput,
               styles.bioInput,
               { color: colors.text },
-              webInputOutline,
               webBioInputExtra,
             ]}
           />
@@ -87,12 +86,12 @@ export function ProfileSettingsEditForm({
           <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Location</Text>
         </View>
         <View style={[styles.fieldShell, { borderBottomColor: colors.border }]}>
-          <TextInput
+          <AppTextInput
             value={location}
             onChangeText={onLocationChange}
             placeholder={locationPlaceholder}
             placeholderTextColor={colors.textTertiary}
-            style={[styles.fieldInput, { color: colors.text }, webInputOutline]}
+            style={[styles.fieldInput, { color: colors.text }]}
           />
         </View>
       </View>
@@ -134,7 +133,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: Platform.OS === 'web' ? 6 : 4,
     margin: 0,
-    fontSize: 14,
+    fontSize: MOBILE_INPUT_FONT_SIZE,
     fontWeight: '500',
     lineHeight: 20,
     minHeight: 28,

@@ -44,7 +44,10 @@ export function CommentReplyInput({
   return (
     <View style={styles.row}>
       <Avatar user={me} size={28} />
-      <View style={[styles.inputWrap, { backgroundColor: groupedBg, borderColor: colors.border }]}>
+      <View
+        style={[styles.inputWrap, { backgroundColor: groupedBg, borderColor: colors.border }]}
+        pointerEvents={Platform.OS === 'web' ? undefined : 'box-none'}
+      >
         <MentionComposerInput
           inputStyle={styles.input}
           confirmedMentions={confirmedMentions}

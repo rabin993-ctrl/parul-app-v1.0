@@ -443,11 +443,15 @@ export function Sheet({
                   if (bodyScrollRef) bodyScrollRef.current = node;
                 }}
                 style={bodyStyle}
+                {...(Platform.OS === 'web'
+                  ? ({ dataSet: { sheetScrollBody: 'true' } } as object)
+                  : {})}
                 contentContainerStyle={[
                   styles.bodyInner,
                   fillBodyContent && { flexGrow: 1, minHeight: bodyMax },
                   { paddingBottom: bottomPad },
                   title ? styles.bodyInnerTitled : null,
+                  Platform.OS === 'web' ? styles.bodyInnerWeb : null,
                 ]}
                 onContentSizeChange={(_, h) => handleContentLayout(h)}
                 onScroll={handleScroll}
@@ -594,6 +598,14 @@ const styles = StyleSheet.create({
     width: '100%',
     flexGrow: 0,
   },
+  bodyInnerWeb: Platform.select({
+    web: {
+      userSelect: 'auto',
+      WebkitUserSelect: 'auto',
+      touchAction: 'auto',
+    },
+    default: {},
+  }) as object,
   bodyMeasure: {
     width: '100%',
   },

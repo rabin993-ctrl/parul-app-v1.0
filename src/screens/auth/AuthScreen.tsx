@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import { isUsernameAvailable } from '../../utils/username';
 import { ForgotPasswordSheet } from './ForgotPasswordSheet';
 import { CheckEmailScreen } from './CheckEmailScreen';
+import { AppTextInput } from '../../components/ui/AppTextInput';
 
 type UsernameStatus = 'idle' | 'invalid' | 'checking' | 'available' | 'taken';
 
@@ -408,7 +408,7 @@ function Field({ label, colors, accessory, prefix, ...input }: FieldProps) {
         {prefix && (
           <Text style={[styles.prefix, { color: colors.textSecondary }]}>{prefix}</Text>
         )}
-        <TextInput
+        <AppTextInput
           {...input}
           placeholderTextColor={colors.textTertiary}
           style={[styles.input, { color: colors.text }]}
