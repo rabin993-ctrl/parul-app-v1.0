@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts } from '../../theme/fonts';
@@ -15,37 +15,40 @@ export function AuthConfirmSuccessScreen() {
   const { clearAuthConfirm } = useAuth();
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.bg,
-          paddingTop: insets.top + spacing.xl2,
-          paddingBottom: insets.bottom + spacing.xl2,
-        },
-      ]}
-    >
-      <AppLogo size={56} showWordmark />
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: insets.top + spacing.xl2,
+            paddingBottom: insets.bottom + spacing.xl2,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <AppLogo size={72} showWordmark />
 
-      <View style={[styles.badge, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
-        <Icon name="paw" size={40} color={colors.primary} />
-      </View>
+        <View style={[styles.badge, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+          <Icon name="paw" size={40} color={colors.primary} />
+        </View>
 
-      <Text style={[styles.title, { color: colors.text }]}>You&apos;re verified!</Text>
-      <Text style={[styles.message, { color: colors.textSecondary }]}>
-        Your account is all set. Sign in to start finding and helping pets on Parul.
-      </Text>
+        <Text style={[styles.title, { color: colors.text }]}>You&apos;re verified!</Text>
+        <Text style={[styles.message, { color: colors.textSecondary }]}>
+          Your account is all set. Sign in to start finding and helping pets on Parul.
+        </Text>
 
-      <Button full size="lg" onPress={clearAuthConfirm} style={styles.button}>
-        Sign in
-      </Button>
+        <Button full size="lg" onPress={clearAuthConfirm} style={styles.button}>
+          Sign in
+        </Button>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  root: { flex: 1 },
+  scroll: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl2,
