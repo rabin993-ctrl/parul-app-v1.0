@@ -39,8 +39,12 @@ const EMPTY_USER: User = {
   verified: false,
 };
 
+// NOTE: must not include location_lat/lng — migration 0080 revoked blanket SELECT
+// on users and re-granted only non-PII columns (geo coords were intentionally not
+// re-granted). Selecting an un-granted column makes PostgREST return 42501, which
+// would break every read/update/onboarding path below.
 const USER_SELECT =
-  'id,handle,name,tint,bio,location,website,verified,joined_at,avatar_media_id,location_lat,onboarded';
+  'id,handle,name,tint,bio,location,website,verified,joined_at,avatar_media_id,onboarded';
 
 const CurrentUserProfileContext = createContext<CurrentUserProfileContextValue | null>(null);
 
@@ -55,7 +59,6 @@ type DbUserRow = {
   verified: boolean;
   joined_at: string;
   avatar_media_id: string | null;
-  location_lat: number | null;
   onboarded: boolean;
 };
 
@@ -103,11 +106,9 @@ export function CurrentUserProfileProvider({ children }: { children: React.React
       if (!error && data) {
         setMe(await rowToUser(data as DbUserRow));
         setOnboarded((data as DbUserRow).onboarded);
-        const row = data as DbUserRow;
-        if (row.location_lat == null && row.location?.trim()) {
-          const geocoded = await geocodeProfileLocation(row.location);
-          if (geocoded) await persistUserCoordinates(geocoded);
-        }
+        // Coordinates are backfilled at write-time in updateProfile (location is
+        // only ever set there). No load-time geocode here — it required reading
+        // the un-granted location_lat column and would 42501 the whole load.
       }
       setReady(true);
     };

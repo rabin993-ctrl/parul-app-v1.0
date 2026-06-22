@@ -241,7 +241,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     });
 
-    if (error) return { error: error.message };
+    if (error) {
+      // Some Supabase versions return an explicit error for an existing account.
+      if (/already.*(registered|exists)|exists/i.test(error.message)) {
+        return { error: 'An account with this email already exists. Try signing in instead.' };
+      }
+      return { error: error.message };
+    }
+
+    // With email confirmations on, signing up an email that already belongs to a
+    // confirmed account returns a fake user with an empty identities array and no
+    // error (enumeration protection). Detect it and surface a clear message
+    // instead of a phantom "check your email" prompt that never arrives.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return { error: 'An account with this email already exists. Try signing in instead.' };
+    }
 
     const needsEmailConfirmation = !!data.user && !data.session;
     if (needsEmailConfirmation) {
