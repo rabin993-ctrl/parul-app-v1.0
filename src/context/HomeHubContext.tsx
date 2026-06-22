@@ -6,10 +6,30 @@ type RegisteredFeedHubNavigation = {
   selectSection: (tab: HomeSectionTab) => void;
 };
 
-let registeredFeedHubNavigation: RegisteredFeedHubNavigation | null = null;
+let activeFeedHubRegistration: { id: number; nav: RegisteredFeedHubNavigation } | null = null;
+let nextFeedHubRegistrationId = 0;
 
-export function registerFeedHubNavigation(nav: RegisteredFeedHubNavigation | null) {
-  registeredFeedHubNavigation = nav;
+/** Register hub navigation handlers for the currently focused feed section screen. */
+export function registerFeedHubNavigation(
+  nav: RegisteredFeedHubNavigation | null,
+  ownerId?: number,
+) {
+  if (nav != null && ownerId != null) {
+    activeFeedHubRegistration = { id: ownerId, nav };
+    return;
+  }
+  if (ownerId != null && activeFeedHubRegistration?.id === ownerId) {
+    activeFeedHubRegistration = null;
+  }
+}
+
+export function allocateFeedHubRegistrationId(): number {
+  nextFeedHubRegistrationId += 1;
+  return nextFeedHubRegistrationId;
+}
+
+function getRegisteredFeedHubNavigation(): RegisteredFeedHubNavigation | null {
+  return activeFeedHubRegistration?.nav ?? null;
 }
 
 type HomeHubContextValue = {
@@ -25,16 +45,12 @@ export function HomeHubProvider({ children }: { children: React.ReactNode }) {
   const [homeTab, setHomeTab] = useState<HomeHubTab>('feed');
 
   const resetToFeed = useCallback(() => {
-    if (registeredFeedHubNavigation) {
-      registeredFeedHubNavigation.resetToFeed();
-    }
+    getRegisteredFeedHubNavigation()?.resetToFeed();
     setHomeTab('feed');
   }, []);
 
   const selectSection = useCallback((tab: HomeSectionTab) => {
-    if (registeredFeedHubNavigation) {
-      registeredFeedHubNavigation.selectSection(tab);
-    }
+    getRegisteredFeedHubNavigation()?.selectSection(tab);
     setHomeTab(tab);
   }, []);
 

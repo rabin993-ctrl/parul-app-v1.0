@@ -25,29 +25,12 @@ const linking = {
               FeedHome: '',
               Search: 'search',
               FeedPostDetail: 'post/:postId',
-              AdoptionHub: {
-                path: 'adoption',
-                screens: {
-                  Listing: '',
-                  Detail: 'pet/:listingId',
-                  EditPost: 'edit/:listingId',
-                  CreatePost: 'new',
-                  Confirmation: 'confirm/:listingId/:requestId',
-                  Search: 'search',
-                  ManagePost: 'manage/:listingId',
-                  AdoptedDetail: 'adopted/:recordId',
-                },
-              },
-              RescueHub: {
-                path: 'rescue',
-                screens: {
-                  Listing: '',
-                  Detail: 'case/:caseId',
-                  PostUpdate: 'update/:caseId',
-                  Search: 'search',
-                  CreateCase: 'new',
-                },
-              },
+              // Leaf screens — inner Adoption/Rescue navigators live inside the
+              // hub screen components, not as nested Feed stack routes. Nested
+              // linking paths here made /adoption and /rescue produce invalid
+              // navigation state on web (blank screen after tab switch).
+              AdoptionHub: 'adoption',
+              RescueHub: 'rescue',
             },
           },
           Community: {
