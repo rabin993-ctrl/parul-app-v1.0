@@ -609,6 +609,7 @@ export function MentionPicker({
     >
       <View style={styles.modalRoot}>
         <ModalPresent
+          active={visible && !inline}
           onDismiss={onClose}
           style={styles.overlay}
           scrimStyle={Platform.OS === 'web' ? styles.scrimWeb : undefined}

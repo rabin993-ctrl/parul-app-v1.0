@@ -26,6 +26,7 @@ import { fetchRescueCaseById } from '../../utils/rescueCases';
 import { useRescueFeedOptional } from '../../context/RescueFeedContext';
 import { useRescueOpenCaseBack } from '../../context/RescueOpenCaseFlowContext';
 import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
+import { useDismissableOverlay } from '../../context/SheetOverlayContext';
 import { openRescuePostUpdate } from '../../navigation/rescueCaseRouting';
 import { useAuth } from '../../context/AuthContext';
 import { useAdoption } from '../../context/AdoptionContext';
@@ -95,6 +96,7 @@ export function RescueCaseDetailScreen() {
   const [offersListOpen, setOffersListOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<RescueHelpOffer | null>(null);
   const [dmThread, setDmThread] = useState<ChatThread | null>(null);
+  useDismissableOverlay(!!dmThread, () => setDmThread(null));
 
   const showToast = useCallback((t: ToastData) => setToast(t), []);
   const {

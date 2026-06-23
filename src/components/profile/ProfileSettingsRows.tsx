@@ -357,7 +357,7 @@ export function ProfileMenuPickerRow({
       </ProfileMenuRailWrap>
 
       <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>
-        <ModalPresent onDismiss={() => setOpen(false)} animatedScale={false}>
+        <ModalPresent active={open} onDismiss={() => setOpen(false)} animatedScale={false}>
           <View
             style={[
               profileMenuStyles.pickerMenu,

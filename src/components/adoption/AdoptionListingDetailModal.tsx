@@ -8,6 +8,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AdoptionDetailScreen } from '../../screens/adoption/AdoptionDetailScreen';
 import { AdoptionEditPostScreen } from '../../screens/adoption/AdoptionEditPostScreen';
 import type { AdoptionStackParamList } from '../../navigation/AdoptionNavigator';
+import { useDismissableOverlay } from '../../context/SheetOverlayContext';
 
 const Stack = createNativeStackNavigator<AdoptionStackParamList>();
 
@@ -24,6 +25,8 @@ export function AdoptionListingDetailModal({
   visible,
   onClose,
 }: Props) {
+  useDismissableOverlay(visible && !!listingId, onClose);
+
   if (!listingId) return null;
 
   return (

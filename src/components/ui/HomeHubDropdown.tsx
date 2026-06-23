@@ -174,7 +174,7 @@ export function HomeSectionsDropdown({
       </Pressable>
 
       <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>
-        <ModalPresent onDismiss={() => setOpen(false)} animatedScale={false}>
+        <ModalPresent active={open} onDismiss={() => setOpen(false)} animatedScale={false}>
           <View
             style={[
               styles.menu,
@@ -278,7 +278,7 @@ export function HomeHubDropdown({
       </Pressable>
 
       <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>
-        <ModalPresent onDismiss={() => setOpen(false)} animatedScale={false}>
+        <ModalPresent active={open} onDismiss={() => setOpen(false)} animatedScale={false}>
           <View
             style={[
               styles.menu,

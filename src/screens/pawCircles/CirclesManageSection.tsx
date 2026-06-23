@@ -325,7 +325,7 @@ function PrivacyDropdown({
       </Pressable>
 
       <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>
-        <ModalPresent onDismiss={() => setOpen(false)} style={styles.privacyScrim}>
+        <ModalPresent active={open} onDismiss={() => setOpen(false)} style={styles.privacyScrim}>
           <View style={[styles.privacySheet, { backgroundColor: colors.surface }]}>
             <Text style={[styles.privacySheetTitle, { color: colors.textSecondary }]}>Circle privacy</Text>
             {PRIVACY_OPTIONS.map(opt => {
@@ -383,7 +383,7 @@ function MemberSortPicker({
       </Pressable>
 
       <Modal visible={sortOpen} transparent animationType="none" onRequestClose={() => setSortOpen(false)}>
-        <ModalPresent onDismiss={() => setSortOpen(false)} style={styles.sortScrim}>
+        <ModalPresent active={sortOpen} onDismiss={() => setSortOpen(false)} style={styles.sortScrim}>
           <View style={[styles.sortSheet, { backgroundColor: colors.surface }]}>
             <Text style={[styles.sortSheetTitle, { color: colors.textSecondary }]}>Sort by</Text>
             {MEMBER_SORT_OPTIONS.map(opt => {
@@ -495,7 +495,7 @@ function MemberAvatarStrip({
       </Pressable>
 
       <Modal visible={open} transparent animationType="none" onRequestClose={closeSheet}>
-        <ModalPresent onDismiss={closeSheet} style={styles.memberScrim} animatedScale={false}>
+        <ModalPresent active={open} onDismiss={closeSheet} style={styles.memberScrim} animatedScale={false}>
           <View style={[styles.memberSheet, { backgroundColor: colors.surface }]}>
             <Text style={[styles.memberSheetTitle, { color: colors.text }]}>{circleName}</Text>
             <Text style={[styles.memberSheetSub, { color: colors.textSecondary }]}>

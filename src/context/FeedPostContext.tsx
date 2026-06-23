@@ -16,6 +16,7 @@ import { useCurrentUserProfile } from './CurrentUserProfileContext';
 import { useFeedQuery, selectFeedRows, postsFromDbRows, remaskPostsForPrivacy, fetchSavedFeedPosts, type DbPostRow } from '../hooks/useFeedQuery';
 import { refreshUserPrivacyFlags } from '../lib/userPrivacyFlagCache';
 import { uploadMediaAsset } from '../lib/uploads';
+import { resolvePostMediaDisplayUrl } from '../lib/cdn';
 import { fanOutPostAlert, resolveAlertCoordinates } from '../lib/alertFanOut';
 import { mergeAlertPost, mergeAlertRowIntoPost, captureAlertDraft, applyAlertDraft, postHasPersistedAlertFields, type AlertRowPayload, type AlertDraft } from '../utils/postAlertMerge';
 import { savePostAlert } from '../lib/savePostAlert';
@@ -118,6 +119,45 @@ function upsertConfirmedPost(
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+type PendingPostMedia = NonNullable<Post['_pendingMedias']>[number];
+
+async function uploadAndLinkPostMedia(
+  postId: string,
+  userId: string,
+  pendingMedias: PendingPostMedia[],
+  startIndex = 0,
+): Promise<boolean> {
+  let uploadFailed = false;
+  for (let idx = 0; idx < pendingMedias.length; idx++) {
+    const pendingMedia = pendingMedias[idx];
+    try {
+      const mediaId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      await uploadMediaAsset({
+        bucket: 'post-media',
+        userId,
+        mediaId,
+        localUri: pendingMedia.uri,
+        blob: pendingMedia.blob,
+        ext: pendingMedia.ext,
+        mime: pendingMedia.mime,
+        width: pendingMedia.width,
+        height: pendingMedia.height,
+        bytes: pendingMedia.bytes,
+      });
+      const { error: linkErr } = await supabase
+        .from('post_media')
+        .insert({ post_id: postId, idx: startIndex + idx, media_id: mediaId });
+      if (linkErr) throw linkErr;
+    } catch (err) {
+      console.warn('[FeedPostContext] post media upload failed:', err);
+      uploadFailed = true;
+    }
+  }
+  return uploadFailed;
+}
 
 async function persistAlertForPost(
   postId: string,
@@ -703,37 +743,7 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (pendingMedias.length > 0) {
-        let uploadFailed = false;
-        for (let idx = 0; idx < pendingMedias.length; idx++) {
-          const pendingMedia = pendingMedias[idx];
-          try {
-            const mediaId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-              ? crypto.randomUUID()
-              : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-            await uploadMediaAsset({
-              bucket: 'post-media',
-              userId: user.id,
-              mediaId,
-              localUri: pendingMedia.uri,
-              blob: pendingMedia.blob,
-              ext: pendingMedia.ext,
-              mime: pendingMedia.mime,
-              width: pendingMedia.width,
-              height: pendingMedia.height,
-              bytes: pendingMedia.bytes,
-            });
-            const { error: linkErr } = await supabase
-              .from('post_media')
-              .insert({ post_id: realId, idx, media_id: mediaId });
-            // supabase-js resolves (does not throw) on an RLS/constraint error —
-            // surface it so a failed link is treated as an upload failure rather
-            // than silently leaving the post imageless after reload.
-            if (linkErr) throw linkErr;
-          } catch (err) {
-            console.warn('[FeedPostContext] post media upload failed:', err);
-            uploadFailed = true;
-          }
-        }
+        const uploadFailed = await uploadAndLinkPostMedia(realId, user.id, pendingMedias);
         if (uploadFailed) {
           feedPublishToast?.({
             msg: "Post published, but photo couldn't upload — try again or check storage.",
@@ -1077,6 +1087,20 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     const existing = postsRef.current.find(p => p.id === postId);
     if (!existing || existing.userId !== user.id) return;
+    const pendingMedias = patch._pendingMedias?.length
+      ? patch._pendingMedias
+      : patch._pendingMedia
+        ? [patch._pendingMedia]
+        : [];
+    const mediaUpdated = patch._mediaUpdated === true;
+    const retainedMediaUrls = patch._retainedMediaUrls ?? [];
+    const existingMediaUrls = existing.mediaUrls ?? [];
+    const nextMediaUrls = mediaUpdated
+      ? [...retainedMediaUrls, ...pendingMedias.map(media => media.uri)]
+      : existingMediaUrls;
+    const nextImageCount = mediaUpdated
+      ? nextMediaUrls.length
+      : existing.images;
 
     const merged: Post = {
       ...existing,
@@ -1090,8 +1114,12 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
       saved: existing.saved,
       threads: existing.threads,
       time: existing.time,
-      mediaUrls: existing.mediaUrls,
-      images: existing.images,
+      mediaUrls: nextMediaUrls,
+      images: nextImageCount,
+      _pendingMedia: undefined,
+      _pendingMedias: undefined,
+      _mediaUpdated: undefined,
+      _retainedMediaUrls: undefined,
       lost: patch.lost ?? existing.lost
         ? {
           ...(existing.lost ?? {}),
@@ -1138,6 +1166,76 @@ export function FeedPostProvider({ children }: { children: React.ReactNode }) {
         await persistAlertForPost(postId, merged, merged.loc);
       } else if (merged.found || merged.label === 'found') {
         await persistAlertForPost(postId, merged, merged.loc);
+      }
+
+      if (mediaUpdated) {
+        const { data: currentMedia } = await supabase
+          .from('post_media')
+          .select('idx, media_id, asset:media_assets(url, thumb_url)')
+          .eq('post_id', postId)
+          .order('idx', { ascending: true });
+
+        const retained = retainedMediaUrls.map((url, idx) => ({ url, idx }));
+        const currentRows = ((currentMedia ?? []) as {
+          idx: number;
+          media_id: string;
+          asset: { url: string; thumb_url: string | null } | { url: string; thumb_url: string | null }[] | null;
+        }[]);
+        const retainedRows = retained
+          .map(({ url, idx }) => {
+            const row = currentRows.find(item => {
+              const asset = Array.isArray(item.asset) ? item.asset[0] : item.asset;
+              if (!asset) return false;
+              return resolvePostMediaDisplayUrl(asset) === url || asset.url === url || asset.thumb_url === url;
+            });
+            return row ? { idx, media_id: row.media_id } : null;
+          })
+          .filter((row): row is { idx: number; media_id: string } => !!row);
+
+        await supabase.from('post_media').delete().eq('post_id', postId);
+
+        if (retainedRows.length > 0) {
+          const { error: relinkErr } = await supabase
+            .from('post_media')
+            .insert(retainedRows.map(row => ({
+              post_id: postId,
+              idx: row.idx,
+              media_id: row.media_id,
+            })));
+          if (relinkErr) {
+            console.warn('[FeedPostContext] post media relink failed:', relinkErr);
+          }
+        }
+
+        if (pendingMedias.length > 0) {
+          const uploadFailed = await uploadAndLinkPostMedia(postId, user.id, pendingMedias, retainedRows.length);
+          if (uploadFailed) {
+            feedPublishToast?.({
+              msg: "Post updated, but photo couldn't upload — try again or check storage.",
+              icon: 'close',
+              tone: 'danger',
+            });
+          }
+        }
+
+        const { data: confirmedRow } = await selectFeedRows(select =>
+          supabase.from('posts').select(select).eq('id', postId).single(),
+        );
+        if (confirmedRow) {
+          let confirmedPost = (await postsFromDbRows([confirmedRow as unknown as DbPostRow], user.id))[0];
+          if (confirmedPost) {
+            confirmedPost = mergeAlertPost(merged, confirmedPost);
+            if ((confirmedPost.mediaUrls?.length ?? 0) === 0 && nextMediaUrls.length > 0) {
+              confirmedPost = {
+                ...confirmedPost,
+                mediaUrls: nextMediaUrls,
+                images: nextImageCount,
+              };
+            }
+            setPosts(prev => prev.map(p => (p.id === postId ? confirmedPost : p)));
+            setSavedPosts(prev => prev.map(p => (p.id === postId ? confirmedPost : p)));
+          }
+        }
       }
     })();
   }, [user, setPosts]);

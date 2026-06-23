@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { useDismissableOverlay } from '../../context/SheetOverlayContext';
 
 /** Shared duration for scrim + sheet/popup enter/exit. */
 export const MODAL_OVERLAY_MS = 260;
@@ -158,6 +159,7 @@ export function ModalPresent({
   scrimStyle,
   accessibilityLabel,
   animatedScale = true,
+  active = false,
 }: {
   onDismiss?: () => void;
   children: React.ReactNode;
@@ -166,8 +168,11 @@ export function ModalPresent({
   accessibilityLabel?: string;
   /** Subtle zoom-in for centered popups; off for anchored menus. */
   animatedScale?: boolean;
+  /** Register this popup with browser/native back handling while its parent Modal is visible. */
+  active?: boolean;
 }) {
   const { opacity, scale } = useModalEnterAnimation(true);
+  useDismissableOverlay(active && !!onDismiss, onDismiss);
 
   return (
     <>

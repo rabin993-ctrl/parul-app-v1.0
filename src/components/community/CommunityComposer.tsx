@@ -69,7 +69,7 @@ function GroupDestinationModal({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <ModalPresent onDismiss={onClose} style={styles.popupOverlay} animatedScale={false}>
+      <ModalPresent active={visible} onDismiss={onClose} style={styles.popupOverlay} animatedScale={false}>
         <View style={[styles.destModalCard, { backgroundColor: colors.surface }, shadows.md]}>
           <Text style={[styles.destModalTitle, { color: colors.text }]}>Post to</Text>
           <Text style={[styles.destModalSub, { color: colors.textSecondary }]}>

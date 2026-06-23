@@ -144,7 +144,7 @@ function PostDestinationModal({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <ModalPresent onDismiss={onClose} style={styles.popupOverlay} animatedScale={false}>
+      <ModalPresent active={visible} onDismiss={onClose} style={styles.popupOverlay} animatedScale={false}>
         <View style={[styles.destModalCard, { backgroundColor: colors.surface }, shadows.md]}>
           <Text style={[styles.destModalTitle, { color: colors.text }]}>Post to</Text>
           <Text style={[styles.destModalSub, { color: colors.textSecondary }]}>
@@ -488,6 +488,7 @@ export function PostComposer({
   const mentionPickerOpen = activeMentionQuery !== null;
   const { pickImage, pickImages, takePhoto } = useMediaPicker();
   const [selectedPhotos, setSelectedPhotos] = useState<PickedAsset[]>([]);
+  const [retainedPhotoUrls, setRetainedPhotoUrls] = useState<string[]>([]);
   const [label, setLabel] = useState<string | null>(null);
   const [lostArea, setLostArea] = useState('');
   const [lostWhen, setLostWhen] = useState('');
@@ -530,14 +531,21 @@ export function PostComposer({
   const isGalleryMode = !!postingAs && companionContentMode === 'gallery';
   const isCompanionUpdateMode = !!postingAs && companionContentMode !== 'gallery';
   const maxPhotos = isGalleryMode ? 1 : MAX_FEED_PHOTOS;
-  const hasPhoto = selectedPhotos.length > 0;
-  const canAddPhoto = selectedPhotos.length < maxPhotos;
-  const clearPhotos = useCallback(() => setSelectedPhotos([]), []);
+  const photoCount = retainedPhotoUrls.length + selectedPhotos.length;
+  const hasPhoto = photoCount > 0;
+  const canAddPhoto = photoCount < maxPhotos;
+  const clearPhotos = useCallback(() => {
+    setSelectedPhotos([]);
+    setRetainedPhotoUrls([]);
+  }, []);
+  const removeRetainedPhotoAt = useCallback((index: number) => {
+    setRetainedPhotoUrls(prev => prev.filter((_, i) => i !== index));
+  }, []);
   const removePhotoAt = useCallback((index: number) => {
     setSelectedPhotos(prev => prev.filter((_, i) => i !== index));
   }, []);
   const addPhotoFromLibrary = useCallback(async () => {
-    const remaining = maxPhotos - selectedPhotos.length;
+    const remaining = maxPhotos - photoCount;
     if (remaining <= 0) return;
     if (remaining > 1 && !isGalleryMode) {
       const assets = await pickImages({ limit: remaining });
@@ -550,14 +558,14 @@ export function PostComposer({
     if (asset) {
       setSelectedPhotos(prev => [...prev, asset].slice(0, maxPhotos));
     }
-  }, [isGalleryMode, maxPhotos, pickImage, pickImages, selectedPhotos.length]);
+  }, [isGalleryMode, maxPhotos, photoCount, pickImage, pickImages]);
   const addPhotoFromCamera = useCallback(async () => {
-    if (selectedPhotos.length >= maxPhotos) return;
+    if (photoCount >= maxPhotos) return;
     const asset = await takePhoto();
     if (asset) {
       setSelectedPhotos(prev => [...prev, asset].slice(0, maxPhotos));
     }
-  }, [maxPhotos, selectedPhotos.length, takePhoto]);
+  }, [maxPhotos, photoCount, takePhoto]);
   const authorDisplayName = postingAs
     ? postingAs.name
     : (me.name || me.handle || '');
@@ -600,7 +608,8 @@ export function PostComposer({
         setLostContact('');
       }
       setDestinations([{ type: 'feed' }]);
-      clearPhotos();
+      setSelectedPhotos([]);
+      setRetainedPhotoUrls((editingPost.mediaUrls ?? []).slice(0, maxPhotos));
       return () => { cancelled = true; };
     }
     if (visible) {
@@ -660,7 +669,7 @@ export function PostComposer({
     }
 
     return () => { cancelled = true; };
-  }, [visible, options, initialCategory, initialCompanionIds, postAsCompanionId, myCompanionIds, joinedCommunities, getCommunity, user?.id, onClose, onOpenAdoptionListing, editingPost, isEditing, clearPhotos]);
+  }, [visible, options, initialCategory, initialCompanionIds, postAsCompanionId, myCompanionIds, joinedCommunities, getCommunity, user?.id, onClose, onOpenAdoptionListing, editingPost, isEditing, clearPhotos, maxPhotos]);
 
   // Dismiss the keyboard ONLY when the composer actually closes. This used to be
   // inside the big reset effect above, but that effect re-runs on unrelated
@@ -776,7 +785,8 @@ export function PostComposer({
       const updated = buildPost({
         text,
         tags,
-        hasPhoto: !!editingPost.mediaUrls?.length,
+        hasPhoto,
+        imageCount: photoCount,
         destination: { type: 'feed' },
         postAsCompanionId: editingPost.companionAuthorId,
         label: postingAs ? null : label,
@@ -792,8 +802,11 @@ export function PostComposer({
         ...editingPost,
         ...updated,
         id: editingPost.id,
-        mediaUrls: editingPost.mediaUrls,
-        images: editingPost.images,
+        mediaUrls: [...retainedPhotoUrls, ...selectedPhotos.map(photo => photo.uri)],
+        images: photoCount,
+        _pendingMedias: selectedPhotos.length > 0 ? selectedPhotos : undefined,
+        _retainedMediaUrls: retainedPhotoUrls,
+        _mediaUpdated: true,
       });
       onClose();
       onToast({ msg: 'Post updated', icon: 'check', tone: 'success' });
@@ -944,7 +957,7 @@ export function PostComposer({
               onChangeText={handleTextChange}
             />
 
-            {!isEditing && canAddPhoto ? (
+            {canAddPhoto ? (
               <View style={styles.composerMediaActions}>
                 <Pressable
                   onPress={() => { void addPhotoFromLibrary(); }}
@@ -976,6 +989,19 @@ export function PostComposer({
 
           {hasPhoto ? (
             <View style={styles.photoPreviewRow}>
+              {retainedPhotoUrls.map((url, index) => (
+                <View key={`${url}-${index}`} style={styles.photoPreviewThumb}>
+                  <Image source={{ uri: url }} style={styles.photoPreviewImage} resizeMode="cover" />
+                  <Pressable
+                    onPress={() => removeRetainedPhotoAt(index)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove photo ${index + 1}`}
+                    style={styles.photoPreviewRemove}
+                  >
+                    <Icon name="close" size={12} color="#fff" />
+                  </Pressable>
+                </View>
+              ))}
               {selectedPhotos.map((photo, index) => (
                 <View key={`${photo.uri}-${index}`} style={styles.photoPreviewThumb}>
                   <Image source={{ uri: photo.uri }} style={styles.photoPreviewImage} resizeMode="cover" />

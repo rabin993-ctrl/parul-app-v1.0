@@ -24,6 +24,7 @@ import type { ProfileStackParamList } from '../../navigation/ProfileNavigator';
 import type { FeedPostDetailParams } from '../../navigation/feedHubNavigation';
 import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
 import { useTabBarScrollProps } from '../../context/TabBarScrollContext';
+import { useDismissableOverlay } from '../../context/SheetOverlayContext';
 import { navigateToUserProfileFromNested } from '../../navigation/userProfileRouting';
 import {
   navigateToCompanionPostDetailFromNested,
@@ -72,6 +73,7 @@ export function FeedPostDetailScreen() {
   const [selectedCompanionId, setSelectedCompanionId] = useState<string | null>(null);
   const [alertComposePost, setAlertComposePost] = useState<Post | null>(null);
   const [alertDmThread, setAlertDmThread] = useState<ChatThread | null>(null);
+  useDismissableOverlay(!!alertDmThread, () => setAlertDmThread(null));
   const [pendingCommentsScroll, setPendingCommentsScroll] = useState(!!openCommentsOnMount);
 
   const post = useMemo(

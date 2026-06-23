@@ -46,7 +46,7 @@ export function CircleMentionJoinDialog({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss}>
-      <ModalPresent onDismiss={onDismiss} style={styles.overlay}>
+      <ModalPresent active={visible} onDismiss={onDismiss} style={styles.overlay}>
         <View
           style={[
             styles.card,
