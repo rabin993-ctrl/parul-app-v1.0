@@ -6,6 +6,7 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../icons/Icon';
 import { resolveCircleMediaSignedUrl } from '../../lib/circleChatMedia';
+import { useDismissableOverlay } from '../../context/SheetOverlayContext';
 
 export function ChatPhotoViewer({
   visible,
@@ -23,6 +24,7 @@ export function ChatPhotoViewer({
   const [uri, setUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const imageHeight = Math.round(height * 0.72);
+  useDismissableOverlay(visible, onClose);
 
   useEffect(() => {
     if (!visible) {

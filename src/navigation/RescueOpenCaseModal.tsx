@@ -10,6 +10,7 @@ import { RescuePostUpdateScreen } from '../screens/rescue/RescuePostUpdateScreen
 import { Sheet } from '../components/ui/Sheet';
 import { Button } from '../components/ui/Button';
 import { useRescueFeed } from '../context/RescueFeedContext';
+import { useDismissableOverlay } from '../context/SheetOverlayContext';
 import type { RescueStackParamList } from './RescueNavigator';
 
 const Stack = createNativeStackNavigator<RescueStackParamList>();
@@ -71,6 +72,7 @@ function OpenCaseSheet({
 
 function DetailFlow({ caseId, onClose }: { caseId: string; onClose: () => void }) {
   const { colors } = useTheme();
+  useDismissableOverlay(true, onClose);
 
   return (
     <Modal

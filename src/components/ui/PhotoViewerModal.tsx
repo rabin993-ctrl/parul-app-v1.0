@@ -5,6 +5,7 @@ import {
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../icons/Icon';
+import { useDismissableOverlay } from '../../context/SheetOverlayContext';
 
 export function PhotoViewerModal({
   visible,
@@ -24,6 +25,7 @@ export function PhotoViewerModal({
   const listRef = useRef<FlatList<string>>(null);
   const [current, setCurrent] = useState(initialIndex);
   const imageHeight = Math.round(height * 0.72);
+  useDismissableOverlay(visible, onClose);
 
   useEffect(() => {
     if (!visible) return;

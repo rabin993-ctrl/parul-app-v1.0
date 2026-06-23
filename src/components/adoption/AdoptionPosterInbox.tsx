@@ -176,7 +176,7 @@ export function AdoptionPosterInbox({
       onRequestClose={onClose}
       onShow={resetMeasures}
     >
-      <ModalPresent onDismiss={onClose} style={styles.overlay} accessibilityLabel="Close">
+      <ModalPresent active={visible} onDismiss={onClose} style={styles.overlay} accessibilityLabel="Close">
         <View
           style={[
             styles.popup,

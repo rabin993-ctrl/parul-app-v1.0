@@ -25,7 +25,7 @@ export function ComingSoonModal({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <ModalPresent onDismiss={onClose} style={styles.overlay}>
+      <ModalPresent active={visible} onDismiss={onClose} style={styles.overlay}>
         <View
           style={[
             styles.card,

@@ -118,7 +118,7 @@ export function AlertMessageSheet({
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <View style={styles.modalRoot}>
-        <ModalPresent onDismiss={onClose} style={styles.overlay}>
+        <ModalPresent active={visible} onDismiss={onClose} style={styles.overlay}>
         <KeyboardAvoidingView
           style={styles.overlayInner}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}

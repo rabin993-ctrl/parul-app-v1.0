@@ -314,6 +314,10 @@ export interface Post {
     height?: number;
     bytes?: number;
   }[];
+  /** Transient: edit-post media draft; when true, replace post_media with retained + pending media */
+  _mediaUpdated?: boolean;
+  /** Transient: existing post media URLs to keep during an edit */
+  _retainedMediaUrls?: string[];
   /** Client-side hint for companion profile tabs (update vs gallery). */
   companionContentStyle?: 'update' | 'gallery';
   /** Transient: client-side publish lifecycle for optimistic upload UI */

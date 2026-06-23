@@ -33,6 +33,7 @@ import type { FeedStackParamList } from '../navigation/feedHubNavigation';
 import { loadFeedPostTypeFilters, persistFeedPostTypeFilters } from '../lib/feedFilterStore';
 import { useTabBarScrollPadding } from '../navigation/tabBarInsets';
 import { useTabBarScrollProps } from '../context/TabBarScrollContext';
+import { useDismissableOverlay } from '../context/SheetOverlayContext';
 import { useHomeHub } from '../context/HomeHubContext';
 import { useFeedHubNavigationSync } from '../hooks/useFeedHubNavigationSync';
 import { useNotificationCount } from '../context/NotificationCountContext';
@@ -380,6 +381,7 @@ export function FeedScreen() {
   } = useFeedPosts();
   const [alertComposePost, setAlertComposePost] = useState<Post | null>(null);
   const [alertDmThread, setAlertDmThread] = useState<ChatThread | null>(null);
+  useDismissableOverlay(!!alertDmThread, () => setAlertDmThread(null));
   const { joinedCommunities } = useCommunityGroups();
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const commentPost = useMemo(
@@ -974,7 +976,7 @@ function PostCategoryPopup({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <ModalPresent onDismiss={onClose} style={styles.popupOverlay} animatedScale={false}>
+      <ModalPresent active={visible} onDismiss={onClose} style={styles.popupOverlay} animatedScale={false}>
         <View
           style={[
             styles.categoryPopupCard,
@@ -1074,7 +1076,7 @@ function PostTypeFilterPopup({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <ModalPresent onDismiss={onClose} style={styles.popupOverlay} animatedScale={false}>
+      <ModalPresent active={visible} onDismiss={onClose} style={styles.popupOverlay} animatedScale={false}>
         <View
           style={[
             styles.filterPopupCard,

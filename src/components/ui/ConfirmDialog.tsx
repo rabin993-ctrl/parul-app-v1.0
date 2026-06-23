@@ -80,7 +80,7 @@ export function ConfirmDialog({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onCancel}>
-      <ModalPresent onDismiss={onCancel} style={styles.overlay}>
+      <ModalPresent active={visible} onDismiss={onCancel} style={styles.overlay}>
         <View
           style={[
             styles.card,

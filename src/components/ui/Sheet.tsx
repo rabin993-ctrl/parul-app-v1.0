@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
-import { useSheetOverlay } from '../../context/SheetOverlayContext';
+import { useDismissableOverlay } from '../../context/SheetOverlayContext';
 import { useWebViewportMetrics } from '../../hooks/useVisualViewportInset';
 import { radius, shadows, sheetLayout } from '../../theme/tokens';
 import { IconButton } from './Button';
@@ -80,7 +80,6 @@ export function Sheet({
 }: SheetProps) {
   const { colors, scrim } = useTheme();
   const insets = useSafeAreaInsets();
-  const { registerOpen, registerClose } = useSheetOverlay();
   const sheetBg = backgroundColor ?? colors.surface;
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const scrimAnim = useRef(new Animated.Value(0)).current;
@@ -284,12 +283,7 @@ export function Sheet({
     }
   }, [contentKey, visible, expandFooterBody]);
 
-  useEffect(() => {
-    if (modalVisible) {
-      registerOpen();
-      return () => registerClose();
-    }
-  }, [modalVisible, registerOpen, registerClose]);
+  useDismissableOverlay(modalVisible, dismissSheet);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !modalVisible || typeof document === 'undefined') return;

@@ -133,6 +133,7 @@ export function PostOwnerMenu({
 
       <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>
         <ModalPresent
+          active={open}
           onDismiss={() => setOpen(false)}
           accessibilityLabel="Close menu"
           animatedScale={false}

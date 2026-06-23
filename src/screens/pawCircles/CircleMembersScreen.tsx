@@ -77,7 +77,7 @@ function SortPicker({
       </Pressable>
 
       <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>
-        <ModalPresent onDismiss={() => setOpen(false)} style={styles.sortScrim}>
+        <ModalPresent active={open} onDismiss={() => setOpen(false)} style={styles.sortScrim}>
           <View style={[styles.sortSheet, { backgroundColor: surface }]}>
             <Text style={[styles.sortSheetTitle, { color: sub }]}>Sort by</Text>
             {SORT_OPTIONS.map(opt => {

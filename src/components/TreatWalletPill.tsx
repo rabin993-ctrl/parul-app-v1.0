@@ -25,7 +25,7 @@ function TreatsInfoModal({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <ModalPresent onDismiss={onClose} style={modalStyles.overlay} animatedScale={false}>
+      <ModalPresent active={visible} onDismiss={onClose} style={modalStyles.overlay} animatedScale={false}>
         <View style={[modalStyles.card, { backgroundColor: colors.surface }, shadows.md]}>
           <View style={[modalStyles.iconWrap, { backgroundColor: colors.infoBg }]}>
             <Icon name="bone" size={22} color={colors.primary} />

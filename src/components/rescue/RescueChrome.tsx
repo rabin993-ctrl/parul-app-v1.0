@@ -362,7 +362,7 @@ function RescueFilterPopup({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <ModalPresent onDismiss={onClose} style={styles.popupOverlay} animatedScale={false}>
+      <ModalPresent active={visible} onDismiss={onClose} style={styles.popupOverlay} animatedScale={false}>
         <View
           style={[
             styles.filterPopupCard,
