@@ -6,6 +6,7 @@ import { Icon } from '../icons/Icon';
 import { Sheet } from '../ui/Sheet';
 import type { Companion } from '../../data/mockData';
 import { shareCompanionProfileLink } from '../../utils/shareLinks';
+import { formatCompanionHandleLabel } from '../../utils/companionHandle';
 
 type Option = {
   id: string;
@@ -172,7 +173,7 @@ export function CompanionOptionsSheet({
     : [];
 
   const metaLine = formatMetaLine(companion);
-  const handle = companion.handle ?? companion.id.slice(0, 8);
+  const handleLabel = formatCompanionHandleLabel(companion.handle, companion.id);
 
   return (
     <Sheet
@@ -212,7 +213,7 @@ export function CompanionOptionsSheet({
                   {companion.name}
                 </Text>
                 <Text style={[styles.heroMetaLine, { color: colors.textSecondary }]} numberOfLines={1}>
-                  @{handle}
+                  {handleLabel}
                   {metaLine ? ` · ${metaLine}` : ''}
                 </Text>
               </View>

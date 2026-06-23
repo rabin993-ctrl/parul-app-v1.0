@@ -3,7 +3,13 @@ import type { AdoptionListing } from '../data/adoptionData';
 import type { RescueCase } from '../data/profileData';
 import type { PawCircle } from '../data/pawCircles';
 import type { Community } from '../data/mockData';
+import type { Companion } from '../data/mockData';
 import { matchesSearchTokens, parseSearchTokens } from './textSearch';
+import {
+  formatCompanionHandleSearchToken,
+  normalizeCompanionHandle,
+  parseCompanionHandleSearchTokens,
+} from './companionHandle';
 import { searchCircles, searchCommunities } from './destinationSearch';
 
 export type SearchUserResult = {
@@ -134,4 +140,27 @@ export function searchCommunitiesByQuery(communities: Community[], query: string
     community.about,
     community.members,
   ], tokens));
+}
+
+/** Match companions when the query includes #handle tokens (e.g. "#milo"). */
+export function filterCompanionsByHandleQuery(companions: Companion[], query: string): Companion[] {
+  const handleTokens = parseCompanionHandleSearchTokens(query);
+  if (handleTokens.length === 0) return [];
+
+  const seen = new Set<string>();
+  const out: Companion[] = [];
+  for (const companion of companions) {
+    if (seen.has(companion.id)) continue;
+    const slug = normalizeCompanionHandle(companion.handle ?? '');
+    if (!slug) continue;
+    const haystack = [
+      slug,
+      companion.name,
+      formatCompanionHandleSearchToken(companion.handle),
+    ];
+    if (!handleTokens.every(token => matchesSearchTokens(haystack, [token]))) continue;
+    seen.add(companion.id);
+    out.push(companion);
+  }
+  return out;
 }

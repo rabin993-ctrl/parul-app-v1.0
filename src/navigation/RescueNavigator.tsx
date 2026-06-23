@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
 import type { NavigatorScreenParams } from '@react-navigation/native';
+import { useNavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../theme/ThemeContext';
 import { EmbeddedStackDeepLinkBridge } from './embeddedStackDeepLink';
@@ -21,6 +22,23 @@ export type RescueStackParamList = {
 
 const Stack = createNativeStackNavigator<RescueStackParamList>();
 
+function RescueStackRouteReporter({
+  onRouteChange,
+}: {
+  onRouteChange?: (route: keyof RescueStackParamList) => void;
+}) {
+  const routeName = useNavigationState(state => {
+    const route = state?.routes[state.index ?? 0];
+    return (route?.name ?? 'Listing') as keyof RescueStackParamList;
+  });
+
+  useEffect(() => {
+    onRouteChange?.(routeName);
+  }, [routeName, onRouteChange]);
+
+  return null;
+}
+
 export function RescueNavigator({
   embedded = false,
   scrollHeader,
@@ -31,6 +49,7 @@ export function RescueNavigator({
   hubBarPinned = false,
   filters,
   onFiltersChange,
+  onFocusedRouteChange,
   deepLink,
   onDeepLinkHandled,
 }: {
@@ -43,6 +62,7 @@ export function RescueNavigator({
   hubBarPinned?: boolean;
   filters?: RescueFilters;
   onFiltersChange?: (filters: RescueFilters) => void;
+  onFocusedRouteChange?: (route: keyof RescueStackParamList) => void;
   deepLink?: NavigatorScreenParams<RescueStackParamList>;
   onDeepLinkHandled?: () => void;
 }) {
@@ -57,6 +77,7 @@ export function RescueNavigator({
       }}
       screenLayout={({ children }) => (
         <>
+          <RescueStackRouteReporter onRouteChange={onFocusedRouteChange} />
           <EmbeddedStackDeepLinkBridge
             deepLink={deepLink}
             onHandled={onDeepLinkHandled}

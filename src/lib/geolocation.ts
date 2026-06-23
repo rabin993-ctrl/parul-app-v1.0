@@ -45,7 +45,7 @@ export async function persistUserCoordinates(coords: GeoPoint): Promise<void> {
 export async function persistAlertCoordinates(
   postId: string,
   coords: GeoPoint,
-  radiusKm = 10,
+  radiusKm = 0.8,
 ): Promise<void> {
   await supabase.rpc('set_post_alert_coordinates', {
     p_post_id: postId,

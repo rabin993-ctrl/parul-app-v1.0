@@ -8,10 +8,11 @@ import type { PickedAsset } from '../hooks/useMediaPicker';
 import { uploadMediaAsset, triggerThumbGeneration } from '../lib/uploads';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
-
-function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
+import {
+  companionHandleFromName,
+  normalizeCompanionHandle,
+  validateCompanionHandle,
+} from '../utils/companionHandle';
 
 function defaultIcon(species: string): string {
   if (species === 'cat') return 'cat';
@@ -109,6 +110,32 @@ function dbRowToCompanion(
   };
 }
 
+type ManualCompanionInput = {
+  name: string;
+  handle: string;
+  species: 'dog' | 'cat' | 'other';
+  age: string;
+  ownerId: string;
+};
+
+function resolveCompanionHandle(name: string, handleDraft: string): string | null {
+  const normalized = normalizeCompanionHandle(handleDraft) || companionHandleFromName(name);
+  if (validateCompanionHandle(normalized)) return null;
+  return normalized;
+}
+
+function isCompanionHandleTaken(
+  ownerId: string,
+  handle: string,
+  companions: Record<string, Companion>,
+): boolean {
+  const normalized = normalizeCompanionHandle(handle);
+  if (!normalized) return false;
+  return Object.values(companions).some(
+    c => c.ownerId === ownerId && normalizeCompanionHandle(c.handle ?? '') === normalized,
+  );
+}
+
 type CompanionContextValue = {
   revision: number;
   companionsLoaded: boolean;
@@ -118,8 +145,8 @@ type CompanionContextValue = {
   fetchCompanionsForOwner: (ownerId: string) => Promise<Companion[]>;
   hasCompanionForAdoption: (record: AdoptionRecord) => boolean;
   addFromAdoption: (record: AdoptionRecord) => Companion | null;
-  addManual: (input: { name: string; species: 'dog' | 'cat' | 'other'; age: string; ownerId: string }) => Companion | null;
-  addManualAsync: (input: { name: string; species: 'dog' | 'cat' | 'other'; age: string; ownerId: string }) => Promise<Companion | null>;
+  addManual: (input: ManualCompanionInput) => Companion | null;
+  addManualAsync: (input: ManualCompanionInput) => Promise<Companion | null>;
   removeCompanion: (id: string) => Promise<Companion | null>;
   updateCompanionAvatar: (companionId: string, asset: PickedAsset) => Promise<void>;
   updateCompanionProfile: (
@@ -308,7 +335,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       neutered: false,
       microchipped: false,
       about: aboutText,
-      handle: slugify(record.petName) || undefined,
+      handle: companionHandleFromName(record.petName) || undefined,
       mood: 'Settling in at home 🐾',
       followers: 0,
       pawprints: 0,
@@ -336,7 +363,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       tint: record.tint,
       traits: ['New family member'],
       about: aboutText,
-      handle: slugify(record.petName) || null,
+      handle: companionHandleFromName(record.petName) || null,
     }).then(({ error: e }) => {
       if (e) {
         delete store.current[id];
@@ -351,19 +378,13 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
     return newCompanion;
   }, [user, hasCompanionForAdoption, bump]);
 
-  const addManual = useCallback((input: {
-    name: string;
-    species: 'dog' | 'cat' | 'other';
-    age: string;
-    ownerId: string;
-  }): Companion | null => {
+  const addManual = useCallback((input: ManualCompanionInput): Companion | null => {
     if (!user || input.ownerId !== user.id) return null;
     const trimmed = input.name.trim();
     if (!trimmed) return null;
-    const nameTaken = Object.values(store.current).some(
-      c => c.ownerId === user.id && c.name.toLowerCase() === trimmed.toLowerCase(),
-    );
-    if (nameTaken) return null;
+    const handle = resolveCompanionHandle(trimmed, input.handle);
+    if (!handle) return null;
+    if (isCompanionHandleTaken(user.id, handle, store.current)) return null;
 
     const id = uuid4();
     const siblingIds = Object.values(store.current)
@@ -387,7 +408,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       neutered: false,
       microchipped: false,
       about: '',
-      handle: slugify(trimmed) || undefined,
+      handle,
       mood: 'New on the block 🐾',
       followers: 0,
       pawprints: 0,
@@ -413,7 +434,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       age: ageStr !== '—' ? ageStr : null,
       icon: defaultIcon(input.species),
       tint: defaultTint(input.species),
-      handle: slugify(trimmed) || null,
+      handle,
       traits: [],
     }).then(({ error: e }) => {
       if (e) {
@@ -429,15 +450,13 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
     return newCompanion;
   }, [user, bump]);
 
-  const addManualAsync = useCallback(async (input: {
-    name: string;
-    species: 'dog' | 'cat' | 'other';
-    age: string;
-    ownerId: string;
-  }): Promise<Companion | null> => {
+  const addManualAsync = useCallback(async (input: ManualCompanionInput): Promise<Companion | null> => {
     if (!user) return null;
     const trimmed = input.name.trim();
     if (!trimmed) return null;
+    const handle = resolveCompanionHandle(trimmed, input.handle);
+    if (!handle) return null;
+    if (isCompanionHandleTaken(user.id, handle, store.current)) return null;
 
     const id = uuid4();
     const siblingIds = Object.values(store.current)
@@ -453,7 +472,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       age: ageStr !== '—' ? ageStr : null,
       icon: defaultIcon(input.species),
       tint: defaultTint(input.species),
-      handle: slugify(trimmed) || null,
+      handle,
       traits: [],
     });
 
@@ -475,7 +494,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       neutered: false,
       microchipped: false,
       about: '',
-      handle: slugify(trimmed) || undefined,
+      handle,
       mood: 'New on the block 🐾',
       followers: 0,
       pawprints: 0,

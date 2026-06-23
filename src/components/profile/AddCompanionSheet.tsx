@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Image, Alert } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { radius, typography, MOBILE_INPUT_FONT_SIZE } from '../../theme/tokens';
 import { Sheet } from '../ui/Sheet';
@@ -11,6 +11,13 @@ import type { AdoptionRecord } from '../../data/adoptionRecords';
 import type { Companion } from '../../data/mockData';
 import { useMediaPicker, type PickedAsset } from '../../hooks/useMediaPicker';
 import { useCompanions } from '../../context/CompanionContext';
+import {
+  companionHandleFromName,
+  COMPANION_HANDLE_SEARCH_PREFIX,
+  normalizeCompanionHandle,
+  sanitizeCompanionHandleInput,
+  validateCompanionHandle,
+} from '../../utils/companionHandle';
 
 type SpeciesChoice = 'dog' | 'cat' | 'other';
 
@@ -62,28 +69,73 @@ export function AddCompanionSheet({
   ownerId: string;
   adoptableRecords: AdoptionRecord[];
   onAddFromAdoption: (record: AdoptionRecord) => Companion | null;
-  onAddManual: (input: { name: string; species: SpeciesChoice; age: string; ownerId: string }) => Companion | null;
+  onAddManual: (input: {
+    name: string;
+    handle: string;
+    species: SpeciesChoice;
+    age: string;
+    ownerId: string;
+  }) => Companion | null;
 }) {
   const { colors } = useTheme();
-  const { updateCompanionAvatar } = useCompanions();
-  const { pickImage, takePhoto } = useMediaPicker();
+  const { updateCompanionAvatar, getMyCompanions } = useCompanions();
+  const { pickImage } = useMediaPicker();
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [species, setSpecies] = useState<SpeciesChoice>('dog');
   const [age, setAge] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<PickedAsset | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const usernameEditedRef = useRef(false);
 
-  const canSubmitManual = name.trim().length > 0;
+  const normalizedUsername = useMemo(
+    () => normalizeCompanionHandle(username) || companionHandleFromName(name),
+    [username, name],
+  );
+
+  const usernameTaken = useMemo(() => {
+    if (!normalizedUsername) return false;
+    return getMyCompanions(ownerId).some(
+      c => normalizeCompanionHandle(c.handle ?? '') === normalizedUsername,
+    );
+  }, [getMyCompanions, normalizedUsername, ownerId]);
+
+  const validationError = useMemo(() => {
+    if (!name.trim()) return null;
+    return validateCompanionHandle(username || name);
+  }, [name, username]);
+
+  const canSubmitManual = name.trim().length > 0
+    && !validationError
+    && !usernameTaken;
 
   const reset = () => {
     setName('');
+    setUsername('');
     setSpecies('dog');
     setAge('');
     setSelectedPhoto(null);
+    setError(null);
+    usernameEditedRef.current = false;
   };
 
   const handleClose = () => {
     reset();
     onClose();
+  };
+
+  const handleNameChange = (text: string) => {
+    setName(text);
+    setError(null);
+    if (!usernameEditedRef.current) {
+      setUsername(companionHandleFromName(text));
+    }
+  };
+
+  const handleUsernameChange = (text: string) => {
+    usernameEditedRef.current = true;
+    setUsername(sanitizeCompanionHandleInput(text));
+    setError(null);
   };
 
   const handlePickPhoto = async () => {
@@ -101,16 +153,29 @@ export function AddCompanionSheet({
   };
 
   const handleManualAdd = () => {
-    if (!canSubmitManual) return;
-    const added = onAddManual({ name, species, age, ownerId });
+    if (!canSubmitManual) {
+      if (validationError) setError(validationError);
+      else if (usernameTaken) setError('That companion username is already in use.');
+      return;
+    }
+    const added = onAddManual({
+      name: name.trim(),
+      handle: username.trim() || name.trim(),
+      species,
+      age,
+      ownerId,
+    });
     if (added) {
       if (selectedPhoto) void updateCompanionAvatar(added.id, selectedPhoto);
       reset();
       onClose();
+    } else {
+      setError('That companion username is already in use.');
     }
   };
 
   const showAdoptions = adoptableRecords.length > 0;
+  const inlineError = error ?? (usernameTaken ? 'That companion username is already in use.' : validationError);
 
   return (
     <Sheet visible={visible} onClose={handleClose} title="Add companion">
@@ -186,9 +251,30 @@ export function AddCompanionSheet({
             <ManualField
               label="Name"
               value={name}
-              onChangeText={setName}
+              onChangeText={handleNameChange}
               placeholder="e.g. Milo"
             />
+
+            <View style={[styles.usernameField, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.usernameLabel, { color: colors.textSecondary }]}>
+                Companion username
+              </Text>
+              <View style={[styles.usernameInputRow, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.usernameAt, { color: colors.textTertiary }]}>{COMPANION_HANDLE_SEARCH_PREFIX}</Text>
+                <AppTextInput
+                  style={[styles.usernameInput, { color: colors.text }]}
+                  placeholder="milo"
+                  placeholderTextColor={colors.textTertiary}
+                  value={username}
+                  onChangeText={handleUsernameChange}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+              <Text style={[styles.usernameHint, { color: colors.textTertiary }]}>
+                Lowercase letters, numbers, and hyphens. Shown on their profile as {COMPANION_HANDLE_SEARCH_PREFIX}username.
+              </Text>
+            </View>
 
             <View style={[styles.fieldRow, styles.speciesField, { borderBottomColor: colors.border }]}>
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Species</Text>
@@ -229,6 +315,10 @@ export function AddCompanionSheet({
               placeholder="e.g. 2 yrs"
             />
           </View>
+
+          {inlineError ? (
+            <Text style={[styles.error, { color: colors.danger }]}>{inlineError}</Text>
+          ) : null}
 
           <Button full onPress={handleManualAdd} disabled={!canSubmitManual} style={styles.submitBtn}>
             Add companion
@@ -297,7 +387,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontSize: 13,
     fontWeight: '600',
-    width: 64,
+    width: 96,
     flexShrink: 0,
   },
   fieldInput: {
@@ -306,6 +396,40 @@ const styles = StyleSheet.create({
     fontSize: MOBILE_INPUT_FONT_SIZE,
     padding: 0,
     margin: 0,
+  },
+  usernameField: {
+    paddingVertical: 14,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  usernameLabel: {
+    ...typography.caption,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  usernameInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: 8,
+  },
+  usernameAt: {
+    ...typography.body,
+    fontSize: MOBILE_INPUT_FONT_SIZE,
+    fontWeight: '600',
+  },
+  usernameInput: {
+    flex: 1,
+    ...typography.body,
+    fontSize: MOBILE_INPUT_FONT_SIZE,
+    padding: 0,
+    margin: 0,
+  },
+  usernameHint: {
+    ...typography.meta,
+    fontSize: 11,
+    lineHeight: 16,
   },
   speciesOptions: {
     flex: 1,
@@ -322,6 +446,12 @@ const styles = StyleSheet.create({
   speciesLabel: {
     ...typography.caption,
     fontSize: 13,
+  },
+  error: {
+    ...typography.caption,
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: -4,
   },
   submitBtn: { marginTop: 4 },
   photoPickerWrap: { alignSelf: 'center' },

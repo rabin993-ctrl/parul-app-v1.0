@@ -35,7 +35,7 @@ export async function fanOutPostAlert(
         p_post_id: postId,
         p_lat: coords.lat,
         p_lng: coords.lng,
-        p_radius_km: 10,
+        p_radius_km: 0.8,
       });
       if (coordErr) {
         console.warn('[alertFanOut] set_post_alert_coordinates failed:', coordErr.message);

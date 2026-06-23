@@ -6,7 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
 import { AppCenteredHeader, HUB_CENTERED_TITLE_STYLE } from '../components/ui/AppSubHeader';
-import { RescueNavigator } from '../navigation/RescueNavigator';
+import { RescueNavigator, type RescueStackParamList } from '../navigation/RescueNavigator';
 import { RescueHubBar, RescueFilterField } from '../components/rescue/RescueChrome';
 import { DEFAULT_RESCUE_FILTERS, type RescueFilters, type RescueHubTab } from '../data/rescueData';
 import { useFeedHubNavigationSync } from '../hooks/useFeedHubNavigationSync';
@@ -18,6 +18,8 @@ export function RescueHubScreen() {
   const route = useRoute<RouteProp<FeedStackParamList, 'RescueHub'>>();
   const [rescueHubTab, setRescueHubTab] = useState<RescueHubTab>('browse');
   const [rescueFilters, setRescueFilters] = useState<RescueFilters>(DEFAULT_RESCUE_FILTERS);
+  const [rescueFocusedRoute, setRescueFocusedRoute] = useState<keyof RescueStackParamList>('Listing');
+  const showHubChrome = rescueFocusedRoute === 'Listing';
 
   useFeedHubNavigationSync('rescue');
 
@@ -31,25 +33,29 @@ export function RescueHubScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']}>
-      <AppCenteredHeader
-        title="Rescues"
-        onBack={handleBack}
-        backAccessibilityLabel="Back to feed from Rescues"
-        titleStyle={HUB_CENTERED_TITLE_STYLE}
-      />
+      {showHubChrome ? (
+        <AppCenteredHeader
+          title="Rescues"
+          onBack={handleBack}
+          backAccessibilityLabel="Back to feed from Rescues"
+          titleStyle={HUB_CENTERED_TITLE_STYLE}
+        />
+      ) : null}
 
-      <View style={styles.homeChrome}>
-        <View style={[styles.subHubChrome, { backgroundColor: colors.bg }]}>
-          <RescueHubBar tab={rescueHubTab} onTabChange={setRescueHubTab} />
-          {rescueHubTab === 'browse' && (
-            <RescueFilterField
-              filters={rescueFilters}
-              onChange={setRescueFilters}
-              onReset={() => setRescueFilters(DEFAULT_RESCUE_FILTERS)}
-            />
-          )}
+      {showHubChrome ? (
+        <View style={styles.homeChrome}>
+          <View style={[styles.subHubChrome, { backgroundColor: colors.bg }]}>
+            <RescueHubBar tab={rescueHubTab} onTabChange={setRescueHubTab} />
+            {rescueHubTab === 'browse' && (
+              <RescueFilterField
+                filters={rescueFilters}
+                onChange={setRescueFilters}
+                onReset={() => setRescueFilters(DEFAULT_RESCUE_FILTERS)}
+              />
+            )}
+          </View>
         </View>
-      </View>
+      ) : null}
 
       <View style={styles.hubContent}>
         <RescueNavigator
@@ -59,6 +65,7 @@ export function RescueHubScreen() {
           hubBarPinned
           filters={rescueFilters}
           onFiltersChange={setRescueFilters}
+          onFocusedRouteChange={setRescueFocusedRoute}
           deepLink={route.params}
           onDeepLinkHandled={clearDeepLink}
         />

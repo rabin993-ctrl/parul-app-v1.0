@@ -1,11 +1,15 @@
-/** Split query into lowercase tokens; strips leading @ from usernames. */
+/** Split query into lowercase tokens; strips leading @ / # prefixes. */
 export function parseSearchTokens(query: string): string[] {
   return query
     .trim()
     .toLowerCase()
     .split(/\s+/)
     .filter(Boolean)
-    .map(token => (token.startsWith('@') ? token.slice(1) : token));
+    .map(token => {
+      if (token.startsWith('@')) return token.slice(1);
+      if (token.startsWith('#')) return token.slice(1);
+      return token;
+    });
 }
 
 /** Every token must appear somewhere in the combined searchable text. */

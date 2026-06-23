@@ -14,19 +14,37 @@ export function AuthConfirmErrorScreen() {
   const {
     authConfirmError,
     pendingConfirmationEmail,
+    pendingRecoveryEmail,
+    authLinkKind,
     resendConfirmationEmail,
+    resetPassword,
     clearAuthConfirm,
   } = useAuth();
   const [resendLoading, setResendLoading] = useState(false);
   const [resendInfo, setResendInfo] = useState<string | null>(null);
 
-  async function onResend() {
-    if (!pendingConfirmationEmail) return;
+  const isRecovery = authLinkKind === 'recovery' || !!pendingRecoveryEmail;
+  const recoveryEmail = pendingRecoveryEmail;
+  const signupEmail = pendingConfirmationEmail;
+
+  async function onResendConfirmation() {
+    if (!signupEmail) return;
     setResendLoading(true);
     setResendInfo(null);
-    const res = await resendConfirmationEmail(pendingConfirmationEmail);
+    const res = await resendConfirmationEmail(signupEmail);
     setResendLoading(false);
-    setResendInfo(res.error ? res.error : `New confirmation email sent to ${pendingConfirmationEmail}.`);
+    setResendInfo(res.error ? res.error : `New confirmation email sent to ${signupEmail}.`);
+  }
+
+  async function onResendResetLink() {
+    if (!recoveryEmail) return;
+    setResendLoading(true);
+    setResendInfo(null);
+    const res = await resetPassword(recoveryEmail);
+    setResendLoading(false);
+    setResendInfo(
+      res.error ? res.error : `New password reset email sent to ${recoveryEmail}.`,
+    );
   }
 
   return (
@@ -43,20 +61,31 @@ export function AuthConfirmErrorScreen() {
       <AppLogo size={64} showWordmark />
       <Text style={[styles.title, { color: colors.text }]}>Link expired or invalid</Text>
       <Text style={[styles.message, { color: colors.textSecondary }]}>
-        {authConfirmError ?? 'This sign-in link may have already been used or has expired.'}
+        {authConfirmError
+          ?? (isRecovery
+            ? 'This password reset link may have already been used or has expired.'
+            : 'This sign-in link may have already been used or has expired.')}
       </Text>
       {resendInfo && (
         <Text style={[styles.message, { color: colors.textSecondary }]}>{resendInfo}</Text>
       )}
-      {pendingConfirmationEmail ? (
-        <Button full variant="secondary" loading={resendLoading} onPress={onResend} style={styles.button}>
+      {isRecovery && recoveryEmail ? (
+        <Button full variant="secondary" loading={resendLoading} onPress={onResendResetLink} style={styles.button}>
+          Resend password reset email
+        </Button>
+      ) : signupEmail ? (
+        <Button full variant="secondary" loading={resendLoading} onPress={onResendConfirmation} style={styles.button}>
           Resend confirmation email
         </Button>
-      ) : (
+      ) : authLinkKind === 'invite' ? (
         <Text style={[styles.message, { color: colors.textSecondary }]}>
           For invite links, ask your admin to send a new invite from Supabase.
         </Text>
-      )}
+      ) : isRecovery ? (
+        <Text style={[styles.message, { color: colors.textSecondary }]}>
+          Use Forgot password on the sign-in screen to request a new reset link.
+        </Text>
+      ) : null}
       <Button full onPress={clearAuthConfirm} style={styles.button}>
         Back to sign in
       </Button>

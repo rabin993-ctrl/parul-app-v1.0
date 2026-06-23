@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,12 +20,19 @@ import { useAuth } from '../../context/AuthContext';
 export function SetNewPasswordScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { updatePassword } = useAuth();
+  const { updatePassword, clearAuthConfirm } = useAuth();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!saved) return;
+    const timer = setTimeout(() => clearAuthConfirm(), 2000);
+    return () => clearTimeout(timer);
+  }, [saved, clearAuthConfirm]);
 
   async function onSubmit() {
     if (password.length < 6) {
@@ -40,7 +47,32 @@ export function SetNewPasswordScreen() {
     setLoading(true);
     const res = await updatePassword(password);
     setLoading(false);
-    if (res.error) setError(res.error);
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSaved(true);
+    }
+  }
+
+  if (saved) {
+    return (
+      <View
+        style={[
+          styles.successContainer,
+          {
+            backgroundColor: colors.bg,
+            paddingTop: insets.top + spacing.xl2,
+            paddingBottom: insets.bottom + spacing.xl2,
+          },
+        ]}
+      >
+        <AppLogo size={64} showWordmark />
+        <Text style={[styles.successTitle, { color: colors.text }]}>Password updated</Text>
+        <Text style={[styles.successMessage, { color: colors.textSecondary }]}>
+          Your new password is saved. Taking you into Parul…
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -142,4 +174,13 @@ const styles = StyleSheet.create({
   show: { fontSize: 13.5, fontFamily: fonts.semibold },
   error: { fontSize: 13.5, fontFamily: fonts.medium, marginTop: -spacing.xs },
   submit: { marginTop: spacing.xs },
+  successContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl2,
+    gap: spacing.lg,
+  },
+  successTitle: { fontSize: 20, fontFamily: fonts.bold, textAlign: 'center' },
+  successMessage: { fontSize: 15, fontFamily: fonts.regular, textAlign: 'center', lineHeight: 22 },
 });

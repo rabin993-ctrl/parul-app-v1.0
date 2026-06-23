@@ -11,6 +11,11 @@ import {
   hasImplicitAuthCallbackInUrl,
   parseAuthConfirmParams,
 } from '../lib/authLinks';
+import {
+  INVALID_LOGIN_MESSAGE,
+  isValidLoginIdentifier,
+  resolveLoginEmail,
+} from '../utils/loginIdentifier';
 
 type AuthResult = { error: string | null };
 type SignUpResult = AuthResult & { needsEmailConfirmation?: boolean };
@@ -24,7 +29,10 @@ interface AuthContextValue {
   authConfirmPhase: AuthConfirmPhase;
   authConfirmError: string | null;
   pendingConfirmationEmail: string | null;
-  signIn: (email: string, password: string) => Promise<AuthResult>;
+  pendingRecoveryEmail: string | null;
+  authLinkKind: 'recovery' | 'signup' | 'invite' | null;
+  /** `identifier` may be an email address or username (handle). */
+  signIn: (identifier: string, password: string) => Promise<AuthResult>;
   signInWithGoogle: () => Promise<AuthResult>;
   signUp: (email: string, password: string, name?: string, handle?: string) => Promise<SignUpResult>;
   resendConfirmationEmail: (email: string) => Promise<AuthResult>;
@@ -32,6 +40,7 @@ interface AuthContextValue {
   updatePassword: (password: string) => Promise<AuthResult>;
   clearAuthConfirm: () => void;
   clearPendingConfirmation: () => void;
+  clearPendingRecovery: () => void;
   signOut: () => Promise<void>;
 }
 
@@ -42,6 +51,8 @@ const AuthContext = createContext<AuthContextValue>({
   authConfirmPhase: 'none',
   authConfirmError: null,
   pendingConfirmationEmail: null,
+  pendingRecoveryEmail: null,
+  authLinkKind: null,
   signIn: async () => ({ error: null }),
   signInWithGoogle: async () => ({ error: null }),
   signUp: async () => ({ error: null }),
@@ -50,6 +61,7 @@ const AuthContext = createContext<AuthContextValue>({
   updatePassword: async () => ({ error: null }),
   clearAuthConfirm: () => {},
   clearPendingConfirmation: () => {},
+  clearPendingRecovery: () => {},
   signOut: async () => {},
 });
 
@@ -82,12 +94,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authConfirmPhase, setAuthConfirmPhase] = useState<AuthConfirmPhase>('none');
   const [authConfirmError, setAuthConfirmError] = useState<string | null>(null);
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
+  const [pendingRecoveryEmail, setPendingRecoveryEmail] = useState<string | null>(null);
+  const [authLinkKind, setAuthLinkKind] = useState<'recovery' | 'signup' | 'invite' | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
+      // PKCE recovery links may omit type=recovery in the URL; this event is the
+      // reliable signal to show SetNewPasswordScreen on web.
+      if (event === 'PASSWORD_RECOVERY') {
+        setAuthConfirmPhase('recovery');
+        setAuthConfirmError(null);
+        setAuthLinkKind('recovery');
+        setInitializing(false);
+      }
     });
 
     (async () => {
@@ -105,8 +127,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           setAuthConfirmPhase('error');
           setAuthConfirmError(error.message);
+          if (confirmParams.type === 'recovery') setAuthLinkKind('recovery');
+          else if (confirmParams.type === 'invite') setAuthLinkKind('invite');
+          else setAuthLinkKind('signup');
         } else if (confirmParams.type === 'recovery' || confirmParams.type === 'invite') {
           setAuthConfirmPhase('recovery');
+          setAuthLinkKind(confirmParams.type === 'invite' ? 'invite' : 'recovery');
+          setAuthConfirmError(null);
         } else {
           // Email/signup confirmation succeeded. verifyOtp establishes a session,
           // but per product decision we do NOT auto-login (the link is often
@@ -152,10 +179,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (error || !data.session) {
             setAuthConfirmPhase('error');
             setAuthConfirmError(error?.message ?? 'This link may have expired or already been used.');
+            if (callbackType === 'recovery') setAuthLinkKind('recovery');
+            else if (callbackType === 'invite') setAuthLinkKind('invite');
           } else if (callbackType === 'recovery' || callbackType === 'invite') {
             setAuthConfirmPhase('recovery');
+            setAuthLinkKind(callbackType === 'invite' ? 'invite' : 'recovery');
+            setAuthConfirmError(null);
           } else {
-            setAuthConfirmPhase('none');
+            setAuthConfirmPhase(prev => (prev === 'recovery' ? 'recovery' : 'none'));
             setPendingConfirmationEmail(null);
           }
         }
@@ -178,13 +209,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string): Promise<AuthResult> => {
-    const normalized = email.trim().toLowerCase();
+  const signIn = useCallback(async (identifier: string, password: string): Promise<AuthResult> => {
+    if (!isValidLoginIdentifier(identifier)) {
+      return { error: INVALID_LOGIN_MESSAGE };
+    }
+    const normalized = await resolveLoginEmail(identifier);
+    if (!normalized) {
+      return { error: INVALID_LOGIN_MESSAGE };
+    }
     const { error } = await supabase.auth.signInWithPassword({ email: normalized, password });
     if (error?.message.toLowerCase().includes('email not confirmed')) {
       setPendingConfirmationEmail(normalized);
     } else if (!error) {
       setPendingConfirmationEmail(null);
+    }
+    if (error && /invalid login credentials/i.test(error.message)) {
+      return { error: INVALID_LOGIN_MESSAGE };
     }
     return { error: error?.message ?? null };
   }, []);
@@ -293,18 +333,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const resetPassword = useCallback(async (email: string): Promise<AuthResult> => {
+    const normalized = email.trim().toLowerCase();
     const { error } = await supabase.auth.resetPasswordForEmail(
-      email.trim().toLowerCase(),
+      normalized,
       { redirectTo: getAuthConfirmUrl() },
     );
+    if (!error) {
+      setPendingRecoveryEmail(normalized);
+      setAuthLinkKind('recovery');
+    }
     return { error: error?.message ?? null };
   }, []);
 
   const updatePassword = useCallback(async (password: string): Promise<AuthResult> => {
     const { error } = await supabase.auth.updateUser({ password });
     if (!error) {
-      setAuthConfirmPhase('none');
       setAuthConfirmError(null);
+      setPendingRecoveryEmail(null);
+      setAuthLinkKind(null);
     }
     return { error: error?.message ?? null };
   }, []);
@@ -312,10 +358,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearAuthConfirm = useCallback(() => {
     setAuthConfirmPhase('none');
     setAuthConfirmError(null);
+    setAuthLinkKind(null);
   }, []);
 
   const clearPendingConfirmation = useCallback(() => {
     setPendingConfirmationEmail(null);
+  }, []);
+
+  const clearPendingRecovery = useCallback(() => {
+    setPendingRecoveryEmail(null);
+    setAuthLinkKind(null);
   }, []);
 
   const signOut = useCallback(async () => {
@@ -323,6 +375,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthConfirmPhase('none');
     setAuthConfirmError(null);
     setPendingConfirmationEmail(null);
+    setPendingRecoveryEmail(null);
+    setAuthLinkKind(null);
   }, []);
 
   return (
@@ -334,6 +388,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authConfirmPhase,
         authConfirmError,
         pendingConfirmationEmail,
+        pendingRecoveryEmail,
+        authLinkKind,
         signIn,
         signInWithGoogle,
         signUp,
@@ -342,6 +398,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updatePassword,
         clearAuthConfirm,
         clearPendingConfirmation,
+        clearPendingRecovery,
         signOut,
       }}
     >

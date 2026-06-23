@@ -163,7 +163,7 @@ export function RescueUpdatesSection({
             {`Latest from ${caseName}'s rescue team`}
           </Text>
         </View>
-        {isOwner && onPostUpdate ? (
+        {isOwner && onPostUpdate && updates.length > 0 ? (
           <Button variant="outline" size="sm" icon="plus" onPress={onPostUpdate}>
             Post update
           </Button>

@@ -38,7 +38,13 @@ export function CompanionOnboardingScreen() {
     if (!canSubmit || !user) return;
     setLoading(true);
     setError(null);
-    const result = await addManualAsync({ name: name.trim(), species, age, ownerId: user.id });
+    const result = await addManualAsync({
+      name: name.trim(),
+      handle: name.trim(),
+      species,
+      age,
+      ownerId: user.id,
+    });
     setLoading(false);
     if (!result) {
       setError('Could not save your companion. Please try again.');

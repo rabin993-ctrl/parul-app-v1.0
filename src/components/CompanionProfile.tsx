@@ -23,8 +23,9 @@ import { useAuth } from '../context/AuthContext';
 import { useMediaPicker } from '../hooks/useMediaPicker';
 import { getCachedProfile } from '../hooks/useUserProfile';
 import { usePostsByCompanion } from '../hooks/usePostsByCompanion';
-import { splitCompanionPosts, type CompanionContentStyle } from '../utils/companionPostContent';
+import { splitCompanionPosts, classifyCompanionPost, type CompanionContentStyle } from '../utils/companionPostContent';
 import { filterCompanionAuthoredPosts } from '../utils/postCompanion';
+import { formatCompanionHandleSearchToken } from '../utils/companionHandle';
 import { CompanionProfileHero } from './companion/CompanionProfileHero';
 import { CompanionStatsBar } from './companion/CompanionStatsBar';
 import { CompanionOptionsSheet } from './companion/CompanionOptionsSheet';
@@ -34,6 +35,8 @@ import { useCompanionProfileEdit } from '../hooks/useCompanionProfileEdit';
 import { FeedPostItem } from './feed/FeedPostItem';
 import { confirmDeletePost } from './feed/PostOwnerMenu';
 import { PhotoSlot } from './ui/PhotoSlot';
+import { PublishingOverlay } from './ui/PublishingOverlay';
+import { PUBLISH_LABELS } from '../types/publishStatus';
 import { getPostImageUrls } from '../utils/postMedia';
 import { ForwardSheet, type ForwardDest } from './ForwardSheet';
 import { useCurrentUserProfile } from '../context/CurrentUserProfileContext';
@@ -662,6 +665,9 @@ function mergeCompanionPostsWithFeed(dbPosts: Post[], feedPosts: Post[], compani
     const feed = feedById.get(db.id);
     if (!feed) return db;
     feedById.delete(db.id);
+    if (feed.publishStatus === 'uploading') {
+      return { ...db, ...feed, id: db.id };
+    }
     const dbMediaCount = db.mediaUrls?.length ?? 0;
     const feedMediaCount = feed.mediaUrls?.length ?? 0;
     const preferFeedMedia = feedMediaCount > 0 && (
@@ -713,6 +719,14 @@ function ProfilePostsGrid({
   );
   const { updates, gallery } = useMemo(() => splitCompanionPosts(companionPosts), [companionPosts]);
   const [tab, setTab] = useState<CompanionProfileTab>('gallery');
+  const lastUploadFocusIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const uploading = companionPosts.find(p => p.publishStatus === 'uploading');
+    if (!uploading || uploading.id === lastUploadFocusIdRef.current) return;
+    lastUploadFocusIdRef.current = uploading.id;
+    setTab(classifyCompanionPost(uploading) === 'gallery' ? 'gallery' : 'posts');
+  }, [companionPosts]);
 
   useEffect(() => {
     if (!postsRefreshToken) return;
@@ -836,7 +850,8 @@ function ProfilePostsGrid({
           {renderGalleryAddCell()}
           {gallery.map(post => {
             const imageUrls = getPostImageUrls(post);
-            if (imageUrls.length === 0) return null;
+            const isUploading = post.publishStatus === 'uploading';
+            if (imageUrls.length === 0 && !isUploading) return null;
             return (
               <View
                 key={post.id}
@@ -848,27 +863,39 @@ function ProfilePostsGrid({
                     height: cellSize,
                     backgroundColor: tint + '18',
                     borderRadius: radius.sm,
+                    opacity: isUploading ? 0.88 : 1,
                   },
                 ]}
+                pointerEvents={isUploading ? 'none' : 'auto'}
               >
-                <PhotoSlot
-                  height={cellSize}
-                  uri={post.mediaUrls?.[0]}
-                  fallbackUri={post.mediaFallbackUrls?.[0]}
-                  imageKey={post.id}
-                  imageIndex={0}
-                  borderRadius={radius.sm}
-                  filled
-                  label=""
-                  onPress={() => handleGalleryCellPress(post)}
-                  style={{ width: cellSize, height: cellSize }}
-                />
-                {(post.mediaUrls?.length ?? post.images) > 1 && (
+                {imageUrls.length > 0 ? (
+                  <PhotoSlot
+                    height={cellSize}
+                    uri={post.mediaUrls?.[0]}
+                    fallbackUri={post.mediaFallbackUrls?.[0]}
+                    imageKey={post.id}
+                    imageIndex={0}
+                    borderRadius={radius.sm}
+                    filled
+                    label=""
+                    onPress={() => handleGalleryCellPress(post)}
+                    style={{ width: cellSize, height: cellSize }}
+                  />
+                ) : null}
+                {isUploading ? (
+                  <PublishingOverlay
+                    visible
+                    label={PUBLISH_LABELS.pawPosting}
+                    variant="media"
+                    style={{ borderRadius: radius.sm }}
+                  />
+                ) : null}
+                {!isUploading && (post.mediaUrls?.length ?? post.images) > 1 && (
                   <View style={styles.multiImageBadge}>
                     <Icon name="grid" size={10} color="#fff" />
                   </View>
                 )}
-                {ownPet ? (
+                {ownPet && !isUploading ? (
                   <Pressable
                     onPress={e => {
                       e.stopPropagation?.();
@@ -1178,7 +1205,7 @@ export function CompanionFullProfile({
       <SafeAreaView style={styles.fullRoot} edges={['top']}>
         <View style={PROFILE_HANDLE_HEADER_WRAP}>
           <AppCenteredHeader
-            title={`@${companion.handle ?? companion.id}`}
+            title={formatCompanionHandleSearchToken(companion.handle, companion.id)}
             onBack={editing ? handleCancelEdit : onClose}
             backAccessibilityLabel={editing ? 'Cancel editing' : 'Back'}
             compact

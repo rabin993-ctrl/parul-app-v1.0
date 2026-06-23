@@ -13,7 +13,7 @@ import { type Post, type PostTag } from '../../data/mockData';
 import { countFeedThreadComments } from '../../utils/postComments';
 import { getPostImageUrls } from '../../utils/postMedia';
 import { PublishingOverlay } from '../ui/PublishingOverlay';
-import { PUBLISH_LABELS } from '../../types/publishStatus';
+import { publishLabelForFeedPost } from '../../types/publishStatus';
 
 export function resolvePostTagKey(post: Post): PostTag {
   if (post.companionAuthorId || post.tag === 'paw-posting') return 'paw-posting';
@@ -92,6 +92,7 @@ export function FeedPostCard({
   const isGalleryPhoto = post.companionContentStyle === 'gallery' && imageUrls.length > 0;
   const showTag = resolvePostTagKey(post) !== 'lost-found';
   const isUploading = post.publishStatus === 'uploading';
+  const publishLabel = publishLabelForFeedPost(post);
   const openViewer = (index: number) => setViewerIndex(index);
 
   const wrapMedia = (block: React.ReactNode) => (
@@ -101,7 +102,7 @@ export function FeedPostCard({
         {isUploading && imageUrls.length > 0 ? (
           <PublishingOverlay
             visible
-            label={PUBLISH_LABELS.feed}
+            label={publishLabel}
             variant="media"
           />
         ) : null}

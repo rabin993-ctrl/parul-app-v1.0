@@ -297,7 +297,7 @@ export function ProfileHomeScreen() {
             setToast({ msg: `${added.name} is now on your profile`, icon: 'check', tone: 'success' });
             openCompanionProfile(added.id);
           } else if (input.name.trim()) {
-            setToast({ msg: 'You already have a companion with that name', icon: 'alert', tone: 'danger' });
+            setToast({ msg: 'That companion username is already in use', icon: 'alert', tone: 'danger' });
           }
           return added;
         }}

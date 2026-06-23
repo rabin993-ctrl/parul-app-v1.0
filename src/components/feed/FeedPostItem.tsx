@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import type { Post } from '../../data/mockData';
 import type { ToastData } from '../ui/Toast';
 import { PublishingShell } from '../ui/PublishingShell';
-import { PUBLISH_LABELS } from '../../types/publishStatus';
+import { publishLabelForFeedPost } from '../../types/publishStatus';
 import { FeedPostCard } from './FeedPostCard';
 import { FeedAdoptionCard } from './FeedAdoptionCard';
 import { LostCard, FoundCard } from './AlertCards';
@@ -73,8 +73,9 @@ export function FeedPostItem({
   );
 
   const ownerMenuProps = isOwner ? { onEdit, onDelete } : {};
+  const publishLabel = publishLabelForFeedPost(post);
   const wrapPublishing = (card: React.ReactNode) => (
-    <PublishingShell publishStatus={post.publishStatus} label={PUBLISH_LABELS.feed}>
+    <PublishingShell publishStatus={post.publishStatus} label={publishLabel}>
       {card}
     </PublishingShell>
   );

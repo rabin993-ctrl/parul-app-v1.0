@@ -17,7 +17,11 @@ import { Button } from '../../components/ui/Button';
 import { LegalDocumentView } from '../../components/legal/LegalDocumentView';
 import { LEGAL_DOCUMENTS, type LegalDocumentId } from '../../data/legalDocuments';
 import { useAuth } from '../../context/AuthContext';
-import { isUsernameAvailable } from '../../utils/username';
+import {
+  isValidLoginIdentifier,
+  normalizeLoginIdentifierInput,
+} from '../../utils/loginIdentifier';
+import { isUsernameAvailable, USERNAME_RE } from '../../utils/username';
 import { ForgotPasswordSheet } from './ForgotPasswordSheet';
 import { CheckEmailScreen } from './CheckEmailScreen';
 import { AppTextInput } from '../../components/ui/AppTextInput';
@@ -58,8 +62,6 @@ export function AuthScreen() {
 
   const isSignup = mode === 'signup';
 
-  const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
-
   // Live username availability check (debounced). `username` is already
   // normalized by the field's onChangeText, so we test it directly.
   useEffect(() => {
@@ -76,7 +78,11 @@ export function AuthScreen() {
   }, [username, isSignup]);
 
   function validate(): string | null {
-    if (!EMAIL_RE.test(email.trim())) return 'Enter a valid email address.';
+    if (isSignup) {
+      if (!EMAIL_RE.test(email.trim())) return 'Enter a valid email address.';
+    } else if (!isValidLoginIdentifier(email)) {
+      return 'Enter a valid email address or username.';
+    }
     if (password.length < 6) return 'Password must be at least 6 characters.';
     if (isSignup && name.trim().length < 2) return 'Please enter your name.';
     if (isSignup && !USERNAME_RE.test(username)) return 'Username must be 3–20 characters: letters, numbers, or _.';
@@ -248,13 +254,13 @@ export function AuthScreen() {
           )}
 
           <Field
-            label="Email"
+            label={isSignup ? 'Email' : 'Email or username'}
             value={email}
-            onChangeText={setEmail}
-            placeholder="you@email.com"
-            keyboardType="email-address"
+            onChangeText={t => setEmail(isSignup ? t : normalizeLoginIdentifierInput(t))}
+            placeholder={isSignup ? 'you@email.com' : 'you@email.com or yourusername'}
+            keyboardType={isSignup ? 'email-address' : 'default'}
             autoCapitalize="none"
-            autoComplete="email"
+            autoComplete={isSignup ? 'email' : 'username'}
             colors={colors}
           />
 
