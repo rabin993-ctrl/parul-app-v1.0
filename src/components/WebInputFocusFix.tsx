@@ -37,15 +37,23 @@ function isTextField(el: EventTarget | null): el is HTMLInputElement | HTMLTextA
 
 /**
  * Mobile Safari often ignores the first tap when a scroll container or modal
- * ancestor handles touch in the capture phase. Focus the field directly and
- * stop the event from reaching RN-web's ScrollView responder.
+ * ancestor handles touch in the capture phase. Stop the event from reaching
+ * RN-web's ScrollView responder so the field receives focus from the *native*
+ * tap.
+ *
+ * IMPORTANT: do NOT call target.focus() during `touchstart` on iOS. Focusing a
+ * field mid-tap makes Safari toggle the freshly-opened keyboard right back off —
+ * the keyboard "blinks" open then dismisses (regression seen on the sign-in
+ * fields, iOS only). The native tap focuses the field on its own once the
+ * ScrollView responder is out of the way. We only focus eagerly for mouse
+ * (desktop), where it's harmless and the natural focus is reliable.
  */
 function handleFieldTouch(e: Event) {
   const target = e.target;
   if (!isTextField(target)) return;
   e.stopPropagation();
-  if (document.activeElement !== target) {
-    target.focus({ preventScroll: false });
+  if (e.type === 'mousedown' && document.activeElement !== target) {
+    target.focus({ preventScroll: true });
   }
 }
 

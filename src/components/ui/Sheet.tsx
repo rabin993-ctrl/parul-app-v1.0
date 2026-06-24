@@ -19,6 +19,15 @@ interface SheetProps {
   footer?: React.ReactNode;
   /** Show a hairline border above the footer. Default true. */
   footerBordered?: boolean;
+  /**
+   * The footer holds action buttons only (no text input) — the editable fields
+   * live in the body. On mobile web this keeps the sheet from re-anchoring to
+   * the keyboard, which otherwise drops a `position: fixed` sheet behind the
+   * keyboard on iOS (the "drawer slides down" bug). Composer sheets whose INPUT
+   * *is* the footer (chat / comments) must leave this false so the footer lifts
+   * above the keyboard.
+   */
+  footerActionsOnly?: boolean;
   /** Max total sheet height (cap). Content sizes naturally up to this limit. */
   maxHeight?: number;
   backgroundColor?: string;
@@ -67,6 +76,7 @@ export function Sheet({
   children,
   footer,
   footerBordered = true,
+  footerActionsOnly = false,
   maxHeight,
   backgroundColor,
   contentKey = '',
@@ -93,14 +103,21 @@ export function Sheet({
   const [footerH, setFooterH] = useState(0);
   const [contentH, setContentH] = useState(0);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const webViewport = useWebViewportMetrics(modalVisible);
-  const webBottomInset = Platform.OS === 'web' ? webViewport.bottomInset : 0;
-  const viewportHeight = Platform.OS === 'web'
-    ? webViewport.visibleHeight
-    : SCREEN_HEIGHT;
-  const isWebKeyboardOpen = Platform.OS === 'web' && (
+  // Only footer-input sheets (chat / comment composers) react to the mobile-web
+  // keyboard. A body-input sheet (e.g. New post, Add companion, Edit profile)
+  // is `position: fixed; bottom: 0`, which iOS Safari measures against the
+  // *layout* viewport — so shrinking/re-anchoring it when the keyboard opens
+  // drops the sheet's bottom behind the keyboard (it appears to slide down).
+  // Keeping those sheets stable leaves the header + input visible above the
+  // keyboard and lets the body scroll for the rest.
+  const hasFooter = footer != null;
+  const reactToWebKeyboard = Platform.OS === 'web' && hasFooter && !footerActionsOnly;
+  const webViewport = useWebViewportMetrics(modalVisible && reactToWebKeyboard);
+  const webBottomInset = reactToWebKeyboard ? webViewport.bottomInset : 0;
+  const viewportHeight = reactToWebKeyboard ? webViewport.visibleHeight : SCREEN_HEIGHT;
+  const isWebKeyboardOpen = reactToWebKeyboard && (
     webBottomInset >= WEB_KEYBOARD_INSET_THRESHOLD
-    || viewportHeight < SCREEN_HEIGHT - WEB_KEYBOARD_INSET_THRESHOLD
+    || webViewport.visibleHeight < SCREEN_HEIGHT - WEB_KEYBOARD_INSET_THRESHOLD
   );
   const webBrowserChromeInset = isWebKeyboardOpen ? 0 : webBottomInset;
 
@@ -110,7 +127,6 @@ export function Sheet({
   );
   const effectiveCap = Math.max(cap, 160);
 
-  const hasFooter = footer != null;
   const footerEstimate = footerSizeEstimate ?? FOOTER_ESTIMATE;
   const chromeSize = chromeH > 0 ? chromeH : (title ? CHROME_WITH_TITLE : CHROME_HANDLE_ONLY);
   const footerSize = hasFooter ? (footerH > 0 ? footerH : footerEstimate) : 0;
