@@ -1,6 +1,7 @@
 import type { Community } from '../data/mockData';
 import type { PawCircle } from '../data/pawCircles';
 import { shortCircleName } from './destinationSearch';
+import { segmentUrlsInText } from './linkText';
 
 export type MentionTarget =
   | { type: 'circle'; id: string; label: string }
@@ -10,6 +11,10 @@ export type MentionTarget =
 export type MentionSegment =
   | { kind: 'text'; value: string }
   | { kind: 'mention'; raw: string; display: string; target: MentionTarget };
+
+export type RichTextSegment =
+  | MentionSegment
+  | { kind: 'url'; value: string };
 
 function isMentionBoundary(ch: string | undefined): boolean {
   return ch === undefined || /\s/.test(ch) || /[.,!?;:)]/.test(ch);
@@ -194,4 +199,28 @@ export function segmentMentionText(
   }
 
   return segments.length > 0 ? segments : [{ kind: 'text', value: text }];
+}
+
+function expandTextSegmentsWithUrls(segments: MentionSegment[]): RichTextSegment[] {
+  const out: RichTextSegment[] = [];
+  for (const seg of segments) {
+    if (seg.kind !== 'text') {
+      out.push(seg);
+      continue;
+    }
+    for (const urlSeg of segmentUrlsInText(seg.value)) {
+      out.push(urlSeg);
+    }
+  }
+  return out;
+}
+
+/** Mentions plus clickable http(s) URLs. */
+export function segmentRichText(
+  text: string,
+  registry: Map<string, MentionTarget>,
+  opts?: { registryOnly?: boolean },
+): RichTextSegment[] {
+  const mentionSegments = segmentMentionText(text, registry, opts);
+  return expandTextSegmentsWithUrls(mentionSegments);
 }

@@ -5,7 +5,6 @@ import { CompanionAvatar } from '../ui/Avatar';
 import { Icon } from '../icons/Icon';
 import { Sheet } from '../ui/Sheet';
 import type { Companion } from '../../data/mockData';
-import { shareCompanionProfileLink } from '../../utils/shareLinks';
 import { formatCompanionHandleLabel } from '../../utils/companionHandle';
 
 type Option = {
@@ -16,10 +15,6 @@ type Option = {
   onPress: () => void;
   danger?: boolean;
 };
-
-async function shareCompanionLink(companionId: string): Promise<boolean> {
-  return shareCompanionProfileLink(companionId);
-}
 
 function formatMetaLine(companion: Companion): string | null {
   const breed = companion.breed && companion.breed !== '—' ? companion.breed : null;
@@ -88,8 +83,7 @@ type Props = {
   onRemove: () => void;
   onToggleFollow: () => void;
   onReport: () => void;
-  onShareSuccess: () => void;
-  onShareError: () => void;
+  onOpenShare: () => void;
 };
 
 export function CompanionOptionsSheet({
@@ -102,8 +96,7 @@ export function CompanionOptionsSheet({
   onRemove,
   onToggleFollow,
   onReport,
-  onShareSuccess,
-  onShareError,
+  onOpenShare,
 }: Props) {
   const { colors } = useTheme();
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -113,11 +106,9 @@ export function CompanionOptionsSheet({
     onClose();
   };
 
-  const handleShare = async () => {
-    const ok = await shareCompanionLink(companion.id);
-    if (ok) onShareSuccess();
-    else onShareError();
+  const handleShare = () => {
     handleClose();
+    onOpenShare();
   };
 
   const primaryOptions: Option[] = ownPet
@@ -133,8 +124,8 @@ export function CompanionOptionsSheet({
         id: 'share',
         icon: 'forward',
         label: 'Share profile',
-        subtitle: 'Copy link to share',
-        onPress: () => { void handleShare(); },
+        subtitle: 'Send to chat or copy link',
+        onPress: handleShare,
       },
     ]
     : [
@@ -142,8 +133,8 @@ export function CompanionOptionsSheet({
         id: 'share',
         icon: 'forward',
         label: 'Share profile',
-        subtitle: 'Copy link to share',
-        onPress: () => { void handleShare(); },
+        subtitle: 'Send to chat or copy link',
+        onPress: handleShare,
       },
       {
         id: 'follow',

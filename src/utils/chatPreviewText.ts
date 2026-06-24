@@ -1,10 +1,12 @@
 import { isRescueCaseShareText, parseRescueCaseShareText } from './shareRescueCase';
+import { isCompanionProfileShareText, parseCompanionProfileShareText } from './shareCompanionProfile';
 import { isRescueIntroPreview } from './rescueHelpChat';
 
 type PreviewContent =
   | { kind: 'text'; text: string }
   | { kind: 'shared_post' }
   | { kind: 'rescue_case'; name?: string }
+  | { kind: 'companion_profile'; name?: string }
   | { kind: 'photo' }
   | { kind: 'file' }
   | { kind: 'voice' }
@@ -14,6 +16,14 @@ function rescueCasePreviewContent(text?: string | null): Extract<PreviewContent,
   if (!text || !isRescueCaseShareText(text)) return null;
   const parsed = parseRescueCaseShareText(text);
   return { kind: 'rescue_case', name: parsed?.preview?.headline };
+}
+
+function companionProfilePreviewContent(
+  text?: string | null,
+): Extract<PreviewContent, { kind: 'companion_profile' }> | null {
+  if (!text || !isCompanionProfileShareText(text)) return null;
+  const parsed = parseCompanionProfileShareText(text);
+  return { kind: 'companion_profile', name: parsed?.preview?.name };
 }
 
 function firstName(name?: string | null): string | null {
@@ -55,6 +65,12 @@ export function formatChatPreviewLabel(params: {
       const name = params.content.name?.trim();
       return name ? `${actor} shared a rescue case · ${name}` : `${actor} shared a rescue case`;
     }
+    case 'companion_profile': {
+      const name = params.content.name?.trim();
+      return name
+        ? (isMe ? `You shared ${name}'s profile` : `${actor} shared ${name}'s profile`)
+        : `${actor} shared a companion profile`;
+    }
     case 'photo':
       return `${actor} sent a photo`;
     case 'file':
@@ -94,6 +110,10 @@ export function circleMessagePreview(params: {
     });
   }
   if (params.type === 'text') {
+    const companion = companionProfilePreviewContent(params.text);
+    if (companion) {
+      return formatChatPreviewLabel({ ...base, content: companion });
+    }
     const rescue = rescueCasePreviewContent(params.text);
     if (rescue) {
       return formatChatPreviewLabel({ ...base, content: rescue });
@@ -146,6 +166,10 @@ export function dmMessagePreview(params: {
       ...base,
       content: mediaPreviewContent(params.mediaKind),
     });
+  }
+  const companion = companionProfilePreviewContent(params.text);
+  if (companion) {
+    return formatChatPreviewLabel({ ...base, content: companion });
   }
   const rescue = rescueCasePreviewContent(params.text);
   if (rescue) {

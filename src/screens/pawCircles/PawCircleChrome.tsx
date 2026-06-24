@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { radius, spacing, typography } from '../../theme/tokens';
-import { AppSubHeader, AppCenteredHeader, AppHeaderIconButton, APP_HEADER_COMPACT_ACTION_SIZE, HUB_CENTERED_TITLE_STYLE } from '../../components/ui/AppSubHeader';
+import { AppSubHeader, AppCenteredHeader, AppHeaderIconButton, HUB_CENTERED_TITLE_STYLE } from '../../components/ui/AppSubHeader';
 import { Icon } from '../../components/icons/Icon';
 import {
   CREATE_CIRCLE_A11Y_LABEL,
@@ -15,7 +15,8 @@ import {
 import type { CirclePrivacy } from '../../data/pawCircles';
 
 /** Tighter hit targets so three hub actions fit without crowding the title. */
-const HUB_HEADER_ACTION_SIZE = APP_HEADER_COMPACT_ACTION_SIZE;
+const HUB_HEADER_ACTION_SIZE = 34;
+const HUB_HEADER_ACTION_ICON_SIZE = 22;
 
 export function CirclePrivacyLockIcon({
   privacy,
@@ -103,6 +104,7 @@ export function PawCircleHubHeader({
               name={EXPLORE_CIRCLES_ICON}
               color={colors.primary}
               size={HUB_HEADER_ACTION_SIZE}
+              iconSize={HUB_HEADER_ACTION_ICON_SIZE}
               onPress={onExplorePress}
               accessibilityLabel={EXPLORE_CIRCLES_A11Y_LABEL}
             />
@@ -112,6 +114,7 @@ export function PawCircleHubHeader({
               name={CREATE_CIRCLE_ICON}
               color={colors.primary}
               size={HUB_HEADER_ACTION_SIZE}
+              iconSize={HUB_HEADER_ACTION_ICON_SIZE}
               onPress={onCreatePress}
               accessibilityLabel={CREATE_CIRCLE_A11Y_LABEL}
             />
@@ -121,6 +124,7 @@ export function PawCircleHubHeader({
               name={PENDING_JOIN_REQUESTS_ICON}
               color={colors.primary}
               size={HUB_HEADER_ACTION_SIZE}
+              iconSize={HUB_HEADER_ACTION_ICON_SIZE}
               count={pendingRequestCount}
               onPress={onPendingRequestsPress}
               accessibilityLabel={PENDING_JOIN_REQUESTS_A11Y_LABEL}
@@ -329,6 +333,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 0,
+    marginRight: -2,
     flexShrink: 0,
     overflow: 'visible',
   },

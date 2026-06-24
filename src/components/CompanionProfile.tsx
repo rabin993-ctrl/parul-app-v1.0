@@ -32,6 +32,7 @@ import { CompanionOptionsSheet } from './companion/CompanionOptionsSheet';
 import { CompanionProfileBioSection } from './companion/CompanionProfileBioSection';
 import { CompanionProfileEditFields } from './companion/CompanionProfileEditFields';
 import { useCompanionProfileEdit } from '../hooks/useCompanionProfileEdit';
+import { useCompanionProfileShare } from '../hooks/useCompanionProfileShare';
 import { FeedPostItem } from './feed/FeedPostItem';
 import { confirmDeletePost } from './feed/PostOwnerMenu';
 import { PhotoSlot } from './ui/PhotoSlot';
@@ -1055,6 +1056,16 @@ export function CompanionFullProfile({
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [postsRefreshToken, setPostsRefreshToken] = useState(0);
+  const {
+    shareOpen,
+    openShare,
+    closeShare,
+    completeShare,
+    quickActions,
+    createdCircles,
+    joinedCircles,
+    joinedCommunities,
+  } = useCompanionProfileShare(onToast);
 
   useEffect(() => {
     setEditing(false);
@@ -1327,8 +1338,17 @@ export function CompanionFullProfile({
       onRemove={() => { void handleRemoveCompanion(); }}
       onToggleFollow={() => { void handleOptionsFollow(); }}
       onReport={() => onToast({ msg: 'Report submitted — thanks for helping keep Parul safe', icon: 'flag', tone: 'primary' })}
-      onShareSuccess={() => onToast({ msg: 'Profile link copied', icon: 'check', tone: 'success' })}
-      onShareError={() => onToast({ msg: 'Could not share profile link', icon: 'close', tone: 'danger' })}
+      onOpenShare={() => openShare(companion)}
+    />
+    <ForwardSheet
+      visible={shareOpen}
+      createdCircles={createdCircles}
+      joinedCircles={joinedCircles}
+      joinedCommunities={joinedCommunities}
+      onClose={closeShare}
+      onSelect={(dests, note) => { void completeShare(dests, note); }}
+      quickActions={quickActions}
+      title="Share profile"
     />
     </>
   );

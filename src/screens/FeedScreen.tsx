@@ -17,7 +17,6 @@ import { AppSubHeader, AppHeaderIconButton, APP_HEADER_COMPACT_ACTION_SIZE, APP_
 import { AppLogo } from '../components/ui/AppLogo';
 import { Avatar, CompanionAvatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
-import { Button, IconButton } from '../components/ui/Button';
 import { Sheet } from '../components/ui/Sheet';
 import { ModalPresent } from '../components/ui/ModalScrim';
 import { PhotoSlot } from '../components/ui/PhotoSlot';
@@ -1010,15 +1009,29 @@ function ComposerBar({
 
         {onOpenFilterPopup ? (
           <View ref={filterButtonRef} collapsable={false} style={styles.composerFilterWrap}>
-            <IconButton
-              name="sliders"
-              size={46}
-              iconSize={24}
-              tone="ghost"
-              color={colors.text}
-              accessibilityLabel="Filter feed"
+            <Pressable
               onPress={onOpenFilterPopup}
-            />
+              accessibilityRole="button"
+              accessibilityLabel="Filter feed"
+              accessibilityState={{ selected: postTypeFilters.length > 0 }}
+              style={({ pressed }) => [
+                styles.composerFilterBtn,
+                {
+                  backgroundColor: shellBg,
+                  borderColor: colors.border,
+                },
+                postTypeFilters.length > 0 && { backgroundColor: colors.primary + '12' },
+                Platform.OS === 'web' && styles.composerPressWeb,
+                pressed && styles.composerPressPressed,
+              ]}
+            >
+              <Icon
+                name="sliders"
+                size={20}
+                color={postTypeFilters.length > 0 ? colors.primary : colors.textSecondary}
+                sw={2.2}
+              />
+            </Pressable>
           </View>
         ) : null}
       </View>
@@ -1357,6 +1370,26 @@ const styles = StyleSheet.create({
   },
   composerFilterWrap: {
     flexShrink: 0,
+  },
+  composerFilterBtn: {
+    width: 36,
+    height: 36,
+    minWidth: 36,
+    minHeight: 36,
+    borderRadius: radius.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      web: {
+        padding: 0,
+        borderStyle: 'solid',
+        boxSizing: 'border-box',
+        appearance: 'none',
+        WebkitAppearance: 'none',
+      } as object,
+      default: {},
+    }),
   },
   composerShell: {
     flex: 1,

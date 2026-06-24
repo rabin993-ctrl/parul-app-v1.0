@@ -43,6 +43,16 @@ function categoryToStep(id: MentionCategory): ForwardStep {
 
 type ForwardMemberRow = { userId: string; name?: string; handle?: string; tint?: string };
 
+export type ForwardQuickAction = {
+  id: string;
+  label: string;
+  subtitle?: string;
+  icon: string;
+  iconTint?: string;
+  iconBg?: string;
+  onPress: () => void;
+};
+
 export function ForwardSheet({
   visible,
   createdCircles,
@@ -50,6 +60,8 @@ export function ForwardSheet({
   joinedCommunities,
   onClose,
   onSelect,
+  quickActions,
+  title = 'Share',
 }: {
   visible: boolean;
   createdCircles: PawCircle[];
@@ -57,6 +69,8 @@ export function ForwardSheet({
   joinedCommunities: Community[];
   onClose: () => void;
   onSelect: (dests: ForwardDest[], note?: string) => void;
+  quickActions?: ForwardQuickAction[];
+  title?: string;
 }) {
   const { colors, iconBg } = useTheme();
 
@@ -150,7 +164,7 @@ export function ForwardSheet({
       case 'communities': return 'Community';
       case 'member_circles': return 'Which circle?';
       case 'members': return memberCircle ? shortCircleName(memberCircle.name) : 'Circle member';
-      default: return 'Share';
+      default: return title;
     }
   })();
 
@@ -333,6 +347,18 @@ export function ForwardSheet({
 
         {step === 'home' && !homeSearchActive && (
           <View style={styles.destList}>
+            {quickActions?.map((action, i) => renderRow(
+              action.id,
+              action.onPress,
+              (
+                <View style={[styles.rowIcon, { backgroundColor: action.iconBg ?? colors.primary + '18' }]}>
+                  <Icon name={action.icon} size={16} color={action.iconTint ?? colors.primary} />
+                </View>
+              ),
+              action.label,
+              action.subtitle ?? '',
+              i > 0,
+            ))}
             {MENTION_CATEGORIES.map((cat, i) => renderRow(
               cat.id,
               () => openCategory(cat.id),
@@ -343,7 +369,7 @@ export function ForwardSheet({
               ),
               cat.label,
               cat.sub,
-              i > 0,
+              (quickActions?.length ?? 0) > 0 || i > 0,
               { showChevron: true },
             ))}
           </View>

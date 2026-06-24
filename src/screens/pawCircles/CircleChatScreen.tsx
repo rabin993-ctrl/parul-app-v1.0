@@ -44,7 +44,9 @@ import {
 } from '../../utils/chatMessageListItems';
 import { sharedPostLoadingLabel } from '../../utils/chatPreviewText';
 import { RescueCaseShareCard } from '../../components/rescue/RescueCaseShareCard';
+import { CompanionProfileShareCard } from '../../components/companion/CompanionProfileShareCard';
 import { useRescueFeedOptional } from '../../context/RescueFeedContext';
+import { useCompanions } from '../../context/CompanionContext';
 import { fetchRescueCaseById } from '../../utils/rescueCases';
 import { getRootNavigation } from '../../navigation/notificationRouting';
 import { openRescueCaseDetail } from '../../navigation/rescueCaseRouting';
@@ -52,7 +54,12 @@ import {
   isRescueCaseShareText,
   parseRescueCaseShareText,
 } from '../../utils/shareRescueCase';
+import {
+  isCompanionProfileShareText,
+  parseCompanionProfileShareText,
+} from '../../utils/shareCompanionProfile';
 import type { RescueCase } from '../../data/profileData';
+import type { Companion } from '../../data/mockData';
 import { CircleChatMemberSheet } from '../../components/pawCircles/CircleChatMemberSheet';
 import { startDirectMessage } from '../../utils/startDirectMessage';
 import { useAdoption, type ChatThread } from '../../context/AdoptionContext';
@@ -209,12 +216,14 @@ export function CircleChatScreen() {
   const [pendingAttachment, setPendingAttachment] = useState<ChatAttachmentDraft | null>(null);
   const [sharedPostMap, setSharedPostMap] = useState<Record<string, Post>>({});
   const [rescueCaseMap, setRescueCaseMap] = useState<Record<string, RescueCase>>({});
+  const [companionMap, setCompanionMap] = useState<Record<string, Companion>>({});
   const [selectedMember, setSelectedMember] = useState<CircleMemberProfile | null>(null);
   const latchedMemberRef = useRef<CircleMemberProfile | null>(null);
   if (selectedMember) latchedMemberRef.current = selectedMember;
   const memberSheetMember = selectedMember ?? latchedMemberRef.current;
   const [dmLoading, setDmLoading] = useState(false);
   const rescueFeed = useRescueFeedOptional();
+  const { getCompanion, fetchCompanionById } = useCompanions();
   const listRef = useRef<FlatList<CircleChatListItem>>(null);
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
@@ -378,14 +387,48 @@ export function CircleChatScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
 
+  useEffect(() => {
+    const companionIds = messages
+      .filter(m => m.type === 'text' && isCompanionProfileShareText((m as { text: string }).text))
+      .map(m => parseCompanionProfileShareText((m as { text: string }).text)!.companionId)
+      .filter(id => {
+        if (companionMap[id]) return false;
+        if (getCompanion(id)) return false;
+        return true;
+      });
+    const uniqueIds = [...new Set(companionIds)];
+    if (uniqueIds.length === 0) return;
+    void Promise.all(uniqueIds.map(id => fetchCompanionById(id))).then(rows => {
+      const loaded: Record<string, Companion> = {};
+      for (const row of rows) {
+        if (row) loaded[row.id] = row;
+      }
+      if (Object.keys(loaded).length > 0) {
+        setCompanionMap(prev => ({ ...prev, ...loaded }));
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
+
   const resolveRescueCase = useCallback((caseId: string): RescueCase | null => {
     return rescueCaseMap[caseId]
       ?? rescueFeed?.cases.find(c => c.id === caseId)
       ?? null;
   }, [rescueCaseMap, rescueFeed?.cases]);
 
+  const resolveCompanion = useCallback((companionId: string): Companion | null => {
+    return companionMap[companionId] ?? getCompanion(companionId) ?? null;
+  }, [companionMap, getCompanion]);
+
   const handleViewRescueCase = useCallback((caseId: string) => {
     openRescueCaseDetail(getRootNavigation(navigation), caseId);
+  }, [navigation]);
+
+  const handleViewCompanionFromShare = useCallback((companionId: string) => {
+    navigation.getParent()?.navigate('Profile', {
+      screen: 'Companion',
+      params: { companionId },
+    });
   }, [navigation]);
 
   const handleViewSharedPost = useCallback((post: Post) => {
@@ -516,6 +559,46 @@ export function CircleChatScreen() {
     );
   };
 
+  const renderCompanionProfileShareCluster = (
+    item: Extract<DbCircleMessage, { type: 'text' }>,
+  ) => {
+    const parsed = parseCompanionProfileShareText(item.text);
+    if (!parsed) return null;
+
+    const isMe = !!(user?.id && item.userId === user.id);
+    const author = memberAvatarById.get(item.userId)
+      ?? { id: item.userId, name: item.userId.slice(0, 8), tint: '#888888' };
+    const companion = resolveCompanion(parsed.companionId);
+    const cardTint = companion?.tint ?? author.tint ?? colors.primary;
+    const time = item.time;
+
+    return (
+      <View style={isMe ? styles.outgoingWrap : styles.incomingRow}>
+        {!isMe && renderPeerAvatar(item.userId, author)}
+        <View
+          style={[
+            isMe ? styles.outgoingCol : styles.incomingCol,
+            styles.messageCluster,
+            { width: bubbleMaxWidth, maxWidth: bubbleMaxWidth },
+          ]}
+        >
+          <CompanionProfileShareCard
+            companionId={parsed.companionId}
+            companion={companion}
+            preview={parsed.preview}
+            tint={cardTint}
+            onPress={() => handleViewCompanionFromShare(parsed.companionId)}
+            maxWidth={bubbleMaxWidth}
+          />
+          <View style={isMe ? styles.outgoingMeta : styles.incomingMeta}>
+            <Text style={[styles.bubbleTime, { color: colors.textTertiary }]}>{time}</Text>
+            {isMe ? <Icon name="check" size={12} color={colors.primary} /> : null}
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   const renderRescueCaseShareCluster = (
     item: Extract<DbCircleMessage, { type: 'text' }>,
   ) => {
@@ -616,6 +699,10 @@ export function CircleChatScreen() {
     }
 
     if (message.type !== 'text') return null;
+
+    if (isCompanionProfileShareText(message.text)) {
+      return renderCompanionProfileShareCluster(message);
+    }
 
     if (isRescueCaseShareText(message.text)) {
       return renderRescueCaseShareCluster(message);
