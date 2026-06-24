@@ -78,7 +78,7 @@ export function UserProfileScreen() {
   const [toast, setToast] = useState<ToastData | null>(null);
   const [dmLoading, setDmLoading] = useState(false);
   const [addToCircleOpen, setAddToCircleOpen] = useState(false);
-  const [hideAddToCircle, setHideAddToCircle] = useState(false);
+  const [addToCircleDisabled, setAddToCircleDisabled] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [profileAccess, setProfileAccess] = useState<'loading' | 'allowed' | 'denied'>('loading');
 
@@ -103,19 +103,21 @@ export function UserProfileScreen() {
     navigation.getParent()?.navigate('Profile', { screen: 'Home' });
   }, [isSelf, navigation]);
 
+  const showAddToCircle = !isSelf && !!authUser && joinedCircles.length > 0;
+
   useEffect(() => {
-    if (isSelf || !authUser || joinedCircles.length === 0) {
-      setHideAddToCircle(joinedCircles.length === 0);
+    if (!showAddToCircle) {
+      setAddToCircleDisabled(false);
       return;
     }
     let cancelled = false;
     void fetchInvitableCircles(userId).then(rows => {
       if (!cancelled) {
-        setHideAddToCircle(rows.length > 0 && rows.every(r => r.status === 'already_member'));
+        setAddToCircleDisabled(rows.length > 0 && rows.every(r => r.status === 'already_member'));
       }
     });
     return () => { cancelled = true; };
-  }, [isSelf, authUser, userId, joinedCircles.length, fetchInvitableCircles]);
+  }, [showAddToCircle, userId, joinedCircles.length, fetchInvitableCircles]);
 
   const { records, threads, registerDmThread, reloadThreads } = useAdoption();
   const {
@@ -309,7 +311,8 @@ export function UserProfileScreen() {
             adoptedMissedCount={adoptedMissedCount}
             onMessage={handleMessage}
             messageLoading={dmLoading}
-            showAddToCircle={!hideAddToCircle}
+            showAddToCircle={showAddToCircle}
+            addToCircleDisabled={addToCircleDisabled}
             onAddToCircle={() => setAddToCircleOpen(true)}
           />
 

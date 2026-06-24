@@ -910,6 +910,7 @@ export function ProfilePublicHeroBand({
   onAddToCircle,
   messageLoading = false,
   showAddToCircle = true,
+  addToCircleDisabled = false,
 }: {
   user: User;
   trust: ProfileTrust;
@@ -924,6 +925,7 @@ export function ProfilePublicHeroBand({
   onAddToCircle?: () => void;
   messageLoading?: boolean;
   showAddToCircle?: boolean;
+  addToCircleDisabled?: boolean;
 }) {
   const showTrust = trust.status !== 'good';
   const actionsRow = onMessage ? (
@@ -933,6 +935,7 @@ export function ProfilePublicHeroBand({
       onAddToCircle={onAddToCircle ?? (() => {})}
       messageLoading={messageLoading}
       showAddToCircle={showAddToCircle}
+      addToCircleDisabled={addToCircleDisabled}
     />
   ) : undefined;
 
@@ -996,6 +999,7 @@ export function ProfilePublicActions({
   onAddToCircle,
   messageLoading = false,
   showAddToCircle = true,
+  addToCircleDisabled = false,
   inline = false,
   iconOnly = false,
 }: {
@@ -1003,6 +1007,7 @@ export function ProfilePublicActions({
   onAddToCircle: () => void;
   messageLoading?: boolean;
   showAddToCircle?: boolean;
+  addToCircleDisabled?: boolean;
   inline?: boolean;
   iconOnly?: boolean;
 }) {
@@ -1033,9 +1038,11 @@ export function ProfilePublicActions({
         </Pressable>
         {showAddToCircle ? (
           <Pressable
-            onPress={onAddToCircle}
+            onPress={addToCircleDisabled ? undefined : onAddToCircle}
+            disabled={addToCircleDisabled}
             accessibilityRole="button"
-            accessibilityLabel="Add to circle"
+            accessibilityState={{ disabled: addToCircleDisabled }}
+            accessibilityLabel={addToCircleDisabled ? 'Already in your circles' : 'Add to circle'}
             style={({ pressed }) => [
               styles.publicActionIconCircle,
               {
@@ -1044,11 +1051,15 @@ export function ProfilePublicActions({
                 borderRadius: circleSize / 2,
                 backgroundColor: colors.surface2,
                 borderColor: colors.border,
-                opacity: pressed ? 0.8 : 1,
+                opacity: addToCircleDisabled ? 0.45 : pressed ? 0.8 : 1,
               },
             ]}
           >
-            <Icon name="plus" size={iconSize} color={colors.text} />
+            <Icon
+              name="plus"
+              size={iconSize}
+              color={addToCircleDisabled ? colors.textTertiary : colors.text}
+            />
           </Pressable>
         ) : null}
       </View>
@@ -1080,6 +1091,7 @@ export function ProfilePublicActions({
       {showAddToCircle ? (
       <Pressable
         onPress={onAddToCircle}
+        disabled={addToCircleDisabled}
         style={({ pressed }) => [
           styles.publicActionBtn,
           inline && styles.publicActionBtnInline,
@@ -1087,11 +1099,12 @@ export function ProfilePublicActions({
           {
             backgroundColor: colors.surface2,
             borderColor: colors.border,
-            opacity: pressed ? 0.8 : 1,
+            opacity: addToCircleDisabled ? 0.45 : pressed ? 0.8 : 1,
           },
         ]}
         accessibilityRole="button"
-        accessibilityLabel="Add to circle"
+        accessibilityState={{ disabled: addToCircleDisabled }}
+        accessibilityLabel={addToCircleDisabled ? 'Already in your circles' : 'Add to circle'}
       >
         <Icon name="plus" size={inline ? 12 : 15} color={colors.text} />
         <Text style={[
