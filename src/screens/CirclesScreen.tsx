@@ -223,6 +223,7 @@ export function CirclesScreen() {
         showBack
         onBack={goFeed}
         pendingRequestCount={pendingIncomingRequestCount}
+        onExplorePress={() => navigation.navigate('Explore')}
         onPendingRequestsPress={() => setJoinRequestsOpen(true)}
         onCreatePress={() => setCreateOpen(true)}
       />
@@ -239,7 +240,6 @@ export function CirclesScreen() {
           requests={requests}
           initialFilter={inboxFilter}
           onFilterChange={setInboxFilter}
-          onExplore={() => navigation.navigate('Explore')}
           onOpenCircleChat={id => navigation.navigate('CircleChat', { circleId: id, returnTo: 'Hub' })}
           onOpenThread={handleOpenThread}
           onReviewListingRequests={listing => {

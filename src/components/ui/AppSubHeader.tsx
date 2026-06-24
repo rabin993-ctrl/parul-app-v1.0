@@ -11,6 +11,7 @@ export const APP_HEADER_PADDING_BOTTOM = 4;
 export const APP_HEADER_BACK_SIZE = 50;
 export const APP_HEADER_LOGO_SIZE = 36;
 export const APP_HEADER_TRAILING_SLOT = 50;
+export const APP_HEADER_COMPACT_ACTION_SIZE = 40;
 export const APP_HEADER_ACTION_ICON_SIZE = 26;
 export const APP_CENTERED_HEADER_SIDE = 108;
 
@@ -78,6 +79,7 @@ export function AppCenteredHeader({
   titleStyle,
   backAccessibilityLabel = 'Back',
   compact = false,
+  trailingSideWidth,
 }: {
   title: string;
   onBack?: () => void;
@@ -86,12 +88,20 @@ export function AppCenteredHeader({
   backAccessibilityLabel?: string;
   /** Tighter vertical padding — e.g. circle chat top bar. */
   compact?: boolean;
+  /** Wider trailing slot when multiple header actions are shown. */
+  trailingSideWidth?: number;
 }) {
   const { colors } = useTheme();
+  const sideWidth = trailingSideWidth ?? APP_CENTERED_HEADER_SIDE;
+  const balancedSides = trailingSideWidth != null;
 
   return (
     <View style={[styles.subHeader, compact && styles.subHeaderCompact]}>
-      <View style={[styles.centeredSide, styles.centeredSideStart]}>
+      <View style={[
+        styles.centeredSide,
+        styles.centeredSideStart,
+        balancedSides && { width: sideWidth },
+      ]}>
         {onBack ? (
           <Pressable
             onPress={onBack}
@@ -117,7 +127,11 @@ export function AppCenteredHeader({
       >
         {title}
       </Text>
-      <View style={[styles.centeredSide, styles.centeredSideEnd]}>
+      <View style={[
+        styles.centeredSide,
+        styles.centeredSideEnd,
+        balancedSides && { width: sideWidth },
+      ]}>
         {trailing ?? <View style={styles.trailingSlot} />}
       </View>
     </View>

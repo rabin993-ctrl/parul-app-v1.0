@@ -2,15 +2,20 @@ import React from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { radius, spacing, typography } from '../../theme/tokens';
-import { AppSubHeader, AppCenteredHeader, AppHeaderIconButton, HUB_CENTERED_TITLE_STYLE } from '../../components/ui/AppSubHeader';
+import { AppSubHeader, AppCenteredHeader, AppHeaderIconButton, APP_HEADER_COMPACT_ACTION_SIZE, HUB_CENTERED_TITLE_STYLE } from '../../components/ui/AppSubHeader';
 import { Icon } from '../../components/icons/Icon';
 import {
   CREATE_CIRCLE_A11Y_LABEL,
   CREATE_CIRCLE_ICON,
+  EXPLORE_CIRCLES_A11Y_LABEL,
+  EXPLORE_CIRCLES_ICON,
   PENDING_JOIN_REQUESTS_A11Y_LABEL,
   PENDING_JOIN_REQUESTS_ICON,
 } from '../../lib/groupChrome';
 import type { CirclePrivacy } from '../../data/pawCircles';
+
+/** Tighter hit targets so three hub actions fit without crowding the title. */
+const HUB_HEADER_ACTION_SIZE = APP_HEADER_COMPACT_ACTION_SIZE;
 
 export function CirclePrivacyLockIcon({
   privacy,
@@ -68,17 +73,21 @@ export function PawCircleHubHeader({
   showBack,
   onBack,
   pendingRequestCount = 0,
+  onExplorePress,
   onPendingRequestsPress,
   onCreatePress,
 }: {
   showBack?: boolean;
   onBack?: () => void;
   pendingRequestCount?: number;
+  onExplorePress?: () => void;
   onPendingRequestsPress?: () => void;
   onCreatePress?: () => void;
 }) {
   const { colors } = useTheme();
-  const showTrailing = onCreatePress || onPendingRequestsPress;
+  const showTrailing = onExplorePress || onCreatePress || onPendingRequestsPress;
+  const trailingActionCount = [onExplorePress, onCreatePress, onPendingRequestsPress].filter(Boolean).length;
+  const trailingSideWidth = showTrailing ? trailingActionCount * HUB_HEADER_ACTION_SIZE : undefined;
 
   return (
     <AppCenteredHeader
@@ -86,12 +95,23 @@ export function PawCircleHubHeader({
       onBack={showBack ? onBack : undefined}
       backAccessibilityLabel="Back to feed from Paw Circle"
       titleStyle={HUB_CENTERED_TITLE_STYLE}
+      trailingSideWidth={trailingSideWidth}
       trailing={showTrailing ? (
         <View style={styles.hubHeaderActions}>
+          {onExplorePress ? (
+            <AppHeaderIconButton
+              name={EXPLORE_CIRCLES_ICON}
+              color={colors.primary}
+              size={HUB_HEADER_ACTION_SIZE}
+              onPress={onExplorePress}
+              accessibilityLabel={EXPLORE_CIRCLES_A11Y_LABEL}
+            />
+          ) : null}
           {onCreatePress ? (
             <AppHeaderIconButton
               name={CREATE_CIRCLE_ICON}
               color={colors.primary}
+              size={HUB_HEADER_ACTION_SIZE}
               onPress={onCreatePress}
               accessibilityLabel={CREATE_CIRCLE_A11Y_LABEL}
             />
@@ -100,6 +120,7 @@ export function PawCircleHubHeader({
             <AppHeaderIconButton
               name={PENDING_JOIN_REQUESTS_ICON}
               color={colors.primary}
+              size={HUB_HEADER_ACTION_SIZE}
               count={pendingRequestCount}
               onPress={onPendingRequestsPress}
               accessibilityLabel={PENDING_JOIN_REQUESTS_A11Y_LABEL}

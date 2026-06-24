@@ -267,6 +267,14 @@ function renderIcon(name: string, color: string, sw: number): React.ReactNode {
         <Path d="M14 7 17 10" {...s}/>
       </>;
 
+    case 'clipboard-list':
+      return <>
+        <Path d="M9.5 5.5h5" {...s}/>
+        <Rect x="8.5" y="5.5" width="7" height="3" rx="1.2" {...s}/>
+        <Path d="M8 9.5h8a1.8 1.8 0 0 1 1.8 1.8v7.4A1.8 1.8 0 0 1 16 20.1H8a1.8 1.8 0 0 1-1.8-1.8v-7.4A1.8 1.8 0 0 1 8 9.5Z" {...s}/>
+        <Path d="M10 13.2h4M10 16h4M10 18.8h2.5" {...s}/>
+      </>;
+
     case 'trash':
       return <>
         <Path d="M3 6h18" {...s}/>

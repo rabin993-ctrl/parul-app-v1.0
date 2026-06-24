@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
+import { fonts } from '../theme/fonts';
 import { radius, shadows, sheetLayout, spacing, typography } from '../theme/tokens';
-import { AppSubHeader, AppHeaderIconButton, APP_HEADER_LOGO_SIZE } from '../components/ui/AppSubHeader';
+import { AppSubHeader, AppHeaderIconButton, APP_HEADER_COMPACT_ACTION_SIZE, APP_HEADER_LOGO_SIZE } from '../components/ui/AppSubHeader';
 import { AppLogo } from '../components/ui/AppLogo';
 import { Avatar, CompanionAvatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
@@ -577,20 +578,27 @@ export function FeedScreen() {
       <AppSubHeader
         showBack={false}
         titleNode={
-          <AppLogo size={APP_HEADER_LOGO_SIZE} onPress={handleFeedHomePress} />
+          <AppLogo
+            size={APP_HEADER_LOGO_SIZE}
+            showWordmark
+            tagline="Connecting paws..."
+            onPress={handleFeedHomePress}
+          />
         }
         trailing={(
           <View style={styles.headerActions}>
             <AppHeaderIconButton
               name="search"
               color={colors.text}
+              size={APP_HEADER_COMPACT_ACTION_SIZE}
               onPress={() => navigation.navigate('Search')}
               accessibilityLabel="Search"
             />
             {ENV.BETA_FEEDBACK_ENABLED ? (
               <AppHeaderIconButton
-                name="megaphone"
+                name="clipboard-list"
                 color={colors.text}
+                size={APP_HEADER_COMPACT_ACTION_SIZE}
                 onPress={() => setBetaFeedbackOpen(true)}
                 accessibilityLabel="Beta feedback"
               />
@@ -598,6 +606,7 @@ export function FeedScreen() {
             <AppHeaderIconButton
               name="bell"
               color={colors.text}
+              size={APP_HEADER_COMPACT_ACTION_SIZE}
               count={unreadNotifCount || undefined}
               onPress={() => openNotifications(navigation)}
               accessibilityLabel="Notifications"
@@ -759,6 +768,54 @@ export function FeedScreen() {
 
 // ── ComposerBar ───────────────────────────────────────────────────────────────
 
+const FEED_GREETINGS = {
+  morning: [
+    'Rise and paw',
+    'Morning wag',
+    'Early treats club',
+  ],
+  afternoon: [
+    'Pawsitively afternoon',
+    'Midday zoomies',
+    'Park o\'clock',
+  ],
+  evening: [
+    'Golden hour paws',
+    'Sunset walk time',
+    'Unwind with paws',
+  ],
+} as const;
+
+type FeedGreetingBucket = keyof typeof FEED_GREETINGS;
+type FeedTimeBucket = FeedGreetingBucket | 'late';
+
+function feedGreetingBucket(date: Date): FeedTimeBucket {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 22) return 'evening';
+  return 'late';
+}
+
+function timeOfDayGreeting(date = new Date()): string {
+  const bucket = feedGreetingBucket(date);
+  const options = FEED_GREETINGS[bucket as FeedGreetingBucket];
+  return options[(date.getDate() + date.getMonth()) % options.length]!;
+}
+
+function greetingFirstName(name: string, handle: string): string {
+  const trimmed = name.trim();
+  if (trimmed) return trimmed.split(/\s+/)[0]!;
+  const normalizedHandle = handle.replace(/^@/, '').trim();
+  return normalizedHandle || 'there';
+}
+
+function getFeedGreetingLine(now: Date, name: string, handle: string): string {
+  const bucket = feedGreetingBucket(now);
+  if (bucket === 'late') return 'Nightowl checking in...';
+  return `${timeOfDayGreeting(now)}, ${greetingFirstName(name, handle)}`;
+}
+
 function getActiveFeedFilterPills(filters: string[]) {
   return POST_FILTER_CATEGORIES.filter(cat => {
     if (cat.id === 'lost-found') {
@@ -839,6 +896,7 @@ function ComposerBar({
 }) {
   const { colors } = useTheme();
   const { me } = useCurrentUserProfile();
+  const greetingLine = getFeedGreetingLine(new Date(), me.name, me.handle);
   const plusRef = useRef<View>(null);
   const [categoryPopupOpen, setCategoryPopupOpen] = useState(false);
   const [categoryAnchor, setCategoryAnchor] = useState({ x: 16, top: 100, caretLeft: 20 });
@@ -911,15 +969,18 @@ function ComposerBar({
           <Pressable
             onPress={openComposerFromBar}
             accessibilityRole="button"
-            accessibilityLabel="New post"
+            accessibilityLabel={`New post. ${greetingLine}`}
             style={({ pressed }) => [
               styles.composerInputArea,
               Platform.OS === 'web' && styles.composerPressWeb,
               pressed && styles.composerPressPressed,
             ]}
           >
-            <Text style={[styles.composerPlaceholder, { color: colors.textSecondary }]}>
-              Share an update…
+            <Text
+              style={[styles.composerPlaceholder, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {greetingLine}
             </Text>
           </Pressable>
         </View>
@@ -1170,7 +1231,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: spacing.xs,
-    gap: 14,
+    gap: 10,
     ...Platform.select({
       web: { userSelect: 'none' },
       default: {},
@@ -1328,7 +1389,11 @@ const styles = StyleSheet.create({
     paddingRight: 2,
     minWidth: 0,
   },
-  composerPlaceholder: { fontSize: 14, fontWeight: '500', letterSpacing: -0.15 },
+  composerPlaceholder: {
+    fontSize: 15,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.2,
+  },
   composerPressWeb: { cursor: 'pointer' as const },
   composerPressPressed: { opacity: 0.82 },
   categoryPopupCard: {

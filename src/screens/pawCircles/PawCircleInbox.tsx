@@ -43,7 +43,6 @@ type PawCircleInboxProps = {
   requests: AdoptionRequest[];
   initialFilter?: PawCircleInboxFilter;
   onFilterChange?: (filter: PawCircleInboxFilter) => void;
-  onExplore?: () => void;
   onOpenCircleChat: (circleId: string) => void;
   onOpenThread: (thread: ChatThread) => void;
   onReviewListingRequests?: (listing: AdoptionListing) => void;
@@ -56,7 +55,6 @@ export function PawCircleInbox({
   requests,
   initialFilter = 'all',
   onFilterChange,
-  onExplore,
   onOpenCircleChat,
   onOpenThread,
   onReviewListingRequests,
@@ -373,23 +371,6 @@ export function PawCircleInbox({
         />
       ) : null}
 
-      {filter === 'circles' && onExplore ? (
-        <Pressable
-          onPress={onExplore}
-          accessibilityRole="button"
-          accessibilityLabel="Explore circles"
-          style={({ pressed }) => [
-            styles.exploreRow,
-            pressed && styles.exploreRowPressed,
-            Platform.OS === 'web' && styles.exploreRowWeb,
-          ]}
-        >
-          <Icon name="mapPin" size={17} color={colors.primary} />
-          <Text style={[styles.exploreText, { color: colors.primary }]}>Explore circles</Text>
-          <Icon name="chevronRight" size={16} color={colors.textTertiary} />
-        </Pressable>
-      ) : null}
-
       {showEmpty ? (
         <View style={styles.emptyState}>
           <View style={[styles.emptyIcon, { backgroundColor: colors.surface2 }]}>
@@ -530,23 +511,6 @@ const styles = StyleSheet.create({
     paddingVertical: Platform.OS === 'web' ? 8 : 6,
   },
   list: { marginTop: -4 },
-  exploreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    minHeight: 40,
-  },
-  exploreRowWeb: { cursor: 'pointer' as const },
-  exploreRowPressed: { opacity: 0.72 },
-  exploreText: {
-    flex: 1,
-    fontSize: 14.5,
-    fontWeight: '700',
-    letterSpacing: -0.1,
-    lineHeight: 20,
-  },
   section: { gap: 2, marginBottom: spacing.sm },
   emptyState: {
     alignItems: 'center',

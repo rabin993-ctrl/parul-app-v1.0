@@ -1,3 +1,8 @@
+/** Browse and join circles from the hub header. */
+export const EXPLORE_CIRCLES_ICON = 'circles';
+
+export const EXPLORE_CIRCLES_A11Y_LABEL = 'Explore circles';
+
 /** Create a new Paw Circle from the hub header. */
 export const CREATE_CIRCLE_ICON = 'plus';
 
