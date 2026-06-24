@@ -8,7 +8,6 @@ import { matchesSearchTokens, parseSearchTokens } from './textSearch';
 import {
   formatCompanionHandleSearchToken,
   normalizeCompanionHandle,
-  parseCompanionHandleSearchTokens,
 } from './companionHandle';
 import { searchCircles, searchCommunities } from './destinationSearch';
 
@@ -17,6 +16,17 @@ export type SearchUserResult = {
   name: string;
   handle?: string;
   tint?: string;
+};
+
+export type SearchCompanionResult = {
+  id: string;
+  name: string;
+  handle?: string;
+  breed?: string;
+  species?: string;
+  icon?: string;
+  tint?: string;
+  ownerId?: string;
 };
 
 export function filterFeedPostsByQuery(posts: Post[], query: string): Post[] {
@@ -142,25 +152,60 @@ export function searchCommunitiesByQuery(communities: Community[], query: string
   ], tokens));
 }
 
-/** Match companions when the query includes #handle tokens (e.g. "#milo"). */
-export function filterCompanionsByHandleQuery(companions: Companion[], query: string): Companion[] {
-  const handleTokens = parseCompanionHandleSearchTokens(query);
-  if (handleTokens.length === 0) return [];
+/** Match companions by pet name, #handle, breed, or species. */
+export function filterCompanionsByQuery<T extends SearchCompanionResult>(
+  companions: T[],
+  query: string,
+): T[] {
+  const tokens = parseSearchTokens(query);
+  if (tokens.length === 0) return [];
 
   const seen = new Set<string>();
-  const out: Companion[] = [];
+  const out: T[] = [];
   for (const companion of companions) {
     if (seen.has(companion.id)) continue;
-    const slug = normalizeCompanionHandle(companion.handle ?? '');
-    if (!slug) continue;
     const haystack = [
-      slug,
       companion.name,
+      companion.handle,
+      normalizeCompanionHandle(companion.handle ?? ''),
       formatCompanionHandleSearchToken(companion.handle),
+      companion.breed,
+      companion.species,
     ];
-    if (!handleTokens.every(token => matchesSearchTokens(haystack, [token]))) continue;
+    if (!matchesSearchTokens(haystack, tokens)) continue;
     seen.add(companion.id);
     out.push(companion);
   }
   return out;
+}
+
+/** @deprecated Use {@link filterCompanionsByQuery} */
+export function filterCompanionsByHandleQuery(companions: Companion[], query: string): Companion[] {
+  return filterCompanionsByQuery(companions, query) as Companion[];
+}
+
+export function collectCompanionsFromPosts(posts: Post[]): SearchCompanionResult[] {
+  const byId = new Map<string, SearchCompanionResult>();
+  for (const post of posts) {
+    const ids = [
+      ...(post.companions ?? []),
+      ...(post.companionAuthorId ? [post.companionAuthorId] : []),
+    ];
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i]!;
+      if (byId.has(id)) continue;
+      const snapshot = post.companionSnapshots?.find(s => s.id === id);
+      byId.set(id, {
+        id,
+        name: post.companionNames?.[i]
+          ?? snapshot?.name
+          ?? (post.companionAuthorId === id ? post.companionAuthorName : undefined)
+          ?? post.companionName
+          ?? id,
+        tint: snapshot?.tint
+          ?? (post.companionAuthorId === id ? post.companionAuthorTint : undefined),
+      });
+    }
+  }
+  return [...byId.values()];
 }

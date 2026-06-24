@@ -173,7 +173,7 @@ export function CompanionOptionsSheet({
     : [];
 
   const metaLine = formatMetaLine(companion);
-  const handleLabel = formatCompanionHandleLabel(companion.handle, companion.id);
+  const handleLabel = formatCompanionHandleLabel(companion.handle, companion.name);
 
   return (
     <Sheet

@@ -1,8 +1,8 @@
-/** Shown in UI, e.g. "🐾 milo" (distinct from user @handles). */
-export const COMPANION_HANDLE_DISPLAY_PREFIX = '🐾';
+/** Shown in UI and search, e.g. "#milo" (distinct from user @handles). */
+export const COMPANION_HANDLE_DISPLAY_PREFIX = '#';
 
-/** Search / canonical token prefix, e.g. "#milo" (for lookup and future search). */
-export const COMPANION_HANDLE_SEARCH_PREFIX = '#';
+/** Search / canonical token prefix, e.g. "#milo". */
+export const COMPANION_HANDLE_SEARCH_PREFIX = COMPANION_HANDLE_DISPLAY_PREFIX;
 
 /** @deprecated Use COMPANION_HANDLE_DISPLAY_PREFIX */
 export const COMPANION_HANDLE_PREFIX = COMPANION_HANDLE_DISPLAY_PREFIX;
@@ -52,15 +52,14 @@ export function formatCompanionHandleSearchToken(
   return slug ? `${COMPANION_HANDLE_SEARCH_PREFIX}${slug}` : '';
 }
 
-/** User-facing label, e.g. "🐾 milo". */
+/** User-facing label, e.g. "#milo". Falls back to a slug from the pet name, never a raw id. */
 export function formatCompanionHandleLabel(
   handle: string | null | undefined,
-  fallbackId?: string,
+  fallbackName?: string,
 ): string {
-  const slug = companionHandleSlug(handle, fallbackId);
-  return slug
-    ? `${COMPANION_HANDLE_DISPLAY_PREFIX} ${slug}`
-    : COMPANION_HANDLE_DISPLAY_PREFIX;
+  const slug = normalizeCompanionHandle(handle ?? '')
+    || (fallbackName ? companionHandleFromName(fallbackName) : '');
+  return slug ? `${COMPANION_HANDLE_DISPLAY_PREFIX}${slug}` : '';
 }
 
 /** Extract #handle tokens from a search query (without the # prefix). */

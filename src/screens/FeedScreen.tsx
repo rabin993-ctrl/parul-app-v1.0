@@ -358,8 +358,11 @@ export function FeedScreen() {
   const [postTypeFilters, setPostTypeFilters] = useState<string[]>([]);
   const [filtersHydrated, setFiltersHydrated] = useState(false);
   const filterButtonRef = useRef<View>(null);
+  const categoryButtonRef = useRef<View>(null);
   const [filterPopupOpen, setFilterPopupOpen] = useState(false);
   const [filterAnchor, setFilterAnchor] = useState({ top: 100 });
+  const [categoryPopupOpen, setCategoryPopupOpen] = useState(false);
+  const [categoryAnchor, setCategoryAnchor] = useState({ x: 16, top: 100, caretLeft: 20 });
   const {
     posts: postList,
     setPosts: setPostList,
@@ -459,6 +462,7 @@ export function FeedScreen() {
 
   const openFilterPopup = useCallback(() => {
     clearWebTextSelection();
+    setCategoryPopupOpen(false);
     filterButtonRef.current?.measureInWindow((_x, y, _w, height) => {
       setFilterAnchor({ top: y + height + 6 });
       setFilterPopupOpen(prev => !prev);
@@ -466,6 +470,27 @@ export function FeedScreen() {
   }, []);
 
   const closeFilterPopup = useCallback(() => setFilterPopupOpen(false), []);
+
+  const closeCategoryPopup = useCallback(() => setCategoryPopupOpen(false), []);
+
+  const openCategoryPopup = useCallback(() => {
+    closeFilterPopup();
+    const node = categoryButtonRef.current;
+    if (!node) {
+      setCategoryPopupOpen(true);
+      return;
+    }
+    node.measureInWindow((x, y, width, height) => {
+      if (width > 0 && height > 0) {
+        setCategoryAnchor(anchorCategoryPopup(x, y, width, height));
+      }
+      setCategoryPopupOpen(true);
+    });
+  }, [closeFilterPopup]);
+
+  useFocusEffect(useCallback(() => () => {
+    setCategoryPopupOpen(false);
+  }, []));
 
   const showToast = (t: ToastData) => setToast(t);
 
@@ -633,19 +658,13 @@ export function FeedScreen() {
                   onProfilePress={() => {
                     if (user?.id) openUserProfile(user.id);
                   }}
-                  onCategorySelect={cat => {
-                    if (cat === 'adoption') {
-                      openAdoptionListing();
-                      return;
-                    }
-                    openComposer({ initialCategory: cat });
-                  }}
-                  onOpenCase={openCaseFlow}
                   postTypeFilters={postTypeFilters}
                   onTogglePostTypeFilter={togglePostTypeFilter}
-                  onCloseFilterPopup={closeFilterPopup}
                   filterButtonRef={filterButtonRef}
                   onOpenFilterPopup={openFilterPopup}
+                  categoryButtonRef={categoryButtonRef}
+                  onOpenCategoryPopup={openCategoryPopup}
+                  categoryPopupOpen={categoryPopupOpen}
                 />
               </View>
             )}
@@ -754,6 +773,24 @@ export function FeedScreen() {
         onClose={closeFilterPopup}
         onToggle={togglePostTypeFilter}
         onClear={() => setPostTypeFilters([])}
+      />
+
+      <PostCategoryPopup
+        visible={categoryPopupOpen}
+        anchor={categoryAnchor}
+        onClose={closeCategoryPopup}
+        onSelect={id => {
+          closeCategoryPopup();
+          if (id === 'adoption') {
+            openAdoptionListing();
+            return;
+          }
+          openComposer({ initialCategory: id });
+        }}
+        onOpenCase={() => {
+          closeCategoryPopup();
+          openCaseFlow();
+        }}
       />
 
       {ENV.BETA_FEEDBACK_ENABLED ? (
@@ -875,43 +912,28 @@ function FeedActiveFilterPills({
 
 function ComposerBar({
   onOpen,
-  onCategorySelect,
-  onOpenCase,
   onProfilePress,
   postTypeFilters,
   onTogglePostTypeFilter,
-  onCloseFilterPopup,
   filterButtonRef,
   onOpenFilterPopup,
+  categoryButtonRef,
+  onOpenCategoryPopup,
+  categoryPopupOpen = false,
 }: {
   onOpen: () => void;
-  onCategorySelect: (category: string) => void;
-  onOpenCase: () => void;
   onProfilePress: () => void;
   postTypeFilters: string[];
   onTogglePostTypeFilter: (id: string) => void;
-  onCloseFilterPopup?: () => void;
   filterButtonRef?: React.RefObject<View | null>;
   onOpenFilterPopup?: () => void;
+  categoryButtonRef?: React.RefObject<View | null>;
+  onOpenCategoryPopup?: () => void;
+  categoryPopupOpen?: boolean;
 }) {
   const { colors } = useTheme();
   const { me } = useCurrentUserProfile();
   const greetingLine = getFeedGreetingLine(new Date(), me.name, me.handle);
-  const plusRef = useRef<View>(null);
-  const [categoryPopupOpen, setCategoryPopupOpen] = useState(false);
-  const [categoryAnchor, setCategoryAnchor] = useState({ x: 16, top: 100, caretLeft: 20 });
-
-  const openCategoryPopup = () => {
-    onCloseFilterPopup?.();
-    plusRef.current?.measureInWindow((x, y, width, height) => {
-      setCategoryAnchor(anchorCategoryPopup(x, y, width, height));
-      setCategoryPopupOpen(true);
-    });
-  };
-
-  useFocusEffect(useCallback(() => () => {
-    setCategoryPopupOpen(false);
-  }, []));
 
   const openComposerFromBar = () => {
     Keyboard.dismiss();
@@ -946,26 +968,27 @@ function ComposerBar({
             },
           ]}
         >
-          <Pressable
-            ref={plusRef}
-            onPress={openCategoryPopup}
-            accessibilityRole="button"
-            accessibilityLabel="Choose post type"
-            accessibilityState={{ selected: categoryPopupOpen }}
-            style={({ pressed }) => [
-              styles.composerActionBtn,
-              categoryPopupOpen && { backgroundColor: colors.primary + '18' },
-              Platform.OS === 'web' && styles.composerPressWeb,
-              pressed && styles.composerPressPressed,
-            ]}
-          >
-            <Icon
-              name="plus"
-              size={20}
-              color={categoryPopupOpen ? colors.primary : colors.textSecondary}
-              sw={2.2}
-            />
-          </Pressable>
+          <View ref={categoryButtonRef} collapsable={false}>
+            <Pressable
+              onPress={onOpenCategoryPopup}
+              accessibilityRole="button"
+              accessibilityLabel="Choose post type"
+              accessibilityState={{ selected: categoryPopupOpen }}
+              style={({ pressed }) => [
+                styles.composerActionBtn,
+                categoryPopupOpen && { backgroundColor: colors.primary + '18' },
+                Platform.OS === 'web' && styles.composerPressWeb,
+                pressed && styles.composerPressPressed,
+              ]}
+            >
+              <Icon
+                name="plus"
+                size={20}
+                color={categoryPopupOpen ? colors.primary : colors.textSecondary}
+                sw={2.2}
+              />
+            </Pressable>
+          </View>
           <Pressable
             onPress={openComposerFromBar}
             accessibilityRole="button"
@@ -1001,20 +1024,6 @@ function ComposerBar({
       </View>
 
       <FeedActiveFilterPills filters={postTypeFilters} onRemove={onTogglePostTypeFilter} />
-
-      <PostCategoryPopup
-        visible={categoryPopupOpen}
-        anchor={categoryAnchor}
-        onClose={() => setCategoryPopupOpen(false)}
-        onSelect={id => {
-          setCategoryPopupOpen(false);
-          onCategorySelect(id);
-        }}
-        onOpenCase={() => {
-          setCategoryPopupOpen(false);
-          onOpenCase();
-        }}
-      />
     </>
   );
 }

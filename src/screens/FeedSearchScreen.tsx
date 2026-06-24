@@ -20,18 +20,23 @@ import { useRescueFeed } from '../context/RescueFeedContext';
 import type { FeedStackParamList } from '../navigation/feedHubNavigation';
 import { mergeAdoptionHubListings } from '../utils/adoptionPostListing';
 import {
+  collectCompanionsFromPosts,
   collectUsersFromPosts,
   filterAdoptionListingsByQuery,
+  filterCompanionsByQuery,
   filterFeedPostsByQuery,
   filterRescueCasesByQuery,
   filterUsersByQuery,
   searchCirclesByQuery,
   searchCommunitiesByQuery,
+  type SearchCompanionResult,
   type SearchUserResult,
 } from '../utils/feedSearch';
 import { searchDiscoverableUsers } from '../lib/discoverableUserSearch';
+import { searchDiscoverableCompanions } from '../lib/discoverableCompanionSearch';
 import { parseSearchTokens } from '../utils/textSearch';
 import { formatFeedSearchPostMeta } from '../utils/postMeta';
+import { formatCompanionHandleLabel } from '../utils/companionHandle';
 import { useTabBarScrollPadding } from '../navigation/tabBarInsets';
 import { shortCircleName } from '../utils/destinationSearch';
 import { useMobileWeb } from '../hooks/useMobileWeb';
@@ -52,7 +57,9 @@ function FeedSearchBody() {
 
   const [query, setQuery] = useState('');
   const [remoteUsers, setRemoteUsers] = useState<SearchUserResult[]>([]);
+  const [remoteCompanions, setRemoteCompanions] = useState<SearchCompanionResult[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [companionsLoading, setCompanionsLoading] = useState(false);
 
   const circles = useMemo(() => {
     const seen = new Set<string>();
@@ -70,21 +77,30 @@ function FeedSearchBody() {
   );
 
   const postAuthors = useMemo(() => collectUsersFromPosts(feedPosts), [feedPosts]);
+  const postCompanions = useMemo(() => collectCompanionsFromPosts(feedPosts), [feedPosts]);
 
   useEffect(() => {
     const tokens = parseSearchTokens(query);
     if (tokens.length === 0) {
       setRemoteUsers([]);
+      setRemoteCompanions([]);
       setUsersLoading(false);
+      setCompanionsLoading(false);
       return;
     }
 
     let cancelled = false;
     setUsersLoading(true);
-    void searchDiscoverableUsers(query).then(rows => {
+    setCompanionsLoading(true);
+    void Promise.all([
+      searchDiscoverableUsers(query),
+      searchDiscoverableCompanions(query),
+    ]).then(([users, companions]) => {
       if (cancelled) return;
-      setRemoteUsers(rows);
+      setRemoteUsers(users);
+      setRemoteCompanions(companions);
       setUsersLoading(false);
+      setCompanionsLoading(false);
     });
 
     return () => {
@@ -101,6 +117,17 @@ function FeedSearchBody() {
       return true;
     });
   }, [postAuthors, remoteUsers, query]);
+
+  const companionResults = useMemo(() => {
+    const merged = [...postCompanions, ...remoteCompanions];
+    const seen = new Set<string>();
+    const deduped = merged.filter(companion => {
+      if (seen.has(companion.id)) return false;
+      seen.add(companion.id);
+      return true;
+    });
+    return filterCompanionsByQuery(deduped, query);
+  }, [postCompanions, remoteCompanions, query]);
 
   const postResults = useMemo(
     () => filterFeedPostsByQuery(feedPosts, query),
@@ -126,8 +153,8 @@ function FeedSearchBody() {
   const hasQuery = query.trim().length > 0;
   const localResults = postResults.length + adoptionResults.length
     + rescueResults.length + circleResults.length + communityResults.length > 0;
-  const hasResults = userResults.length > 0 || localResults;
-  const showEmpty = hasQuery && !hasResults && !usersLoading;
+  const hasResults = userResults.length > 0 || companionResults.length > 0 || localResults;
+  const showEmpty = hasQuery && !hasResults && !usersLoading && !companionsLoading;
 
   const openPost = (postId: string) => {
     navigation.getParent()?.navigate('Profile', {
@@ -140,6 +167,13 @@ function FeedSearchBody() {
     navigation.getParent()?.navigate('Circles', {
       screen: 'UserProfile',
       params: { userId },
+    });
+  };
+
+  const openCompanion = (companionId: string) => {
+    navigation.getParent()?.navigate('Profile', {
+      screen: 'Companion',
+      params: { companionId },
     });
   };
 
@@ -179,7 +213,7 @@ function FeedSearchBody() {
           />
         ) : showEmpty ? (
           <Empty icon="search" title="No matches" body="Try another name, handle, or keyword." />
-        ) : usersLoading && !hasResults ? (
+        ) : (usersLoading || companionsLoading) && !hasResults ? (
           <Text style={[styles.searchingLabel, { color: colors.textTertiary }]}>Searching…</Text>
         ) : (
           <>
@@ -219,6 +253,37 @@ function FeedSearchBody() {
                     </Pressable>
                   );
                 })}
+              </View>
+            )}
+
+            {companionResults.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>Pets</Text>
+                {companionResults.map(companion => (
+                  <Pressable
+                    key={companion.id}
+                    onPress={() => openCompanion(companion.id)}
+                    style={({ pressed }) => [
+                      styles.personRow,
+                      { borderColor: colors.border, backgroundColor: colors.surface, opacity: pressed ? 0.88 : 1 },
+                    ]}
+                  >
+                    <View style={[styles.petIcon, { backgroundColor: (companion.tint ?? colors.primary) + '22' }]}>
+                      <Icon name={companion.icon ?? 'paw'} size={18} color={companion.tint ?? colors.primary} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[styles.personName, { color: colors.text }]} numberOfLines={1}>
+                        {companion.name}
+                      </Text>
+                      <Text style={[styles.personMeta, { color: colors.textTertiary }]} numberOfLines={1}>
+                        {[formatCompanionHandleLabel(companion.handle, companion.name), companion.breed]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Text>
+                    </View>
+                    <Icon name="chevronRight" size={14} color={colors.textTertiary} />
+                  </Pressable>
+                ))}
               </View>
             )}
 
@@ -414,6 +479,13 @@ const styles = StyleSheet.create({
   },
   personName: { fontSize: 14.5, fontWeight: '600' },
   personMeta: { fontSize: 12, marginTop: 2 },
+  petIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   postRow: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.md,

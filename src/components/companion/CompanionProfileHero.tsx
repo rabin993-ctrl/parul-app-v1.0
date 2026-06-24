@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { CompanionHealthMetaLine } from './CompanionDetailsCard';
 import { Icon } from '../icons/Icon';
+import { authorProfilePressableProps } from '../../utils/authorProfilePress';
 import type { Companion } from '../../data/mockData';
 
 const FULL_AVATAR = 88;
@@ -103,38 +104,39 @@ function OwnerAssociation({
   const pressable = !!onOwnerPress && !isYou;
 
   const handlePress = () => {
-    if (pressable) onOwnerPress?.(companion.ownerId);
+    onOwnerPress?.(companion.ownerId);
   };
 
+  const ownerNameStyle = { color: colors.text, fontWeight: '600' as const };
+
   return (
-    <Pressable
-      onPress={handlePress}
-      disabled={!pressable}
-      hitSlop={pressable ? 6 : 0}
-      accessibilityRole={pressable ? 'button' : 'text'}
+    <View
+      style={[styles.ownerInline, styles.ownerRow]}
+      accessibilityRole="text"
       accessibilityLabel={`${companion.name} with ${ownerLabel}${genderLabel ? `, ${genderLabel}` : ''}`}
-      style={({ pressed }) => [
-        styles.ownerInline,
-        pressable && styles.ownerPressable,
-        pressed && pressable && styles.pressed,
-      ]}
     >
-      <Text style={styles.ownerLine} numberOfLines={1}>
-        <Text style={{ color: colors.textTertiary, fontWeight: '400' }}>with </Text>
-        <Text
-          style={{ color: colors.text, fontWeight: '600' }}
-          onPress={pressable ? handlePress : undefined}
-          suppressHighlighting
+      <Text style={[styles.ownerLine, { color: colors.textTertiary, fontWeight: '400' }]}>
+        with{' '}
+      </Text>
+      {pressable ? (
+        <Pressable
+          {...authorProfilePressableProps(handlePress, `View ${ownerLabel}'s profile`)}
         >
+          <Text style={[styles.ownerLine, ownerNameStyle]} numberOfLines={1}>
+            {ownerLabel}
+          </Text>
+        </Pressable>
+      ) : (
+        <Text style={[styles.ownerLine, ownerNameStyle]} numberOfLines={1}>
           {ownerLabel}
         </Text>
-        {genderLabel ? (
-          <Text style={{ color: colors.textTertiary, fontWeight: '400' }}>
-            {` · ${genderLabel}`}
-          </Text>
-        ) : null}
-      </Text>
-    </Pressable>
+      )}
+      {genderLabel ? (
+        <Text style={[styles.ownerLine, { color: colors.textTertiary, fontWeight: '400' }]}>
+          {` · ${genderLabel}`}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -304,11 +306,14 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   ownerInline: { alignSelf: 'flex-start' },
-  ownerPressable: Platform.select({
-    web: { cursor: 'pointer' },
-    default: {},
-  }),
-  ownerLine: { fontSize: 13.5, lineHeight: 18 },
+  ownerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'nowrap',
+    minWidth: 0,
+    maxWidth: '100%',
+  },
+  ownerLine: { fontSize: 13.5, lineHeight: 18, flexShrink: 1 },
   avatarPressable: Platform.select({
     web: { cursor: 'pointer' },
     default: {},

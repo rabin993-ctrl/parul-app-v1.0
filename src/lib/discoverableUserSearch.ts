@@ -41,11 +41,21 @@ export async function searchDiscoverableUsers(
     p_limit: limit,
   });
 
+  const byId = new Map<string, SearchUserResult>();
+
   if (!error && data) {
-    return filterUsersByQuery(mapUserRows(data), query);
+    for (const row of filterUsersByQuery(mapUserRows(data), query)) {
+      byId.set(row.id, row);
+    }
   }
 
-  // Fallback for environments where the RPC is missing or broken (pre-0087 citext bug).
-  const fallbackRows = await searchUsersTable(primary, limit);
-  return filterUsersByQuery(mapUserRows(fallbackRows), query);
+  // Query each token so multi-word names and partial @handles match reliably.
+  for (const token of tokens.slice(0, 3)) {
+    const fallbackRows = await searchUsersTable(escapeIlikePattern(token), limit);
+    for (const row of filterUsersByQuery(mapUserRows(fallbackRows), query)) {
+      byId.set(row.id, row);
+    }
+  }
+
+  return [...byId.values()];
 }
