@@ -37,7 +37,7 @@ type Nav = NativeStackNavigationProp<AdoptionStackParamList, 'Detail'>;
 export function AdoptionDetailScreen({ onCloseOverride }: { onCloseOverride?: () => void } = {}) {
   const { colors } = useTheme();
   const navigation = useNavigation<Nav>();
-  const { listingId, returnTo } = useRoute<Route>().params;
+  const { listingId, returnTo } = useRoute<Route>().params ?? {};
   const { user } = useAuth();
   const {
     listings,
@@ -120,6 +120,17 @@ export function AdoptionDetailScreen({ onCloseOverride }: { onCloseOverride?: ()
     setGalleryIndex(index);
     setViewerOpen(true);
   };
+
+  if (!listingId) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']}>
+        <PawCircleSubHeader title="Pet profile" onBack={handleBack} />
+        <View style={styles.missing}>
+          <Text style={{ color: colors.textSecondary }}>This listing is no longer available.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!listing) {
     return (

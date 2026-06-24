@@ -83,3 +83,25 @@ export function circlesTabNavigation(
   }
   return undefined;
 }
+
+function circlesStackRouteNames(navigation: NavigationProp<ParamListBase>): string[] {
+  const state = navigation.getState();
+  const routeNames = (state as { routeNames?: string[] } | undefined)?.routeNames;
+  if (routeNames?.length) return routeNames;
+  return (state?.routes ?? []).map(route => route.name);
+}
+
+/** Circles tab stack (Hub, ChatThread, UserProfile, …) from any nested screen. */
+export function getCirclesStackNavigation(
+  navigation: NavigationProp<ParamListBase>,
+): NavigationProp<ParamListBase> | undefined {
+  let nav: NavigationProp<ParamListBase> | undefined = navigation;
+  for (let depth = 0; depth < 6 && nav; depth += 1) {
+    const names = circlesStackRouteNames(nav);
+    if (names.includes('Hub') && names.includes('UserProfile') && names.includes('ChatThread')) {
+      return nav;
+    }
+    nav = nav.getParent() ?? undefined;
+  }
+  return undefined;
+}

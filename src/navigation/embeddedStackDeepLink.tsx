@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigatorScreenParams, ParamListBase } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,14 +17,27 @@ export function EmbeddedStackDeepLinkBridge<P extends ParamListBase>({
   onHandled?: () => void;
 }) {
   const navigation = useNavigation<NativeStackNavigationProp<P>>();
+  const handledKeyRef = useRef<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!deepLink?.screen) return;
+
+    const screen = String(deepLink.screen);
+    const key = `${screen}:${JSON.stringify(deepLink.params ?? null)}`;
+    if (handledKeyRef.current === key) return;
+    handledKeyRef.current = key;
+
     (navigation.navigate as unknown as (screen: string, params?: object) => void)(
-      deepLink.screen as string,
+      screen,
       deepLink.params as object | undefined,
     );
-    onHandled?.();
+
+    // Clear hub params after the inner navigate commits — clearing synchronously
+    // can leave AdoptionHub with invalid nested state (blank screen on web).
+    const frame = requestAnimationFrame(() => {
+      onHandled?.();
+    });
+    return () => cancelAnimationFrame(frame);
   }, [deepLink, navigation, onHandled]);
 
   return null;

@@ -86,6 +86,10 @@ export function ChatThreadRouteScreen() {
     openRescueCaseDetail(getRootNavigation(navigation), caseId);
   }, [navigation]);
 
+  const handleViewProfile = useCallback((userId: string) => {
+    navigation.navigate('UserProfile', { userId, returnTo: 'Hub' });
+  }, [navigation]);
+
   return (
     <ChatThreadScreen
       thread={thread}
@@ -93,6 +97,7 @@ export function ChatThreadRouteScreen() {
       rescueCaseOriginId={params.rescueCaseOriginId}
       onClose={handleClose}
       onViewRescueCase={handleViewRescueCase}
+      onViewProfile={handleViewProfile}
     />
   );
 }

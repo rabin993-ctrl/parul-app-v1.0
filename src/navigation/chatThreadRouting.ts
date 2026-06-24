@@ -1,6 +1,8 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ChatThread } from '../context/AdoptionContext';
 import type { CirclesStackParamList } from './CirclesNavigator';
+import { navigateToPublicUserProfile } from './userProfileRouting';
+import type { UserProfileReturnTo } from './userProfileBack';
 
 export type ChatThreadRouteParams = {
   threadId: string;
@@ -45,4 +47,29 @@ export function navigateToChatThread(
     ...chatThreadToRouteParams(thread),
     ...extra,
   });
+}
+
+type ChatNavigation = {
+  navigate: (name: string, params?: object) => void;
+  getParent?: () => ChatNavigation | undefined;
+  replace?: (name: string, params?: object) => void;
+  getState?: () => { index: number; routes: { name: string }[] };
+};
+
+/** Open a peer's public profile from a DM chat (Circles stack or modal overlay). */
+export function openPeerProfileFromChat(
+  navigation: ChatNavigation,
+  userId: string,
+  currentUserId: string | undefined | null,
+  options?: { onClose?: () => void; returnTo?: UserProfileReturnTo },
+) {
+  const run = () => {
+    navigateToPublicUserProfile(navigation, userId, currentUserId, options);
+  };
+
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(run);
+  } else {
+    run();
+  }
 }

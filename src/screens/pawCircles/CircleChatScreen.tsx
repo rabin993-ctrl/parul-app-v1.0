@@ -57,6 +57,7 @@ import { CircleChatMemberSheet } from '../../components/pawCircles/CircleChatMem
 import { startDirectMessage } from '../../utils/startDirectMessage';
 import { useAdoption, type ChatThread } from '../../context/AdoptionContext';
 import { navigateToChatThread } from '../../navigation/chatThreadRouting';
+import { navigateToPublicUserProfile } from '../../navigation/userProfileRouting';
 import type { User } from '../../data/mockData';
 import { PawLoader } from '../../components/PawLoader';
 
@@ -295,12 +296,9 @@ export function CircleChatScreen() {
     })();
   }, [buildDmThread, dmLoading, navigation, registerDmThread, reloadThreads, selectedMember]);
 
-  const handleViewMemberProfile = useCallback(() => {
-    if (!selectedMember) return;
-    const userId = selectedMember.userId;
-    setSelectedMember(null);
-    navigation.navigate('UserProfile', { userId, returnTo: 'Hub' });
-  }, [navigation, selectedMember]);
+  const handleViewMemberProfile = useCallback((userId: string) => {
+    navigateToPublicUserProfile(navigation, userId, user?.id, { returnTo: 'Hub' });
+  }, [navigation, user?.id]);
 
   const renderPeerAvatar = useCallback((
     userId: string,

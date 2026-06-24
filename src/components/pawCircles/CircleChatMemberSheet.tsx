@@ -29,7 +29,7 @@ export function CircleChatMemberSheet({
   member: CircleMemberProfile | null;
   onClose: () => void;
   onSendMessage: () => void;
-  onViewProfile: () => void;
+  onViewProfile: (userId: string) => void;
 }) {
   const { colors } = useTheme();
   const memberIsOnline = useUserOnlineStatus(member?.userId);
@@ -39,7 +39,12 @@ export function CircleChatMemberSheet({
   const avatarUser = circleMemberToAvatarUser(member);
   const options: Option[] = [
     { id: 'message', icon: 'send', label: 'Send personal message', onPress: onSendMessage },
-    { id: 'profile', icon: 'user', label: 'View profile', onPress: onViewProfile },
+    {
+      id: 'profile',
+      icon: 'user',
+      label: 'View profile',
+      onPress: () => onViewProfile(member.userId),
+    },
   ];
 
   return (
@@ -57,6 +62,17 @@ export function CircleChatMemberSheet({
           <Pressable
             key={option.id}
             onPress={() => {
+              if (option.id === 'profile') {
+                const userId = member.userId;
+                onClose();
+                const run = () => onViewProfile(userId);
+                if (typeof requestAnimationFrame === 'function') {
+                  requestAnimationFrame(run);
+                } else {
+                  run();
+                }
+                return;
+              }
               option.onPress();
               onClose();
             }}

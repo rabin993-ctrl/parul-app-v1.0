@@ -50,6 +50,7 @@ import {
 } from '../utils/shareRescueCase';
 import type { RescueCase } from '../data/profileData';
 import { resolveRescueHelpContext, rescueHelpIntroDisplayText } from '../utils/rescueHelpChat';
+import { openPeerProfileFromChat } from '../navigation/chatThreadRouting';
 import { getRootNavigation } from '../navigation/notificationRouting';
 import { openRescueCaseDetail } from '../navigation/rescueCaseRouting';
 import { CircleSharedPostCard } from './pawCircles/CircleSharedPostCard';
@@ -90,6 +91,8 @@ type Props = {
   threadConnecting?: boolean;
   rescueCaseOriginId?: string;
   onViewRescueCase?: (caseId: string) => void;
+  /** Circles-stack handler — preferred when chat is opened from Paw Circle inbox. */
+  onViewProfile?: (userId: string) => void;
 };
 
 const INPUT_BG_LIGHT = '#EFF1F5';
@@ -130,6 +133,7 @@ export function ChatThreadScreen({
   threadConnecting = false,
   rescueCaseOriginId,
   onViewRescueCase,
+  onViewProfile,
 }: Props) {
   const { colors, mode } = useTheme();
   const mobileWeb = useMobileWeb();
@@ -524,14 +528,22 @@ export function ChatThreadScreen({
   const handleViewProfile = () => {
     if (!peer) return;
     setOptionsOpen(false);
-    // This chat is rendered inside the Circles stack, so `replace` pops the chat
-    // and pushes the peer's profile in one action — restoring the tab bar and
-    // avoiding the goBack()-then-navigate race that previously dumped the user on
-    // the Paw Circle hub. ('UserProfile' is a sibling route in the same stack,
-    // not a tab, so we cast past the (incorrect) BottomTab navigation typing.)
-    (navigation as unknown as {
-      replace: (name: 'UserProfile', params: { userId: string; returnTo: string }) => void;
-    }).replace('UserProfile', { userId: peer.id, returnTo: 'Hub' });
+    const userId = peer.id;
+    const run = () => {
+      if (onViewProfile) {
+        onViewProfile(userId);
+        return;
+      }
+      openPeerProfileFromChat(navigation, userId, authUser?.id, {
+        onClose,
+        returnTo: 'Hub',
+      });
+    };
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(run);
+    } else {
+      run();
+    }
   };
 
   const handleViewSharedPost = useCallback((post: Post) => {
