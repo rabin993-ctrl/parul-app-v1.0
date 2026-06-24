@@ -52,6 +52,18 @@ const CATEGORY_LABEL_MAP: Record<string, string | null> = {
   meme: 'meme',
 };
 
+function composerLabelFromPost(post: Post): string | null {
+  if (post.label) return post.label;
+  if (post.tag === 'paw-posting' || post.companionAuthorId) return null;
+  if (post.found) return 'found';
+  if (post.lost) return 'lost';
+  if (post.tag === 'lost-found') return post.found ? 'found' : 'lost';
+  if (post.tag === 'rescue') return 'rescue';
+  if (post.tag === 'meme') return 'meme';
+  if (post.tag === 'adoption') return 'adoption';
+  return 'discussion';
+}
+
 const TAG_MAP: Record<string, PostTag> = {
   discussion: 'discussion',
   adoption: 'adoption',
@@ -286,8 +298,8 @@ const TagPicker = memo(function TagPicker({
 }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.sideLabelSection, { marginBottom: 14 }]}>
-      <Text style={[styles.sideLabel, { color: colors.textTertiary }]}>Tag</Text>
+    <View style={[styles.sideLabelSection, styles.sideLabelSectionTags, { marginBottom: 14 }]}>
+      <Text style={[styles.sideLabel, styles.sideLabelTag, { color: colors.textTertiary }]}>Tag</Text>
       <View style={styles.tagPickRow}>
         {COMPOSER_TAG_OPTIONS.map(tag => {
           const selected = activeLabel === tag.id;
@@ -301,11 +313,15 @@ const TagPicker = memo(function TagPicker({
                 }
                 onSelect(tag.id);
               }}
-              style={[
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              style={({ pressed }) => [
                 styles.labelChip,
+                Platform.OS === 'web' && styles.labelChipWeb,
                 {
                   backgroundColor: selected ? colors.text : colors.surface2,
                   borderColor: colors.border,
+                  opacity: pressed ? 0.82 : 1,
                 },
               ]}
             >
@@ -570,30 +586,50 @@ export function PostComposer({
     ? postingAs.name
     : (me.name || me.handle || '');
 
-  useEffect(() => {
-    let cancelled = false;
+  const composerOpenKey = useMemo(() => {
+    if (!visible) return null;
+    if (editingPost) return `edit:${editingPost.id}`;
+    return `new:${initialCategory ?? 'discussion'}:${postAsCompanionId ?? ''}:${(initialCompanionIds ?? []).join(',')}`;
+  }, [visible, editingPost, initialCategory, postAsCompanionId, initialCompanionIds]);
 
-    if (visible && initialCategory === 'adoption' && !isEditing) {
-      onClose();
-      onOpenAdoptionListing?.();
-      return () => { cancelled = true; };
-    }
-    if (visible && editingPost) {
+  const lastComposerOpenKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!visible || initialCategory !== 'adoption' || isEditing) return;
+    onClose();
+    onOpenAdoptionListing?.();
+  }, [visible, initialCategory, isEditing, onClose, onOpenAdoptionListing]);
+
+  useEffect(() => {
+    if (visible) return;
+    lastComposerOpenKeyRef.current = null;
+    setText('');
+    setTags([]);
+    clearPhotos();
+    setLabel(null);
+    setLostArea('');
+    setLostWhen('');
+    setLostContact('');
+    setAlertCoords(null);
+    setAlertCoordsLoading(false);
+    setDestinations([{ type: 'feed' }]);
+    setDestinationPickerOpen(false);
+  }, [visible, clearPhotos]);
+
+  useEffect(() => {
+    if (!composerOpenKey || lastComposerOpenKeyRef.current === composerOpenKey) return;
+    lastComposerOpenKeyRef.current = composerOpenKey;
+
+    if (initialCategory === 'adoption' && !isEditing) return;
+
+    if (editingPost) {
       setText(editingPost.text);
+      setLabel(composerLabelFromPost(editingPost));
       if (editingPost.companionAuthorId) {
         setTags([editingPost.companionAuthorId]);
       } else {
-        const fromPost = editingPost.companions.filter(id => myCompanionIds.includes(id)).slice(0, 1);
-        if (fromPost.length > 0) {
-          setTags(fromPost);
-        } else if (myCompanionIds.length > 0) {
-          const fallback = resolveDefaultCompanionId(null, myCompanionIds);
-          setTags(fallback ? [fallback] : [myCompanionIds[0]]);
-        } else {
-          setTags([]);
-        }
+        setTags([]);
       }
-      setLabel(editingPost.label ?? (editingPost.tag === 'paw-posting' ? null : 'discussion'));
       if (editingPost.found) {
         setLostArea(editingPost.found.area ?? '');
         setLostWhen(editingPost.found.foundAt ?? '');
@@ -610,66 +646,97 @@ export function PostComposer({
       setDestinations([{ type: 'feed' }]);
       setSelectedPhotos([]);
       setRetainedPhotoUrls((editingPost.mediaUrls ?? []).slice(0, maxPhotos));
-      return () => { cancelled = true; };
-    }
-    if (visible) {
-      const isAlert = initialCategory === 'lost' || initialCategory === 'found';
-      if (postAsCompanionId) {
-        setTags([postAsCompanionId]);
-      } else if (isAlert) {
-        if (myCompanionIds.length > 0) {
-          const optimistic = resolveDefaultCompanionId(null, myCompanionIds);
-          setTags(optimistic ? [optimistic] : [myCompanionIds[0]]);
-          if (user?.id) {
-            void loadDefaultCompanionId(user.id).then(saved => {
-              if (cancelled) return;
-              const resolved = resolveDefaultCompanionId(saved, myCompanionIds);
-              setTags(resolved ? [resolved] : [myCompanionIds[0]]);
-            });
-          }
-        } else {
-          setTags([]);
-        }
-      } else if (initialCompanionIds?.length) {
-        setTags(initialCompanionIds.filter(id => myCompanionIds.includes(id)).slice(0, 1));
-      } else if (myCompanionIds.length > 0) {
-        const optimistic = resolveDefaultCompanionId(null, myCompanionIds);
-        setTags(optimistic ? [optimistic] : []);
-        if (user?.id) {
-          void loadDefaultCompanionId(user.id).then(saved => {
-            if (cancelled) return;
-            const resolved = resolveDefaultCompanionId(saved, myCompanionIds);
-            setTags(resolved ? [resolved] : []);
-          });
-        }
-      } else {
-        setTags([]);
-      }
-      if (postAsCompanionId) {
-        setDestinations([{ type: 'feed' }]);
-      } else {
-        setDestinations(resolveInitialDestinations(options, joinedCommunities, getCommunity));
-      }
-      if (!postAsCompanionId) {
-        const category = initialCategory ?? 'discussion';
-        setLabel(CATEGORY_LABEL_MAP[category] ?? 'discussion');
-      }
-    } else {
-      setText('');
-      setTags([]);
-      clearPhotos();
-      setLabel(null);
-      setLostArea('');
-      setLostWhen('');
-      setLostContact('');
-      setAlertCoords(null);
-      setAlertCoordsLoading(false);
-      setDestinations([{ type: 'feed' }]);
-      setDestinationPickerOpen(false);
+      return;
     }
 
+    setText('');
+    clearPhotos();
+    setLostArea('');
+    setLostWhen('');
+    setLostContact('');
+    setAlertCoords(null);
+    setAlertCoordsLoading(false);
+    setDestinationPickerOpen(false);
+
+    if (postAsCompanionId) {
+      setTags([postAsCompanionId]);
+      setDestinations([{ type: 'feed' }]);
+      setLabel(null);
+      return;
+    }
+
+    const category = initialCategory ?? 'discussion';
+    setLabel(CATEGORY_LABEL_MAP[category] ?? 'discussion');
+    setDestinations(resolveInitialDestinations(options, joinedCommunities, getCommunity));
+    setTags([]);
+  }, [
+    composerOpenKey,
+    editingPost,
+    initialCategory,
+    isEditing,
+    postAsCompanionId,
+    options,
+    joinedCommunities,
+    getCommunity,
+    clearPhotos,
+    maxPhotos,
+  ]);
+
+  useEffect(() => {
+    if (!visible || postAsCompanionId) return;
+
+    if (editingPost && !editingPost.companionAuthorId) {
+      setTags(prev => {
+        if (prev.length > 0) return prev;
+        const fromPost = editingPost.companions.filter(id => myCompanionIds.includes(id)).slice(0, 1);
+        if (fromPost.length > 0) return fromPost;
+        if (myCompanionIds.length === 0) return prev;
+        const fallback = resolveDefaultCompanionId(null, myCompanionIds);
+        return fallback ? [fallback] : [myCompanionIds[0]];
+      });
+      return;
+    }
+
+    if (editingPost) return;
+
+    const isAlert = initialCategory === 'lost' || initialCategory === 'found';
+    setTags(prev => {
+      if (prev.length > 0) return prev;
+      if (initialCompanionIds?.length) {
+        const picked = initialCompanionIds.filter(id => myCompanionIds.includes(id)).slice(0, 1);
+        if (picked.length > 0) return picked;
+      }
+      if (myCompanionIds.length === 0) return prev;
+      if (isAlert) {
+        const optimistic = resolveDefaultCompanionId(null, myCompanionIds);
+        return optimistic ? [optimistic] : [myCompanionIds[0]];
+      }
+      const optimistic = resolveDefaultCompanionId(null, myCompanionIds);
+      return optimistic ? [optimistic] : [];
+    });
+  }, [visible, postAsCompanionId, editingPost, initialCategory, initialCompanionIds, myCompanionIds]);
+
+  useEffect(() => {
+    if (!visible || !user?.id || postAsCompanionId || editingPost || myCompanionIds.length === 0) return;
+    let cancelled = false;
+    void loadDefaultCompanionId(user.id).then(saved => {
+      if (cancelled) return;
+      const resolved = resolveDefaultCompanionId(saved, myCompanionIds);
+      if (!resolved) return;
+      setTags(prev => {
+        if (prev.length === 0) return [resolved];
+        if (prev.length === 1 && prev[0] === myCompanionIds[0] && resolved !== prev[0]) {
+          return [resolved];
+        }
+        return prev;
+      });
+    });
     return () => { cancelled = true; };
-  }, [visible, options, initialCategory, initialCompanionIds, postAsCompanionId, myCompanionIds, joinedCommunities, getCommunity, user?.id, onClose, onOpenAdoptionListing, editingPost, isEditing, clearPhotos, maxPhotos]);
+  }, [visible, user?.id, postAsCompanionId, editingPost, myCompanionIds]);
+
+  const selectComposerLabel = useCallback((id: string) => {
+    setLabel(CATEGORY_LABEL_MAP[id] ?? id);
+  }, []);
 
   // Dismiss the keyboard ONLY when the composer actually closes. This used to be
   // inside the big reset effect above, but that effect re-runs on unrelated
@@ -1110,7 +1177,7 @@ export function PostComposer({
           {!postingAs && !(isEditing && editingPost?.label === 'adoption') && (
             <TagPicker
               activeLabel={activeLabel}
-              onSelect={setLabel}
+              onSelect={selectComposerLabel}
               onOpenAdoptionListing={() => { onClose(); onOpenAdoptionListing?.(); }}
             />
           )}
@@ -1276,6 +1343,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
     width: '100%',
   },
+  sideLabelSectionTags: {
+    alignItems: 'center',
+  },
   sideLabel: {
     fontSize: 13,
     fontWeight: '600',
@@ -1283,6 +1353,10 @@ const styles = StyleSheet.create({
     minWidth: 32,
   },
   sideLabelWith: { marginTop: 28 },
+  sideLabelTag: { alignSelf: 'flex-start', marginTop: 6 },
+  labelChipWeb: {
+    cursor: 'pointer',
+  } as object,
   companionPickRow: {
     flex: 1,
     flexDirection: 'row',
