@@ -20,7 +20,7 @@ const PET_FRAME = getPetAvatarFrameSize(AVATAR_SIZE);
 const THUMB = 56;
 
 function statusLabel(status: AdoptionStatus): string {
-  if (status === 'Adopted') return 'Successfully adopted';
+  if (status === 'Adopted') return 'Successfully rehomed';
   if (status === 'Urgent') return 'Urgent — needs home';
   return 'Available for adoption';
 }

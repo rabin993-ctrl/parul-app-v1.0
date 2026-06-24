@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -30,6 +30,8 @@ import type { AdoptionStackParamList } from '../../navigation/AdoptionNavigator'
 import { useAdoptionListingDetailBack } from '../../navigation/adoptionListingDetailBack';
 import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
 import { useTabBarScrollProps } from '../../context/TabBarScrollContext';
+import { fetchPublicAdoptionListing } from '../../lib/publicProfileAdoptions';
+import type { AdoptionListing } from '../../data/adoptionData';
 
 type Route = RouteProp<AdoptionStackParamList, 'Detail'>;
 type Nav = NativeStackNavigationProp<AdoptionStackParamList, 'Detail'>;
@@ -54,8 +56,31 @@ export function AdoptionDetailScreen({ onCloseOverride }: { onCloseOverride?: ()
   const [viewerOpen, setViewerOpen] = useState(false);
   const [requesting, setRequesting] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
+  const [fetchedListing, setFetchedListing] = useState<AdoptionListing | null>(null);
+  const [loadingListing, setLoadingListing] = useState(false);
 
-  const listing = useMemo(() => getAdoptionListing(listingId, listings), [listingId, listings]);
+  const feedListing = useMemo(
+    () => getAdoptionListing(listingId, listings),
+    [listingId, listings],
+  );
+  const listing = feedListing ?? fetchedListing;
+
+  useEffect(() => {
+    if (!listingId || feedListing) {
+      setFetchedListing(null);
+      setLoadingListing(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingListing(true);
+    void fetchPublicAdoptionListing(listingId).then(next => {
+      if (!cancelled) {
+        setFetchedListing(next);
+        setLoadingListing(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [listingId, feedListing]);
   const adopted = listing?.status === 'Adopted';
   const myRequest = listing ? getRequestForListing(listing.id) : undefined;
   const hasActiveRequest = !!myRequest && isActiveAdoptionRequest(myRequest);
@@ -137,7 +162,11 @@ export function AdoptionDetailScreen({ onCloseOverride }: { onCloseOverride?: ()
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']}>
         <PawCircleSubHeader title="Pet profile" onBack={handleBack} />
         <View style={styles.missing}>
-          <Text style={{ color: colors.textSecondary }}>This listing is no longer available.</Text>
+          {loadingListing ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Text style={{ color: colors.textSecondary }}>This listing is no longer available.</Text>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -267,11 +296,11 @@ export function AdoptionDetailScreen({ onCloseOverride }: { onCloseOverride?: ()
           </View>
           <Text style={[styles.healthNotes, { color: colors.textSecondary }]}>{listing.healthNotes}</Text>
 
-          {listing.requirements.length > 0 && (
+          {(listing.requirements ?? []).length > 0 && (
             <>
               <SectionHead title="Adoption requirements" />
               <View style={{ gap: 8 }}>
-                {listing.requirements.map((req, i) => (
+                {(listing.requirements ?? []).map((req, i) => (
                   <View key={i} style={styles.reqRow}>
                     <Icon name="check" size={16} color={colors.success} />
                     <Text style={[styles.reqText, { color: colors.text }]}>{req}</Text>

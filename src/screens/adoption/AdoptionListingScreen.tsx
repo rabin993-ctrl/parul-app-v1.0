@@ -34,6 +34,11 @@ import { useTabBarScrollProps } from '../../context/TabBarScrollContext';
 import { bindAdoptionPublishToast } from '../../hooks/useAdoptionListings';
 type Nav = NativeStackNavigationProp<AdoptionStackParamList, 'Listing'>;
 
+function hubListingSortRank(listing: AdoptionListing): number {
+  if (listing.status === 'Adopted') return 2;
+  return 1;
+}
+
 export function AdoptionListingScreen({
   embedded = false,
   scrollHeader,
@@ -103,9 +108,13 @@ export function AdoptionListingScreen({
 
   const listingsShown = useMemo(() => {
     const base = filterAdoptionListings(hubListings, {
-      filters: { ...filters, species },
+      filters: { ...filters, species, status: 'all' },
     });
-    if (tab === 'listings') return base.filter(l => l.userId === user?.id);
+    if (tab === 'listings') {
+      return [...base]
+        .filter(l => l.userId === user?.id)
+        .sort((a, b) => hubListingSortRank(a) - hubListingSortRank(b));
+    }
     if (browseFilter === 'requested') {
       const requestedIds = new Set(
         getMyOutgoingRequests()
@@ -114,10 +123,11 @@ export function AdoptionListingScreen({
       );
       return base.filter(l => requestedIds.has(l.id));
     }
-    return base.sort((a, b) => {
+    return [...base].sort((a, b) => {
       const aOwn = a.userId === user?.id ? 0 : 1;
       const bOwn = b.userId === user?.id ? 0 : 1;
-      return aOwn - bOwn;
+      if (aOwn !== bOwn) return aOwn - bOwn;
+      return hubListingSortRank(a) - hubListingSortRank(b);
     });
   }, [hubListings, filters, species, browseFilter, tab, user?.id, getMyOutgoingRequests]);
 

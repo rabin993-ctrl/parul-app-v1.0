@@ -20,7 +20,10 @@ export function EmbeddedStackDeepLinkBridge<P extends ParamListBase>({
   const handledKeyRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {
-    if (!deepLink?.screen) return;
+    if (!deepLink?.screen) {
+      handledKeyRef.current = null;
+      return;
+    }
 
     const screen = String(deepLink.screen);
     const key = `${screen}:${JSON.stringify(deepLink.params ?? null)}`;
@@ -34,10 +37,16 @@ export function EmbeddedStackDeepLinkBridge<P extends ParamListBase>({
 
     // Clear hub params after the inner navigate commits — clearing synchronously
     // can leave AdoptionHub with invalid nested state (blank screen on web).
+    let cancelled = false;
     const frame = requestAnimationFrame(() => {
-      onHandled?.();
+      requestAnimationFrame(() => {
+        if (!cancelled) onHandled?.();
+      });
     });
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
   }, [deepLink, navigation, onHandled]);
 
   return null;

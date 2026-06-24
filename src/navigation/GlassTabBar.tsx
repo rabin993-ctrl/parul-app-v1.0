@@ -13,7 +13,7 @@ import { GlossyPill } from '../components/ui/GlossyPill';
 import { radius } from '../theme/tokens';
 import { useHomeHub } from '../context/HomeHubContext';
 import type { HomeSectionTab } from '../components/ui/HomeHubDropdown';
-import { FEED_HOME_SCREEN, feedHubScreenForSection } from './feedHubNavigation';
+import { FEED_HOME_SCREEN, feedHubListingParams, feedHubScreenForSection } from './feedHubNavigation';
 import { navigateCirclesHub } from './circlesStackRouting';
 import { navigateProfileHome } from './profileStackRouting';
 import { usePawCircleTabBadgeCount } from '../hooks/useUnreadMessagesCount';
@@ -401,7 +401,12 @@ export function GlassTabBar({ state, navigation, descriptors }: BottomTabBarProp
                     onPress={() => {
                       onTabSelected();
                       selectSection(item.hub);
-                      navigation.navigate('Feed', { screen: feedHubScreenForSection(item.hub) });
+                      navigation.navigate('Feed', {
+                        screen: feedHubScreenForSection(item.hub),
+                        params: item.hub === 'adoption'
+                          ? feedHubListingParams('adoption')
+                          : feedHubListingParams('rescue'),
+                      });
                     }}
                     onHoverIn={() => setHoveredIndex(barIndex)}
                     onHoverOut={() => setHoveredIndex(null)}

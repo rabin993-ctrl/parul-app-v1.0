@@ -285,15 +285,24 @@ export async function routeNotificationTarget(
       return openAdoptionRequestReview(nav, data);
 
     case 'approved':
-      nav.navigate('MainTabs', { screen: 'Feed', params: { screen: 'AdoptionHub' } });
+      nav.navigate('MainTabs', {
+        screen: 'Feed',
+        params: { screen: 'AdoptionHub', params: { screen: 'Listing' } },
+      });
       return true;
 
     case 'rejected':
-      nav.navigate('MainTabs', { screen: 'Feed', params: { screen: 'AdoptionHub' } });
+      nav.navigate('MainTabs', {
+        screen: 'Feed',
+        params: { screen: 'AdoptionHub', params: { screen: 'Listing' } },
+      });
       return true;
 
     case 'adopted':
-      nav.navigate('MainTabs', { screen: 'Feed', params: { screen: 'AdoptionHub' } });
+      nav.navigate('MainTabs', {
+        screen: 'Feed',
+        params: { screen: 'AdoptionHub', params: { screen: 'Listing' } },
+      });
       return true;
 
     case 'adoption':

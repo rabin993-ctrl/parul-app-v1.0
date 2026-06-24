@@ -24,6 +24,17 @@ export function feedHubScreenForSection(tab: 'adoption' | 'rescue') {
   return tab === 'adoption' ? ADOPTION_HUB_SCREEN : RESCUE_HUB_SCREEN;
 }
 
+/** Reset embedded hub stacks to their browse/listing screen (avoids stale Detail state on web). */
+export function feedHubListingParams(
+  tab: 'adoption',
+): NavigatorScreenParams<AdoptionStackParamList>;
+export function feedHubListingParams(
+  tab: 'rescue',
+): NavigatorScreenParams<RescueStackParamList>;
+export function feedHubListingParams(tab: 'adoption' | 'rescue') {
+  return { screen: 'Listing' as const };
+}
+
 export function feedTabParams(screen: keyof FeedStackParamList, params?: object) {
   return { screen, params };
 }

@@ -3223,6 +3223,37 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_public_adoption_listing: {
+        Args: { p_listing_id: string }
+        Returns: Json
+      }
+      get_public_adoption_record: {
+        Args: { p_record_id: string }
+        Returns: Json
+      }
+      get_public_profile_adoptions: {
+        Args: { p_profile_user_id: string }
+        Returns: {
+          adopter_user_id: string
+          chat_thread_id: string | null
+          closed_at: string | null
+          closed_reason: string | null
+          completed_milestones: Database["public"]["Enums"]["milestone_enum"][]
+          confirmed_at: string | null
+          icon: string | null
+          id: string
+          listing_id: string
+          new_home: string | null
+          next_update_due_at: string | null
+          pet_name: string
+          poster_endorsed: boolean
+          poster_recommendation: Database["public"]["Enums"]["poster_recommendation_enum"] | null
+          poster_user_id: string
+          species: string | null
+          status: string
+          tint: string | null
+        }[]
+      }
       get_public_user_privacy_flags: {
         Args: { p_user_ids: string[] }
         Returns: {

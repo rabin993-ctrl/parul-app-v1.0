@@ -18,6 +18,8 @@ import { useAuth } from '../context/AuthContext';
 import type { Companion } from '../data/mockData';
 import { isUserProfileFeedPost } from '../utils/postCompanion';
 import { fetchUserPrivacyFlags, getCachedUserPrivacyFlags } from '../lib/userPrivacyFlagCache';
+import { fetchPublicProfileAdoptions } from '../lib/publicProfileAdoptions';
+import type { AdoptionRecord } from '../data/adoptionRecords';
 
 const DEFAULT_TRUST: ProfileTrust = { rating: 0, reviewCount: 0, flagCount: 0, status: 'good' };
 const DEFAULT_STATS: ProfileImpactStats = { rescues: 0, rehomed: 0, adopted: 0, following: 0 };
@@ -80,6 +82,7 @@ export function useProfileViewData(userId: string) {
   const { records } = useAdoption();
   const { posts: feedPosts } = useFeedPosts();
   const { getMyCompanions, fetchCompanionsForOwner } = useCompanions();
+  const isSelf = authUser?.id === userId;
 
   // Async data from Supabase
   const [trust, setTrust] = useState<ProfileTrust>(DEFAULT_TRUST);
@@ -87,6 +90,7 @@ export function useProfileViewData(userId: string) {
   const [rescues, setRescues] = useState<RescueCase[]>([]);
   const [userCompanions, setUserCompanions] = useState<Companion[]>([]);
   const [skipCompanions, setSkipCompanions] = useState(false);
+  const [visitorPlacementRecords, setVisitorPlacementRecords] = useState<AdoptionRecord[]>([]);
 
   useEffect(() => {
     if (!userId || authUser?.id === userId) {
@@ -103,6 +107,18 @@ export function useProfileViewData(userId: string) {
   }, [userId, authUser?.id]);
 
   useEffect(() => {
+    if (!userId || isSelf) {
+      setVisitorPlacementRecords([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchPublicProfileAdoptions(userId).then(fetched => {
+      if (!cancelled) setVisitorPlacementRecords(fetched);
+    });
+    return () => { cancelled = true; };
+  }, [userId, isSelf]);
+
+  useEffect(() => {
     if (!userId) return;
     const load = async () => {
       const [trustRes, rescueRes, rehomRes, adoptedRes, rescueCasesRes, companionFollowRes] = await Promise.all([
@@ -111,25 +127,25 @@ export function useProfileViewData(userId: string) {
           .select('rating,review_count,flag_count,status')
           .eq('user_id', userId)
           .single(),
-        // Count rescue cases opened by this user
         supabase
           .from('rescue_cases')
           .select('id', { count: 'exact', head: true })
           .eq('poster_user_id', userId)
           .is('deleted_at', null),
-        // Count adoption listings the user rehomed (status = 'Adopted')
-        supabase
-          .from('adoption_listings')
-          .select('id', { count: 'exact', head: true })
-          .eq('poster_user_id', userId)
-          .eq('status', 'Adopted')
-          .is('deleted_at', null),
-        // Count adoption records where this user is the adopter
-        supabase
-          .from('adoption_records')
-          .select('id', { count: 'exact', head: true })
-          .eq('adopter_user_id', userId),
-        // Fetch rescue cases for display
+        isSelf
+          ? supabase
+              .from('adoption_listings')
+              .select('id', { count: 'exact', head: true })
+              .eq('poster_user_id', userId)
+              .eq('status', 'Adopted')
+              .is('deleted_at', null)
+          : Promise.resolve({ count: 0, data: null, error: null }),
+        isSelf
+          ? supabase
+              .from('adoption_records')
+              .select('id', { count: 'exact', head: true })
+              .eq('adopter_user_id', userId)
+          : Promise.resolve({ count: 0, data: null, error: null }),
         supabase
           .from('rescue_cases')
           .select('id,poster_user_id,case_code,name,species,icon,tint,status,location,story,tags,created_at,cover_media_id,cover:media_assets!cover_media_id(url,thumb_url)')
@@ -162,19 +178,28 @@ export function useProfileViewData(userId: string) {
         });
       }
 
-      setImpactStats({
+      setImpactStats(prev => ({
         rescues: rescueRes.count ?? 0,
-        rehomed: rehomRes.count ?? 0,
-        adopted: adoptedRes.count ?? 0,
+        rehomed: isSelf ? (rehomRes.count ?? 0) : prev.rehomed,
+        adopted: isSelf ? (adoptedRes.count ?? 0) : prev.adopted,
         following: activeCompanionFollowsRes.data?.length ?? 0,
-      });
+      }));
 
       if (!rescueCasesRes.error && rescueCasesRes.data) {
         setRescues((rescueCasesRes.data as DbRescaseCaseRow[]).map(mapDbRescue));
       }
     };
     load();
-  }, [userId]);
+  }, [userId, isSelf]);
+
+  useEffect(() => {
+    if (!userId || isSelf) return;
+    setImpactStats(prev => ({
+      ...prev,
+      rehomed: filterOutgoingAdoptions(visitorPlacementRecords, userId).length,
+      adopted: filterIncomingAdopted(visitorPlacementRecords, userId).length,
+    }));
+  }, [userId, isSelf, visitorPlacementRecords]);
 
   useEffect(() => {
     if (!userId || skipCompanions) {
@@ -197,13 +222,15 @@ export function useProfileViewData(userId: string) {
     [feedPosts, userId],
   );
 
+  const placementRecords = isSelf ? records : visitorPlacementRecords;
+
   const outgoingAdoptions = useMemo(
-    () => filterOutgoingAdoptions(records, userId),
-    [records, userId],
+    () => filterOutgoingAdoptions(placementRecords, userId),
+    [placementRecords, userId],
   );
   const incomingAdopted = useMemo(
-    () => filterIncomingAdopted(records, userId),
-    [records, userId],
+    () => filterIncomingAdopted(placementRecords, userId),
+    [placementRecords, userId],
   );
 
   return {

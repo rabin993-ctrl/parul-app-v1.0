@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, View, ActivityIndicator, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
@@ -14,6 +14,8 @@ import { useTabBarScrollPadding } from '../../navigation/tabBarInsets';
 import { useAdoptedDetailBack } from '../../navigation/adoptedDetailBack';
 import { navigateToUserProfileFromNested } from '../../navigation/userProfileRouting';
 import { navigateToAdoptionListingFromNested } from '../../navigation/adoptionListingRouting';
+import { fetchPublicAdoptionRecord } from '../../lib/publicProfileAdoptions';
+import type { AdoptionRecord } from '../../data/adoptionRecords';
 
 type AdoptedDetailParams = {
   recordId: string;
@@ -34,14 +36,55 @@ export function AdoptedDetailScreen() {
     submitPosterEndorsement,
     submitAdopterResponse,
   } = useAdoption();
-  const record = records.find(r => r.id === recordId);
+  const contextRecord = records.find(r => r.id === recordId);
+  const [fetchedRecord, setFetchedRecord] = useState<AdoptionRecord | null>(null);
+  const [loadingPublic, setLoadingPublic] = useState(
+    () => route.name === 'PublicAdoptedDetail' && !contextRecord,
+  );
+  const record = contextRecord ?? fetchedRecord;
   const adopterProfile = useUserProfile(record?.adopterId);
 
   const [toast, setToast] = useState<ToastData | null>(null);
 
   const viewerId = me.id;
 
-  if (!record) return null;
+  useEffect(() => {
+    if (contextRecord || route.name !== 'PublicAdoptedDetail') {
+      setLoadingPublic(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingPublic(true);
+    void fetchPublicAdoptionRecord(recordId).then(next => {
+      if (!cancelled) {
+        setFetchedRecord(next);
+        setLoadingPublic(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [contextRecord, recordId, route.name]);
+
+  if (loadingPublic) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']}>
+        <ProfileSubHeader title="Adoption" onBack={handleBack} />
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!record) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']}>
+        <ProfileSubHeader title="Adoption" onBack={handleBack} />
+        <View style={styles.center}>
+          <Text style={{ color: colors.textSecondary }}>This placement is no longer available.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const isAdopter = record.adopterId === viewerId;
   const isPoster = record.posterId === viewerId;
@@ -100,4 +143,5 @@ export function AdoptedDetailScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { paddingHorizontal: 16, paddingTop: 4 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

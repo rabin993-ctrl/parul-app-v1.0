@@ -8,7 +8,7 @@ import {
   useHomeHub,
 } from '../context/HomeHubContext';
 import type { FeedStackParamList } from '../navigation/feedHubNavigation';
-import { feedHubScreenForSection } from '../navigation/feedHubNavigation';
+import { ADOPTION_HUB_SCREEN, feedHubListingParams, feedHubScreenForSection } from '../navigation/feedHubNavigation';
 
 export function useFeedHubNavigationSync(activeHub: HomeHubTab) {
   const navigation = useNavigation<NativeStackNavigationProp<FeedStackParamList>>();
@@ -24,7 +24,12 @@ export function useFeedHubNavigationSync(activeHub: HomeHubTab) {
       registerFeedHubNavigation({
         resetToFeed: () => navigation.navigate('FeedHome'),
         selectSection: (tab: HomeSectionTab) => {
-          navigation.navigate(feedHubScreenForSection(tab));
+          const screen = feedHubScreenForSection(tab);
+          if (screen === ADOPTION_HUB_SCREEN) {
+            navigation.navigate('AdoptionHub', feedHubListingParams('adoption'));
+            return;
+          }
+          navigation.navigate('RescueHub', feedHubListingParams('rescue'));
         },
       }, ownerId);
       setHomeTab(activeHub);

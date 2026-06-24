@@ -75,7 +75,8 @@ export function FlipAdoptionCard({
   const hasActiveRequest = !!myRequest && isActiveAdoptionRequest(myRequest);
   const hasOwnerRequests = isOwner && !adopted && ownerRequestCount > 0 && !!onManageRequests;
   const canOwnerRelist = isOwner && adopted && !!onRelist;
-  const statusLabel = adopted ? 'Adopted' : listing.status;
+  const rehomedLabel = successfulPlacementLabel(true);
+  const statusLabel = adopted ? rehomedLabel : listing.status;
   const isUploading = listing.publishStatus === 'uploading';
   const useNativeDriver = Platform.OS !== 'web';
 
@@ -151,11 +152,11 @@ export function FlipAdoptionCard({
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Story</Text>
         <Text style={[styles.backStory, { color: colors.text }]}>{listing.story}</Text>
 
-        {listing.requirements.length > 0 && (
+        {((listing.requirements ?? []).length > 0) && (
           <>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Requirements</Text>
             <View style={styles.backReqList}>
-              {listing.requirements.map((req, i) => (
+              {(listing.requirements ?? []).map((req, i) => (
                 <View key={i} style={styles.backReqRow}>
                   <Icon name="check" size={14} color={colors.success} />
                   <Text style={[styles.backReqText, { color: colors.text }]}>{req}</Text>
@@ -252,7 +253,7 @@ export function FlipAdoptionCard({
           <View style={[styles.adoptedRibbon, { backgroundColor: colors.success + 'EE' }]}>
             <Icon name="adoption" size={13} color="#fff" />
             <Text style={styles.adoptedRibbonText}>
-              {successfulPlacementLabel(isOwner)}
+              {rehomedLabel}
             </Text>
           </View>
         )}
