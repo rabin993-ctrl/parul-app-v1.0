@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, type StyleProp, type TextStyle, type
 import { useTheme } from '../../theme/ThemeContext';
 import { AdoptionUserFlag } from './AdoptionUserFlag';
 import type { AdoptionTrustFlag } from '../../utils/adoptionUserFlag';
+import { authorProfilePressableProps } from '../../utils/authorProfilePress';
 
 export function UserNameWithAdoptionFlag({
   userId,
@@ -39,9 +40,7 @@ export function UserNameWithAdoptionFlag({
 
   return (
     <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [pressed && styles.pressed]}
-      hitSlop={4}
+      {...authorProfilePressableProps(onPress, `View ${name}'s profile`)}
     >
       {content}
     </Pressable>
@@ -65,5 +64,4 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 0,
   },
-  pressed: { opacity: 0.7 },
 });

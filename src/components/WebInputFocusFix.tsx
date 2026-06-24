@@ -57,6 +57,14 @@ function handleFieldTouch(e: Event) {
   }
 }
 
+function handleAuthorLinkTouch(e: Event) {
+  if (typeof Element === 'undefined') return;
+  const target = e.target;
+  if (!(target instanceof Element)) return;
+  if (!target.closest('[data-author-profile-link="true"]')) return;
+  e.stopPropagation();
+}
+
 export function WebInputFocusFix() {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
@@ -65,11 +73,15 @@ export function WebInputFocusFix() {
 
     document.addEventListener('touchstart', handleFieldTouch, true);
     document.addEventListener('mousedown', handleFieldTouch, true);
+    document.addEventListener('touchstart', handleAuthorLinkTouch, true);
+    document.addEventListener('mousedown', handleAuthorLinkTouch, true);
 
     if (document.getElementById(STYLE_ID)) {
       return () => {
         document.removeEventListener('touchstart', handleFieldTouch, true);
         document.removeEventListener('mousedown', handleFieldTouch, true);
+        document.removeEventListener('touchstart', handleAuthorLinkTouch, true);
+        document.removeEventListener('mousedown', handleAuthorLinkTouch, true);
       };
     }
 
@@ -120,6 +132,13 @@ export function WebInputFocusFix() {
         user-select: auto !important;
         touch-action: auto !important;
       }
+      [data-author-profile-link="true"] {
+        pointer-events: auto !important;
+        touch-action: manipulation !important;
+        cursor: pointer !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+      }
       div[aria-modal="true"] {
         background-color: transparent !important;
       }
@@ -139,6 +158,8 @@ export function WebInputFocusFix() {
     return () => {
       document.removeEventListener('touchstart', handleFieldTouch, true);
       document.removeEventListener('mousedown', handleFieldTouch, true);
+      document.removeEventListener('touchstart', handleAuthorLinkTouch, true);
+      document.removeEventListener('mousedown', handleAuthorLinkTouch, true);
     };
   }, []);
 

@@ -47,6 +47,7 @@ import { RescueCaseCard } from '../components/rescue/RescueCaseCard';
 import { ForwardSheet, type ForwardDest } from '../components/ForwardSheet';
 import { FeedCommentSheet } from '../components/feed/FeedCommentSheet';
 import { navigateToUserProfile } from '../navigation/userProfileRouting';
+import { openCommentAuthorProfile as navigateToCommentAuthorProfile } from '../navigation/feedCommentRouting';
 import {
   navigateToCompanionPostDetailFromNested,
 } from '../navigation/companionProfileRouting';
@@ -510,8 +511,8 @@ export function FeedScreen() {
   }, [navigation, user?.id]);
 
   const openCommentAuthorProfile = useCallback((userId: string) => {
-    openUserProfile(userId);
-  }, [openUserProfile]);
+    navigateToCommentAuthorProfile(navigation, userId, user?.id, { returnTo: 'Feed' });
+  }, [navigation, user?.id]);
 
   const dismissCompanionProfile = useCallback(() => {
     setCompanionFullOpen(false);

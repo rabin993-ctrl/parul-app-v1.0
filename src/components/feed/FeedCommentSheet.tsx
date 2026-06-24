@@ -64,9 +64,15 @@ export function FeedCommentSheet({
   }, [scrollToEnd]);
 
   const handleAuthorPress = useCallback((userId: string) => {
-    onClose();
-    if (onAuthorPress) {
-      queueMicrotask(() => onAuthorPress(userId));
+    if (!userId || !onAuthorPress) return;
+    onAuthorPress(userId);
+    const close = () => onClose();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(close);
+      });
+    } else {
+      setTimeout(close, 0);
     }
   }, [onAuthorPress, onClose]);
 

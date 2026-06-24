@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, Pressable, TextInput, StyleSheet, Platform,
 } from 'react-native';
@@ -193,6 +193,19 @@ export function CommunityCommentSheet({
   const mentionPickerOpen = activeMentionQuery !== null;
   const commentCount = countCommunityThreadComments(post.threads ?? []);
 
+  const handleAuthorPress = useCallback((userId: string) => {
+    if (!userId || !onAuthorPress) return;
+    onAuthorPress(userId);
+    const close = () => onClose();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(close);
+      });
+    } else {
+      setTimeout(close, 0);
+    }
+  }, [onAuthorPress, onClose]);
+
   const openReply = (threadId: string, userName: string, anchorKey: string) => {
     setReplyTo({ threadId, userName, anchorKey });
     setInlineReplyText('');
@@ -366,7 +379,7 @@ export function CommunityCommentSheet({
             key={thread.id}
             thread={thread}
             colors={colors}
-            onAuthorPress={onAuthorPress}
+            onAuthorPress={onAuthorPress ? handleAuthorPress : undefined}
             openReply={openReply}
             renderInlineReply={renderInlineReply}
           />

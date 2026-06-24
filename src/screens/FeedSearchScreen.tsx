@@ -29,9 +29,9 @@ import {
   searchCommunitiesByQuery,
   type SearchUserResult,
 } from '../utils/feedSearch';
-import { parseSearchTokens, escapeIlikePattern } from '../utils/textSearch';
+import { searchDiscoverableUsers } from '../lib/discoverableUserSearch';
+import { parseSearchTokens } from '../utils/textSearch';
 import { formatFeedSearchPostMeta } from '../utils/postMeta';
-import { supabase } from '../lib/supabase';
 import { useTabBarScrollPadding } from '../navigation/tabBarInsets';
 import { shortCircleName } from '../utils/destinationSearch';
 import { useMobileWeb } from '../hooks/useMobileWeb';
@@ -52,6 +52,7 @@ function FeedSearchBody() {
 
   const [query, setQuery] = useState('');
   const [remoteUsers, setRemoteUsers] = useState<SearchUserResult[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   const circles = useMemo(() => {
     const seen = new Set<string>();
@@ -74,23 +75,17 @@ function FeedSearchBody() {
     const tokens = parseSearchTokens(query);
     if (tokens.length === 0) {
       setRemoteUsers([]);
+      setUsersLoading(false);
       return;
     }
 
     let cancelled = false;
-    const primary = escapeIlikePattern(tokens[0]);
-    void supabase
-      .rpc('search_discoverable_users', { p_query: primary, p_limit: 40 })
-      .then(({ data }) => {
-        if (cancelled) return;
-        const rows = (data ?? []).map(row => ({
-          id: row.id,
-          name: row.name ?? row.handle ?? row.id.slice(0, 8),
-          handle: row.handle ?? undefined,
-          tint: row.tint ?? undefined,
-        }));
-        setRemoteUsers(filterUsersByQuery(rows, query));
-      });
+    setUsersLoading(true);
+    void searchDiscoverableUsers(query).then(rows => {
+      if (cancelled) return;
+      setRemoteUsers(rows);
+      setUsersLoading(false);
+    });
 
     return () => {
       cancelled = true;
@@ -129,8 +124,10 @@ function FeedSearchBody() {
   );
 
   const hasQuery = query.trim().length > 0;
-  const hasResults = userResults.length + postResults.length + adoptionResults.length
+  const localResults = postResults.length + adoptionResults.length
     + rescueResults.length + circleResults.length + communityResults.length > 0;
+  const hasResults = userResults.length > 0 || localResults;
+  const showEmpty = hasQuery && !hasResults && !usersLoading;
 
   const openPost = (postId: string) => {
     navigation.getParent()?.navigate('Profile', {
@@ -180,8 +177,10 @@ function FeedSearchBody() {
             title="Search Parul"
             body="Try a name, @username, place, breed, or any word from a post."
           />
-        ) : !hasResults ? (
+        ) : showEmpty ? (
           <Empty icon="search" title="No matches" body="Try another name, handle, or keyword." />
+        ) : usersLoading && !hasResults ? (
+          <Text style={[styles.searchingLabel, { color: colors.textTertiary }]}>Searching…</Text>
         ) : (
           <>
             {userResults.length > 0 && (
@@ -395,6 +394,7 @@ const styles = StyleSheet.create({
     }),
   },
   scroll: { paddingHorizontal: 16, flexGrow: 1 },
+  searchingLabel: { fontSize: 14, textAlign: 'center', marginTop: 24 },
   section: { marginBottom: 18 },
   sectionLabel: {
     fontSize: 11,

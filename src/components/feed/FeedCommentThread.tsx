@@ -27,6 +27,7 @@ import { MentionText } from '../ui/MentionText';
 import { useVisualViewportInset } from '../../hooks/useVisualViewportInset';
 import { useSheetScrollToEnd } from '../../hooks/useSheetScrollToEnd';
 import type { MentionTarget } from '../../utils/mentionText';
+import { authorProfilePressableProps } from '../../utils/authorProfilePress';
 
 type ReplyTarget = {
   threadIndex: number;
@@ -83,13 +84,17 @@ function ThreadRow({
   const threadUser = commentAvatarUser(thread.user, profile, me, colors.primary);
   const threadAnchor = `thread-${i}`;
   const [pawed, setPawed] = useState(false);
+  const openProfile = () => {
+    if (thread.user) onAuthorPress?.(thread.user);
+  };
 
   return (
     <View style={styles.threadItem}>
       <Pressable
-        onPress={() => onAuthorPress?.(thread.user)}
-        disabled={!onAuthorPress}
-        style={({ pressed }) => pressed && { opacity: 0.7 }}
+        {...authorProfilePressableProps(
+          onAuthorPress ? openProfile : undefined,
+          `View ${displayName}'s profile`,
+        )}
       >
         <Avatar user={threadUser} size={32} />
       </Pressable>
@@ -165,13 +170,17 @@ function ReplyRow({
   const ru = commentAvatarUser(reply.user, profile, me, colors.primary);
   const replyAnchor = `reply-${i}-${j}`;
   const [pawed, setPawed] = useState(false);
+  const openProfile = () => {
+    if (reply.user) onAuthorPress?.(reply.user);
+  };
 
   return (
     <View style={styles.nestedReply}>
       <Pressable
-        onPress={() => onAuthorPress?.(reply.user)}
-        disabled={!onAuthorPress}
-        style={({ pressed }) => pressed && { opacity: 0.7 }}
+        {...authorProfilePressableProps(
+          onAuthorPress ? openProfile : undefined,
+          `View ${displayName}'s profile`,
+        )}
       >
         <Avatar user={ru} size={24} />
       </Pressable>
