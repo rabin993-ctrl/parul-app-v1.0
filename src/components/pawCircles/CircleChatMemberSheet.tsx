@@ -62,17 +62,6 @@ export function CircleChatMemberSheet({
           <Pressable
             key={option.id}
             onPress={() => {
-              if (option.id === 'profile') {
-                const userId = member.userId;
-                onClose();
-                const run = () => onViewProfile(userId);
-                if (typeof requestAnimationFrame === 'function') {
-                  requestAnimationFrame(run);
-                } else {
-                  run();
-                }
-                return;
-              }
               option.onPress();
               onClose();
             }}

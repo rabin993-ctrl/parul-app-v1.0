@@ -57,7 +57,6 @@ import { CircleChatMemberSheet } from '../../components/pawCircles/CircleChatMem
 import { startDirectMessage } from '../../utils/startDirectMessage';
 import { useAdoption, type ChatThread } from '../../context/AdoptionContext';
 import { navigateToChatThread } from '../../navigation/chatThreadRouting';
-import { navigateToPublicUserProfile } from '../../navigation/userProfileRouting';
 import type { User } from '../../data/mockData';
 import { PawLoader } from '../../components/PawLoader';
 
@@ -211,6 +210,9 @@ export function CircleChatScreen() {
   const [sharedPostMap, setSharedPostMap] = useState<Record<string, Post>>({});
   const [rescueCaseMap, setRescueCaseMap] = useState<Record<string, RescueCase>>({});
   const [selectedMember, setSelectedMember] = useState<CircleMemberProfile | null>(null);
+  const latchedMemberRef = useRef<CircleMemberProfile | null>(null);
+  if (selectedMember) latchedMemberRef.current = selectedMember;
+  const memberSheetMember = selectedMember ?? latchedMemberRef.current;
   const [dmLoading, setDmLoading] = useState(false);
   const rescueFeed = useRescueFeedOptional();
   const listRef = useRef<FlatList<CircleChatListItem>>(null);
@@ -297,7 +299,18 @@ export function CircleChatScreen() {
   }, [buildDmThread, dmLoading, navigation, registerDmThread, reloadThreads, selectedMember]);
 
   const handleViewMemberProfile = useCallback((userId: string) => {
-    navigateToPublicUserProfile(navigation, userId, user?.id, { returnTo: 'Hub' });
+    const run = () => {
+      if (user?.id === userId) {
+        navigation.getParent()?.navigate('Profile', { screen: 'Home' });
+        return;
+      }
+      navigation.navigate('UserProfile', { userId, returnTo: 'Hub' });
+    };
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(run);
+    } else {
+      run();
+    }
   }, [navigation, user?.id]);
 
   const renderPeerAvatar = useCallback((
@@ -709,13 +722,15 @@ export function CircleChatScreen() {
         onSelect={action => { void handleAttachAction(action); }}
       />
 
-      <CircleChatMemberSheet
-        visible={!!selectedMember}
-        member={selectedMember}
-        onClose={() => setSelectedMember(null)}
-        onSendMessage={handleSendPersonalMessage}
-        onViewProfile={handleViewMemberProfile}
-      />
+      {memberSheetMember ? (
+        <CircleChatMemberSheet
+          visible={!!selectedMember}
+          member={memberSheetMember}
+          onClose={() => setSelectedMember(null)}
+          onSendMessage={handleSendPersonalMessage}
+          onViewProfile={handleViewMemberProfile}
+        />
+      ) : null}
 
       <Toast data={toast} onHide={() => setToast(null)} />
     </SafeAreaView>
