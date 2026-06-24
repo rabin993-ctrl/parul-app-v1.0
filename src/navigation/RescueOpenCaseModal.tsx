@@ -44,6 +44,7 @@ function OpenCaseSheet({
       title="Open a case"
       maxHeight={Platform.OS === 'web' ? 680 : undefined}
       footerExpandBody
+      footerActionsOnly
       footer={(
         <View style={styles.actions}>
           {publishHint ? (
