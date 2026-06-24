@@ -23,6 +23,7 @@ import { useAdoption } from '../../context/AdoptionContext';
 import { useAuth } from '../../context/AuthContext';
 import { getPostPoster } from '../../utils/postAuthor';
 import { startDirectMessage } from '../../utils/startDirectMessage';
+import { resolvePeerDmThread } from '../../utils/resolvePeerChatThread';
 
 const POPUP_MAX_WIDTH = 420;
 
@@ -65,7 +66,7 @@ export function AlertMessageSheet({
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { registerOpen, registerClose } = useSheetOverlay();
   const { user } = useAuth();
-  const { sendAlertMessage, registerDmThread } = useAdoption();
+  const { sendAlertMessage, registerDmThread, threads, records } = useAdoption();
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -89,15 +90,23 @@ export function AlertMessageSheet({
     if (!post || !user || sending) return;
 
     setSending(true);
-    const dm = await startDirectMessage(post.userId);
-    if ('error' in dm) {
-      setSending(false);
-      onError(dm.error);
-      return;
+
+    const existing = resolvePeerDmThread(threads, records, post.userId);
+    let threadId: string;
+    if (existing) {
+      threadId = existing.id;
+    } else {
+      const dm = await startDirectMessage(post.userId);
+      if ('error' in dm) {
+        setSending(false);
+        onError(dm.error);
+        return;
+      }
+      threadId = dm.threadId;
     }
 
     const messageText = draft.trim() || alertPlaceholder(post);
-    const ok = await sendAlertMessage(dm.threadId, post.id, messageText);
+    const ok = await sendAlertMessage(threadId, post.id, messageText);
     setSending(false);
 
     if (!ok) {
@@ -105,11 +114,11 @@ export function AlertMessageSheet({
       return;
     }
 
-    const thread = buildChatThread(post, dm.threadId);
-    registerDmThread(thread);
+    const thread = existing ?? buildChatThread(post, threadId);
+    if (!existing) registerDmThread(thread);
     onSent(thread);
     onClose();
-  }, [post, user, sending, draft, sendAlertMessage, registerDmThread, onSent, onClose, onError]);
+  }, [post, user, sending, draft, sendAlertMessage, registerDmThread, threads, records, onSent, onClose, onError]);
 
   const canSend = !!post && !sending;
 

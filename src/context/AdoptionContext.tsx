@@ -101,7 +101,7 @@ type AdoptionContextValue = {
   getThreadMessages: (threadId: string) => ChatMessage[];
   getPromptsForUser: (userId: string) => AdoptionUpdatePrompt[];
   getNotificationsForUser: (userId: string) => AdoptionNotification[];
-  sendMessage: (threadId: string, text: string, senderId?: string) => void;
+  sendMessage: (threadId: string, text: string, senderId?: string) => Promise<boolean>;
   sendPhoto: (threadId: string, asset: PickedAsset, caption?: string) => Promise<boolean>;
   sendFile: (threadId: string, file: PickedFile, caption?: string) => Promise<boolean>;
   sendAlertMessage: (threadId: string, postId: string, text?: string) => Promise<boolean>;
@@ -207,9 +207,11 @@ export function AdoptionProvider({ children }: { children: React.ReactNode }) {
     [adoptionNotifications],
   );
 
-  const sendMessage = useCallback((threadId: string, text: string, senderId?: string) => {
-    sendDbMessage(threadId, text, senderId);
-  }, [sendDbMessage]);
+  const sendMessage = useCallback((
+    threadId: string,
+    text: string,
+    senderId?: string,
+  ) => sendDbMessage(threadId, text, senderId), [sendDbMessage]);
 
   const sendPhoto = useCallback((
     threadId: string,

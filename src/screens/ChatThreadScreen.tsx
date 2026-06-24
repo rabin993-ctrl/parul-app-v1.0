@@ -485,7 +485,11 @@ export function ChatThreadScreen({
       return;
     }
     if (!caption || chatLocked) return;
-    sendMessage(thread.id, caption, 'you');
+    const ok = await sendMessage(thread.id, caption, 'you');
+    if (!ok) {
+      setToast({ msg: 'Could not send message — try again', icon: 'close', tone: 'danger' });
+      return;
+    }
     composerRef.current?.clear();
     scrollToLatest({ animated: true });
   }, [

@@ -167,6 +167,53 @@ function resolveLastReadId(
   return override;
 }
 
+function isOptimisticMessageId(id: string): boolean {
+  return id.startsWith('opt-');
+}
+
+/** Keep in-flight optimistic rows when a full reload races an insert. */
+function mergeLoadedMessagesWithOptimistic(
+  prev: Record<string, ChatMessage[]>,
+  loaded: Record<string, ChatMessage[]>,
+): Record<string, ChatMessage[]> {
+  const merged: Record<string, ChatMessage[]> = { ...loaded };
+
+  for (const [threadId, prevMsgs] of Object.entries(prev)) {
+    const optimistic = prevMsgs.filter(m => isOptimisticMessageId(m.id));
+    if (!optimistic.length) continue;
+
+    const loadedMsgs = merged[threadId] ?? [];
+    const loadedIds = new Set(loadedMsgs.map(m => m.id));
+    const pending = optimistic.filter(opt => {
+      if (loadedIds.has(opt.id)) return false;
+      if (opt.kind === 'text') {
+        return !loadedMsgs.some(l =>
+          l.kind === 'text'
+          && l.text === opt.text
+          && l.senderId === opt.senderId,
+        );
+      }
+      if (opt.kind === 'shared_post') {
+        return !loadedMsgs.some(l =>
+          l.kind === 'shared_post'
+          && l.postId === opt.postId
+          && l.senderId === opt.senderId,
+        );
+      }
+      if (opt.kind === 'media') {
+        return !loadedMsgs.some(l => l.kind === 'media' && l.senderId === opt.senderId);
+      }
+      return true;
+    });
+
+    if (pending.length) {
+      merged[threadId] = [...loadedMsgs, ...pending];
+    }
+  }
+
+  return merged;
+}
+
 export function useAdoptionThreads() {
   const { user } = useAuth();
   const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -368,7 +415,7 @@ export function useAdoptionThreads() {
         };
       });
     });
-    setMessages(chatMessages);
+    setMessages(prev => mergeLoadedMessagesWithOptimistic(prev, chatMessages));
     return chatThreads;
   }, [user]);
 
@@ -549,8 +596,12 @@ export function useAdoptionThreads() {
     };
   }, [user, load]);
 
-  const sendMessage = useCallback((threadId: string, text: string, senderId?: string) => {
-    if (!user) return;
+  const sendMessage = useCallback(async (
+    threadId: string,
+    text: string,
+    senderId?: string,
+  ): Promise<boolean> => {
+    if (!user) return false;
     const effectiveSender = senderId === 'you' ? user.id : (senderId ?? user.id);
     const nowMs = Date.now();
     const optimisticId = `opt-msg-${nowMs}`;
@@ -578,25 +629,27 @@ export function useAdoptionThreads() {
       : t,
     ));
 
-    supabase.from('messages').insert({
+    const { data, error } = await supabase.from('messages').insert({
       thread_id: threadId,
       kind: 'text',
       sender_user_id: effectiveSender,
       text,
-    }).select('id').single().then(({ data, error }) => {
-      if (error) {
-        setMessages(prev => ({
-          ...prev,
-          [threadId]: (prev[threadId] ?? []).filter(m => m.id !== optimisticId),
-        }));
-        return;
-      }
-      const realId = (data as { id: string }).id;
+    }).select('id').single();
+
+    if (error) {
       setMessages(prev => ({
         ...prev,
-        [threadId]: (prev[threadId] ?? []).map(m => m.id === optimisticId ? { ...m, id: realId } : m),
+        [threadId]: (prev[threadId] ?? []).filter(m => m.id !== optimisticId),
       }));
-    });
+      return false;
+    }
+
+    const realId = (data as { id: string }).id;
+    setMessages(prev => ({
+      ...prev,
+      [threadId]: (prev[threadId] ?? []).map(m => m.id === optimisticId ? { ...m, id: realId } : m),
+    }));
+    return true;
   }, [user]);
 
   const sendAlertMessage = useCallback(async (
@@ -870,6 +923,7 @@ export function useAdoptionThreads() {
 
   const registerDmThread = useCallback((thread: ChatThread) => {
     setThreads(prev => (prev.some(t => t.id === thread.id) ? prev : [thread, ...prev]));
+    setMessages(prev => ({ ...prev, [thread.id]: prev[thread.id] ?? [] }));
   }, []);
 
   const markRead = useCallback(async (threadId: string) => {

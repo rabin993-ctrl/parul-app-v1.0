@@ -18,6 +18,7 @@ export function ProfileIdentityRail({
   userId,
   bio,
   location,
+  actionsRow,
 }: {
   avatarSlot?: React.ReactNode;
   mode: 'display' | 'avatarOnly' | 'textOnly';
@@ -25,6 +26,8 @@ export function ProfileIdentityRail({
   userId?: string;
   bio?: string | null;
   location?: string | null;
+  /** Icon actions rendered beside the name (e.g. message, add to circle). */
+  actionsRow?: React.ReactNode;
 }) {
   const { colors } = useTheme();
   const bioText = bio?.trim();
@@ -40,6 +43,9 @@ export function ProfileIdentityRail({
           {name}
         </Text>
         {userId ? <AdoptionUserFlag userId={userId} size={14} /> : null}
+        {actionsRow ? (
+          <View style={styles.nameRowActions}>{actionsRow}</View>
+        ) : null}
       </View>
       {bioText || locationText ? (
         <View style={styles.bioLocationRow}>
@@ -104,8 +110,16 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 5,
     maxWidth: PROFILE_IDENTITY_RAIL_MAX,
+  },
+  nameRowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+    gap: 5,
+    marginLeft: spacing.md,
   },
   name: {
     flexShrink: 1,

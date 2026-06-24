@@ -7,7 +7,6 @@ import { useTheme } from '../../theme/ThemeContext';
 import {
   ProfilePublicHeader,
   ProfilePublicHeroBand,
-  ProfilePublicActions,
   ProfilePublicCompanionsSection,
   ProfileContentDrawer,
   ProfileScreenCanvas,
@@ -34,6 +33,7 @@ import { profileOwnerScreenBg } from '../../theme/profileCanvasTheme';
 import type { User } from '../../data/mockData';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { startDirectMessage } from '../../utils/startDirectMessage';
+import { resolvePeerDmThread } from '../../utils/resolvePeerChatThread';
 import { useAuth } from '../../context/AuthContext';
 import { useUserPrivacy } from '../../context/UserPrivacyContext';
 import { usePawCircles } from '../../context/PawCircleContext';
@@ -117,7 +117,7 @@ export function UserProfileScreen() {
     return () => { cancelled = true; };
   }, [isSelf, authUser, userId, joinedCircles.length, fetchInvitableCircles]);
 
-  const { records, registerDmThread, reloadThreads } = useAdoption();
+  const { records, threads, registerDmThread, reloadThreads } = useAdoption();
   const {
     posts,
     rescues,
@@ -130,6 +130,12 @@ export function UserProfileScreen() {
 
   const handleMessage = useCallback(() => {
     if (!authUser || dmLoading) return;
+
+    const existing = resolvePeerDmThread(threads, records, userId);
+    if (existing) {
+      navigateToChatThread(navigation, existing);
+      return;
+    }
 
     setDmLoading(true);
     void (async () => {
@@ -155,7 +161,7 @@ export function UserProfileScreen() {
       await reloadThreads();
       navigateToChatThread(navigation, resolved);
     })();
-  }, [authUser, dmLoading, navigation, registerDmThread, reloadThreads, userId, userMini]);
+  }, [authUser, dmLoading, navigation, registerDmThread, reloadThreads, records, threads, userId, userMini]);
 
   const postsCount = useMemo(() => profileFeedPosts(posts).length, [posts]);
 
@@ -301,6 +307,10 @@ export function UserProfileScreen() {
             onStatPress={handleStatPress}
             onFollowingPress={handleFollowingPress}
             adoptedMissedCount={adoptedMissedCount}
+            onMessage={handleMessage}
+            messageLoading={dmLoading}
+            showAddToCircle={!hideAddToCircle}
+            onAddToCircle={() => setAddToCircleOpen(true)}
           />
 
           <ProfileContentDrawer
@@ -309,13 +319,6 @@ export function UserProfileScreen() {
             bottomInset={tabBarPad}
             scrollProps={tabBarScrollProps}
           >
-            <ProfilePublicActions
-              onMessage={handleMessage}
-              messageLoading={dmLoading}
-              showAddToCircle={!hideAddToCircle}
-              onAddToCircle={() => setAddToCircleOpen(true)}
-            />
-
             <ProfilePublicCompanionsSection
               companions={visibleCompanions}
               onSelect={setCompanionProfileId}

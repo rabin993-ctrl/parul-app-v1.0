@@ -195,18 +195,6 @@ function unifiedInboxScore(recencyMs: number, unread: number): number {
   return recencyMs + (unread > 0 ? 0.001 : 0);
 }
 
-export function collectAdoptionParticipantIds(threads: ChatThread[]): Set<string> {
-  return new Set(threads.map(t => t.participantId));
-}
-
-export function filterDmThreadsOverlappingAdoption(
-  dmThreads: ChatThread[],
-  adoptionThreads: ChatThread[],
-): ChatThread[] {
-  const adoptionPeers = collectAdoptionParticipantIds(adoptionThreads);
-  return dmThreads.filter(t => !adoptionPeers.has(t.participantId));
-}
-
 /** General DMs with no messages yet (profile tap → start_dm) should not appear in inbox lists. */
 export function dmThreadHasInboxActivity(
   thread: ChatThread,
@@ -313,10 +301,7 @@ export function buildUnifiedInboxItems(params: {
     });
   }
 
-  for (const thread of filterInboxVisibleDmThreads(
-    filterDmThreadsOverlappingAdoption(dmThreads, adoptionThreads),
-    messages,
-  )) {
+  for (const thread of filterInboxVisibleDmThreads(dmThreads, messages)) {
     if (unreadOnly && thread.unread <= 0) continue;
     if (query) {
       const name = (thread.participantName ?? thread.participantId).toLowerCase();
@@ -415,10 +400,7 @@ export function buildRescueInboxItems(params: {
   }
 
   for (const thread of filterInboxVisibleDmThreads(
-    filterDmThreadsOverlappingAdoption(
-      dmThreads.filter(isRescueDmThread),
-      adoptionThreads,
-    ),
+    dmThreads.filter(isRescueDmThread),
     messages,
   )) {
     if (query) {

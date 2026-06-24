@@ -690,6 +690,7 @@ function ProfileHeroPrimaryRow({
   treatSlot,
   identitySize = 'default',
   showOnlineIndicator = false,
+  actionsRow,
 }: {
   user: User;
   onAvatarPress?: () => void;
@@ -705,6 +706,7 @@ function ProfileHeroPrimaryRow({
   treatSlot: React.ReactNode;
   identitySize?: ProfileHeroIdentitySize;
   showOnlineIndicator?: boolean;
+  actionsRow?: React.ReactNode;
 }) {
   const compact = identitySize === 'compact';
   const avatarSize = compact ? PROFILE_HERO_AVATAR_SIZE_COMPACT : PROFILE_HERO_AVATAR_SIZE;
@@ -769,6 +771,7 @@ function ProfileHeroPrimaryRow({
         userId={user.id}
         bio={user.bio}
         location={user.location}
+        actionsRow={actionsRow}
       />
     </View>
   );
@@ -903,6 +906,10 @@ export function ProfilePublicHeroBand({
   onStatPress,
   onFollowingPress,
   adoptedMissedCount = 0,
+  onMessage,
+  onAddToCircle,
+  messageLoading = false,
+  showAddToCircle = true,
 }: {
   user: User;
   trust: ProfileTrust;
@@ -913,8 +920,21 @@ export function ProfilePublicHeroBand({
   onStatPress: (tab: ProfileContentTab) => void;
   onFollowingPress?: () => void;
   adoptedMissedCount?: number;
+  onMessage?: () => void;
+  onAddToCircle?: () => void;
+  messageLoading?: boolean;
+  showAddToCircle?: boolean;
 }) {
   const showTrust = trust.status !== 'good';
+  const actionsRow = onMessage ? (
+    <ProfilePublicActions
+      iconOnly
+      onMessage={onMessage}
+      onAddToCircle={onAddToCircle ?? (() => {})}
+      messageLoading={messageLoading}
+      showAddToCircle={showAddToCircle}
+    />
+  ) : undefined;
 
   return (
     <View style={styles.profileHeroBand}>
@@ -933,6 +953,7 @@ export function ProfilePublicHeroBand({
         adoptedMissedCount={adoptedMissedCount}
         treatSlot={<ProfilePublicTreatsStatCell ownerId={ownerId} compact />}
         showOnlineIndicator
+        actionsRow={actionsRow}
       />
     </View>
   );
@@ -975,29 +996,84 @@ export function ProfilePublicActions({
   onAddToCircle,
   messageLoading = false,
   showAddToCircle = true,
+  inline = false,
+  iconOnly = false,
 }: {
   onMessage: () => void;
   onAddToCircle: () => void;
   messageLoading?: boolean;
   showAddToCircle?: boolean;
+  inline?: boolean;
+  iconOnly?: boolean;
 }) {
   const { colors } = useTheme();
 
+  if (iconOnly) {
+    const circleSize = 26;
+    const iconSize = 13;
+    return (
+      <View style={styles.publicActionsIconOnly}>
+        <Pressable
+          onPress={messageLoading ? undefined : onMessage}
+          accessibilityRole="button"
+          accessibilityLabel={messageLoading ? 'Opening message' : 'Send message'}
+          style={({ pressed }) => [
+            styles.publicActionIconCircle,
+            {
+              width: circleSize,
+              height: circleSize,
+              borderRadius: circleSize / 2,
+              backgroundColor: colors.surface2,
+              borderColor: colors.border,
+              opacity: pressed || messageLoading ? 0.7 : 1,
+            },
+          ]}
+        >
+          <Icon name="send" size={iconSize} color={colors.primary} />
+        </Pressable>
+        {showAddToCircle ? (
+          <Pressable
+            onPress={onAddToCircle}
+            accessibilityRole="button"
+            accessibilityLabel="Add to circle"
+            style={({ pressed }) => [
+              styles.publicActionIconCircle,
+              {
+                width: circleSize,
+                height: circleSize,
+                borderRadius: circleSize / 2,
+                backgroundColor: colors.surface2,
+                borderColor: colors.border,
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <Icon name="plus" size={iconSize} color={colors.text} />
+          </Pressable>
+        ) : null}
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.publicActions}>
+    <View style={[styles.publicActions, inline && styles.publicActionsInline]}>
       <Pressable
         onPress={onMessage}
         disabled={messageLoading}
         style={({ pressed }) => [
           styles.publicActionBtn,
+          inline && styles.publicActionBtnInline,
           styles.publicActionBtnPrimary,
           { backgroundColor: colors.primary, opacity: pressed || messageLoading ? 0.7 : 1 },
         ]}
         accessibilityRole="button"
         accessibilityLabel={messageLoading ? 'Opening message' : 'Send message'}
       >
-        <Icon name="send" size={15} color="#fff" />
-        <Text style={styles.publicActionBtnLabelPrimary}>
+        <Icon name="send" size={inline ? 12 : 15} color="#fff" />
+        <Text style={[
+          styles.publicActionBtnLabelPrimary,
+          inline && styles.publicActionBtnLabelInline,
+        ]}>
           {messageLoading ? 'Opening…' : 'Message'}
         </Text>
       </Pressable>
@@ -1006,6 +1082,7 @@ export function ProfilePublicActions({
         onPress={onAddToCircle}
         style={({ pressed }) => [
           styles.publicActionBtn,
+          inline && styles.publicActionBtnInline,
           styles.publicActionBtnSoft,
           {
             backgroundColor: colors.surface2,
@@ -1016,8 +1093,12 @@ export function ProfilePublicActions({
         accessibilityRole="button"
         accessibilityLabel="Add to circle"
       >
-        <Icon name="plus" size={15} color={colors.text} />
-        <Text style={[styles.publicActionBtnLabelSoft, { color: colors.text }]}>Add to circle</Text>
+        <Icon name="plus" size={inline ? 12 : 15} color={colors.text} />
+        <Text style={[
+          styles.publicActionBtnLabelSoft,
+          inline && styles.publicActionBtnLabelInline,
+          { color: colors.text },
+        ]}>Add to circle</Text>
       </Pressable>
       ) : null}
     </View>
@@ -3070,6 +3151,21 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: spacing.xs,
   },
+  publicActionsInline: {
+    justifyContent: 'flex-start',
+    paddingVertical: 0,
+    gap: 6,
+  },
+  publicActionsIconOnly: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  publicActionIconCircle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   publicActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3078,10 +3174,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: radius.full,
   },
+  publicActionBtnInline: {
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    gap: 4,
+  },
   publicActionBtnPrimary: {},
   publicActionBtnSoft: { borderWidth: StyleSheet.hairlineWidth },
   publicActionBtnLabelPrimary: { fontSize: 14, fontWeight: '700', color: '#fff' },
   publicActionBtnLabelSoft: { fontSize: 14, fontWeight: '700' },
+  publicActionBtnLabelInline: { fontSize: 11, fontWeight: '700', letterSpacing: -0.1 },
   heroLocationBlock: {
     width: '100%',
     maxWidth: 320,

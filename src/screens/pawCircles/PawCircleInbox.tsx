@@ -22,7 +22,6 @@ import {
   buildRescueInboxItems,
   buildUnifiedInboxItems,
   collectAdoptionInboxActionSections,
-  filterDmThreadsOverlappingAdoption,
   filterInboxVisibleDmThreads,
 } from '../../utils/unifiedInbox';
 import { sortCirclesByRecency, sortThreadsByRecency } from '../../utils/inboxRecency';
@@ -268,10 +267,7 @@ export function PawCircleInbox({
   const filteredDms = useMemo(() => {
     if (filter !== 'direct') return [];
     let list = filterInboxVisibleDmThreads(
-      filterDmThreadsOverlappingAdoption(
-        rescueDmThreads.filter(t => !isRescueHelpThread(t, messages[t.id])),
-        adoptionThreads,
-      ),
+      rescueDmThreads.filter(t => !isRescueHelpThread(t, messages[t.id])),
       messages,
     );
     if (q) {

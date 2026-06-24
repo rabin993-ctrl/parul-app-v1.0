@@ -62,6 +62,7 @@ import type { RescueCase } from '../../data/profileData';
 import type { Companion } from '../../data/mockData';
 import { CircleChatMemberSheet } from '../../components/pawCircles/CircleChatMemberSheet';
 import { startDirectMessage } from '../../utils/startDirectMessage';
+import { resolvePeerDmThread } from '../../utils/resolvePeerChatThread';
 import { useAdoption, type ChatThread } from '../../context/AdoptionContext';
 import { navigateToChatThread } from '../../navigation/chatThreadRouting';
 import type { User } from '../../data/mockData';
@@ -196,7 +197,7 @@ export function CircleChatScreen() {
   const route = useRoute<Route>();
   const { circleId, returnTo } = route.params;
   const { user } = useAuth();
-  const { registerDmThread, reloadThreads } = useAdoption();
+  const { records, threads, registerDmThread, reloadThreads } = useAdoption();
   const { getCircle, resolveCircleDbId, createdCircles, pendingCountByCircle, ready: circlesReady } = usePawCircles();
   const circle = getCircle(circleId);
   const circleDbId = resolveCircleDbId(circleId);
@@ -292,6 +293,13 @@ export function CircleChatScreen() {
     if (!selectedMember || dmLoading) return;
     const member = selectedMember;
     setSelectedMember(null);
+
+    const existing = resolvePeerDmThread(threads, records, member.userId);
+    if (existing) {
+      navigateToChatThread(navigation, existing);
+      return;
+    }
+
     setDmLoading(true);
     void (async () => {
       const result = await startDirectMessage(member.userId);
@@ -305,7 +313,7 @@ export function CircleChatScreen() {
       await reloadThreads();
       navigateToChatThread(navigation, resolved);
     })();
-  }, [buildDmThread, dmLoading, navigation, registerDmThread, reloadThreads, selectedMember]);
+  }, [buildDmThread, dmLoading, navigation, records, registerDmThread, reloadThreads, selectedMember, threads]);
 
   const handleViewMemberProfile = useCallback((userId: string) => {
     const run = () => {
